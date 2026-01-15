@@ -1,0 +1,38 @@
+{
+    "name": "holodeck-builder",
+    "displayName": "Holodeck Builder",
+    "version": "0.0.1",
+    "description": "Record DOM interactions for Holodeck replays",
+    "author": "Holodeck Team",
+    "scripts": {
+        "dev": "plasmo dev",
+        "build": "plasmo build",
+        "package": "plasmo package"
+    },
+    "dependencies": {
+        "plasmo": "0.90.5",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "rrweb": "^2.0.0-alpha.17"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.287",
+        "@types/node": "^22.10.7",
+        "@types/react": "^18.3.18",
+        "@types/react-dom": "^18.3.5",
+        "autoprefixer": "^10.4.20",
+        "postcss": "^8.5.1",
+        "tailwindcss": "^3.4.17",
+        "typescript": "^5.7.3"
+    },
+    "manifest": {
+        "permissions": [
+            "activeTab",
+            "storage",
+            "downloads"
+        ],
+        "host_permissions": [
+            "<all_urls>"
+        ]
+    }
+}
