@@ -1,12 +1,12 @@
 "use client";
 
-import { 
-  Home, 
-  LayoutGrid, 
-  MessageCircle, 
-  Users, 
-  BarChart3, 
-  Settings, 
+import {
+  Home,
+  LayoutGrid,
+  MessageCircle,
+  Users,
+  BarChart3,
+  Settings,
   ChevronDown,
   Link as LinkIcon,
   User,
@@ -23,6 +23,7 @@ import {
   Bell
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function DashboardPage() {
@@ -30,13 +31,22 @@ export default function DashboardPage() {
   const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
 
-    return (
+  return (
     <div className="min-h-screen bg-background flex">
       {/* Left Sidebar */}
       <aside className="w-64 bg-surface border-r border-primary/10 flex flex-col h-screen sticky top-0">
         {/* Logo */}
         <div className="p-6 border-b border-primary/10">
-          <h1 className="text-2xl font-bold text-primary">Nexbit</h1>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/assets/logo.jpg"
+              alt="Nexbit Logo"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
+            <h1 className="text-2xl font-bold text-primary">Nexbit</h1>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -44,11 +54,10 @@ export default function DashboardPage() {
           <Link
             href="/dashboard"
             onClick={() => setActiveNav("Home")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Home"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Home"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <Home className="w-4 h-4" />
             Home
@@ -57,11 +66,10 @@ export default function DashboardPage() {
           <Link
             href="/demos"
             onClick={() => setActiveNav("Demos")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Demos"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Demos"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <LayoutGrid className="w-4 h-4" />
             Demos
@@ -70,11 +78,10 @@ export default function DashboardPage() {
           <Link
             href="/chats"
             onClick={() => setActiveNav("Chats")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Chats"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Chats"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <MessageCircle className="w-4 h-4" />
             Chats
@@ -106,11 +113,10 @@ export default function DashboardPage() {
           <Link
             href="/insights"
             onClick={() => setActiveNav("Insights")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Insights"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Insights"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <BarChart3 className="w-4 h-4" />
             Insights
@@ -142,11 +148,10 @@ export default function DashboardPage() {
           <Link
             href="/integrations"
             onClick={() => setActiveNav("Integrations")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Integrations"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Integrations"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <LinkIcon className="w-4 h-4" />
             Integrations
@@ -310,5 +315,5 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
-    );
+  );
 }

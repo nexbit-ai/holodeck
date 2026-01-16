@@ -1,12 +1,12 @@
 "use client";
 
-import { 
-  Home, 
-  LayoutGrid, 
-  MessageCircle, 
-  Users, 
-  BarChart3, 
-  Settings, 
+import {
+  Home,
+  LayoutGrid,
+  MessageCircle,
+  Users,
+  BarChart3,
+  Settings,
   ChevronDown,
   Link as LinkIcon,
   User,
@@ -23,19 +23,20 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function ChatsPage() {
   const [activeNav, setActiveNav] = useState("Chats");
   const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
-  
+
   // Chat settings state
   const [tone, setTone] = useState("professional");
   const [guidelines, setGuidelines] = useState<Array<{ id: number; text: string }>>([]);
   const [showAddGuideline, setShowAddGuideline] = useState(false);
   const [newGuideline, setNewGuideline] = useState("");
-  
+
   // Documents state
   const [documents, setDocuments] = useState([
     { id: 1, name: "Product Documentation.pdf", size: "2.4 MB", uploaded: "Jan 10, 2025", status: "processed" },
@@ -62,7 +63,14 @@ export default function ChatsPage() {
       <aside className="w-64 bg-surface border-r border-primary/10 flex flex-col h-screen sticky top-0">
         {/* Logo */}
         <div className="p-6 border-b border-primary/10">
-          <Link href="/dashboard">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <Image
+              src="/assets/logo.jpg"
+              alt="Nexbit Logo"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <h1 className="text-2xl font-bold text-primary">Nexbit</h1>
           </Link>
         </div>
@@ -72,11 +80,10 @@ export default function ChatsPage() {
           <Link
             href="/dashboard"
             onClick={() => setActiveNav("Home")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Home"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Home"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <Home className="w-4 h-4" />
             Home
@@ -85,11 +92,10 @@ export default function ChatsPage() {
           <Link
             href="/demos"
             onClick={() => setActiveNav("Demos")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Demos"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Demos"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <LayoutGrid className="w-4 h-4" />
             Demos
@@ -98,11 +104,10 @@ export default function ChatsPage() {
           <Link
             href="/chats"
             onClick={() => setActiveNav("Chats")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Chats"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Chats"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <MessageCircle className="w-4 h-4" />
             Chats
@@ -134,11 +139,10 @@ export default function ChatsPage() {
           <Link
             href="/insights"
             onClick={() => setActiveNav("Insights")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Insights"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Insights"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <BarChart3 className="w-4 h-4" />
             Insights
@@ -170,11 +174,10 @@ export default function ChatsPage() {
           <Link
             href="/integrations"
             onClick={() => setActiveNav("Integrations")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-              activeNav === "Integrations"
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-primary/5"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Integrations"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-primary/5"
+              }`}
           >
             <LinkIcon className="w-4 h-4" />
             Integrations
@@ -218,11 +221,10 @@ export default function ChatsPage() {
                 <button
                   key={toneOption.value}
                   onClick={() => setTone(toneOption.value)}
-                  className={`px-4 py-2 rounded-lg border-2 text-sm transition-all ${
-                    tone === toneOption.value
-                      ? "border-primary bg-primary/5 text-primary font-medium"
-                      : "border-primary/10 hover:border-primary/30 hover:bg-primary/5 text-foreground"
-                  }`}
+                  className={`px-4 py-2 rounded-lg border-2 text-sm transition-all ${tone === toneOption.value
+                    ? "border-primary bg-primary/5 text-primary font-medium"
+                    : "border-primary/10 hover:border-primary/30 hover:bg-primary/5 text-foreground"
+                    }`}
                 >
                   {toneOption.label}
                 </button>
@@ -240,7 +242,7 @@ export default function ChatsPage() {
                 Learn more
               </button>
             </div>
-            
+
             {guidelines.length === 0 ? (
               <div className="bg-background border border-primary/10 rounded-lg p-12 min-h-[400px] flex flex-col items-center justify-center">
                 {/* Cloud Graphics */}
@@ -251,11 +253,11 @@ export default function ChatsPage() {
                   <div className="w-28 h-28 bg-primary/10 rounded-full absolute -top-2 left-12"></div>
                   <div className="w-16 h-16 bg-primary/5 rounded-full absolute top-6 left-20"></div>
                 </div>
-                
+
                 <h3 className="text-xl font-bold text-foreground mb-2">Start by adding a guideline</h3>
                 <p className="text-sm text-foreground/70 mb-1">Any guideline you create will be shown here</p>
                 <p className="text-sm text-foreground/60 mb-6">Start creating by clicking on Add new</p>
-                
+
                 <button
                   onClick={() => setShowAddGuideline(true)}
                   className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
@@ -358,7 +360,7 @@ export default function ChatsPage() {
             <p className="text-sm text-foreground/70 mb-4">
               Upload documents that your chatbot can reference when answering questions. Supported formats: PDF, DOCX, MD, TXT.
             </p>
-            
+
             {documents.length === 0 ? (
               <div className="border-2 border-dashed border-primary/20 rounded-lg p-12 text-center">
                 <FileText className="w-12 h-12 text-primary/40 mx-auto mb-4" />
@@ -383,9 +385,8 @@ export default function ChatsPage() {
                           <span className="text-xs text-foreground/60">•</span>
                           <span className="text-xs text-foreground/60">Uploaded {doc.uploaded}</span>
                           <span className="text-xs text-foreground/60">•</span>
-                          <span className={`text-xs flex items-center gap-1 ${
-                            doc.status === "processed" ? "text-green-600" : "text-primary"
-                          }`}>
+                          <span className={`text-xs flex items-center gap-1 ${doc.status === "processed" ? "text-green-600" : "text-primary"
+                            }`}>
                             {doc.status === "processed" ? (
                               <>
                                 <CheckCircle2 className="w-3 h-3" />

@@ -1,31 +1,32 @@
 'use client'
 
-import { useRef, useCallback } from 'react'
+import { useCallback } from 'react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { Save, Trash2, FileJson } from 'lucide-react'
 import { useEditorStore } from './store'
 import { DropZone } from './components/DropZone'
-import { Player, type PlayerHandle } from './components/Player'
+import { ClickSlideDeck } from './components/ClickSlideDeck'
 import { Timeline } from './components/Timeline'
 import { AnnotationCard } from './components/AnnotationCard'
 
 export default function EditorPage() {
     const isLoaded = useEditorStore((state) => state.isLoaded)
-    const events = useEditorStore((state) => state.events)
+    const clickRecording = useEditorStore((state) => state.clickRecording)
     const exportProject = useEditorStore((state) => state.exportProject)
     const clearProject = useEditorStore((state) => state.clearProject)
-    const clickEvents = useEditorStore((state) => state.clickEvents)
+    const selectedSlideIndex = useEditorStore((state) => state.selectedSlideIndex)
+    const setSelectedSlide = useEditorStore((state) => state.setSelectedSlide)
 
-    const playerRef = useRef<PlayerHandle>(null)
+    // Get counts
+    const snapshotCount = clickRecording?.snapshots.length || 0
+    const clickCount = clickRecording?.snapshots.filter(s => s.type === 'click').length || 0
 
-    const handleEventSelect = useCallback((timestamp: number) => {
-        if (playerRef.current) {
-            playerRef.current.seekTo(timestamp)
-        }
-    }, [])
+    const handleSlideChange = useCallback((index: number) => {
+        setSelectedSlide(index)
+    }, [setSelectedSlide])
 
     // Empty state - show upload
-    if (!isLoaded) {
+    if (!isLoaded || !clickRecording) {
         return (
             <div className="min-h-screen bg-background">
                 <header className="border-b border-foreground/10 bg-surface/80 backdrop-blur-sm">
@@ -61,7 +62,7 @@ export default function EditorPage() {
                             <div>
                                 <h1 className="text-lg font-bold text-foreground">Demo Editor</h1>
                                 <p className="text-xs text-foreground/50">
-                                    {events.length} events • {clickEvents.length} interactions detected
+                                    {snapshotCount} snapshots • {clickCount} clicks
                                 </p>
                             </div>
                         </div>
@@ -88,10 +89,14 @@ export default function EditorPage() {
 
             {/* Main content with resizable panels */}
             <Group orientation="horizontal" className="flex-1">
-                {/* Left Panel - Player */}
+                {/* Left Panel - Slide Deck */}
                 <Panel defaultSize="65%" minSize="40%">
                     <div className="h-full p-6 overflow-auto flex items-center justify-center">
-                        <Player ref={playerRef} events={events} />
+                        <ClickSlideDeck
+                            recording={clickRecording}
+                            currentSlideIndex={selectedSlideIndex}
+                            onSlideChange={handleSlideChange}
+                        />
                     </div>
                 </Panel>
 
@@ -102,7 +107,7 @@ export default function EditorPage() {
                 <Panel defaultSize="35%" minSize="25%">
                     <div className="h-full bg-surface border-l border-foreground/10 flex flex-col overflow-hidden">
                         <div className="flex-1 overflow-y-auto">
-                            <Timeline onEventSelect={handleEventSelect} />
+                            <Timeline />
                         </div>
                         <AnnotationCard />
                     </div>
