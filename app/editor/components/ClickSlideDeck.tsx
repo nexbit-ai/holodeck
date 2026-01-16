@@ -6,18 +6,20 @@ import type { ClickRecording } from '../types/recording'
 import { useEditorStore, type AnnotatedSnapshot } from '../store'
 import { MouseCursor } from './MouseCursor'
 import { ClickTooltip } from './ClickTooltip'
+import { PlayerTooltip } from './PlayerTooltip'
 
 interface ClickSlideDeckProps {
     recording: ClickRecording
     currentSlideIndex: number
     onSlideChange: (index: number) => void
+    viewOnly?: boolean // When true, uses simple non-editable PlayerTooltip
 }
 
 // Display container dimensions - will be calculated dynamically
 const DEFAULT_CONTAINER_WIDTH = 900
 const DEFAULT_CONTAINER_HEIGHT = 550
 
-export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: ClickSlideDeckProps) {
+export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, viewOnly = false }: ClickSlideDeckProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const outerContainerRef = useRef<HTMLDivElement>(null)
@@ -36,39 +38,44 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
     const totalSlides = snapshots.length
     const currentSnapshot = snapshots[currentSlideIndex]
 
-    // Update container size based on available space
+    // Get the original dimensions from current snapshot
+    const originalWidth = currentSnapshot?.viewportWidth || 1920
+    const originalHeight = currentSnapshot?.viewportHeight || 1080
+
+    // Update container size based on available space AND aspect ratio
     useEffect(() => {
         const updateSize = () => {
             if (outerContainerRef.current) {
                 const rect = outerContainerRef.current.getBoundingClientRect()
-                // Reserve space for padding, badges, slide dots, and controls (about 250px)
-                const availableHeight = Math.max(400, rect.height - 250)
-                const availableWidth = Math.max(600, rect.width - 64) // padding
+                // Reserve minimal space for slide dots and keyboard hint (about 60px)
+                const maxAvailableHeight = Math.max(300, rect.height - 60)
+                const maxAvailableWidth = Math.max(400, rect.width - 32)
+
+                // Calculate scale to fit within available bounds while maintaining aspect ratio
+                const scaleX = maxAvailableWidth / originalWidth
+                const scaleY = maxAvailableHeight / originalHeight
+                const bestScale = Math.min(scaleX, scaleY)
+
+                // Set container to the ACTUAL scaled dimensions (no empty space!)
                 setContainerSize({
-                    width: availableWidth,
-                    height: availableHeight
+                    width: Math.round(originalWidth * bestScale),
+                    height: Math.round(originalHeight * bestScale)
                 })
             }
         }
 
         // Initial size
         const timer = setTimeout(updateSize, 100)
-        
+
         window.addEventListener('resize', updateSize)
         return () => {
             clearTimeout(timer)
             window.removeEventListener('resize', updateSize)
         }
-    }, [currentSlideIndex]) // Recalculate when slide changes
+    }, [currentSlideIndex, originalWidth, originalHeight]) // Recalculate when slide changes or dimensions change
 
-    // Calculate scale factor based on recorded viewport vs container
-    const originalWidth = currentSnapshot?.viewportWidth || 1920
-    const originalHeight = currentSnapshot?.viewportHeight || 1080
-
-    // Calculate scale to fit container while maintaining aspect ratio
-    const scaleX = containerSize.width / originalWidth
-    const scaleY = containerSize.height / originalHeight
-    const scale = Math.min(scaleX, scaleY)
+    // Calculate scale factor based on container size (which is now the scaled size)
+    const scale = containerSize.width / originalWidth
 
     // Scaled cursor position
     const scaledCursorX = cursorPosition.x * scale
@@ -185,9 +192,9 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
     }
 
     return (
-        <div 
+        <div
             ref={outerContainerRef}
-            className="flex flex-col items-center justify-center h-full w-full gap-4 p-4"
+            className="flex flex-col items-center justify-start h-full w-full gap-2 p-2"
         >
             {/* Slide Display */}
             <div className="relative bg-surface rounded-xl shadow-lg overflow-hidden flex-1 flex items-center justify-center w-full max-w-full">
@@ -246,22 +253,37 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
 
                     {/* Annotation tooltip (only for click slides) */}
                     {currentSnapshot?.type === 'click' && showCursor && (
-                        <ClickTooltip
-                            x={scaledCursorX}
-                            y={scaledCursorY}
-                            text={annotationText}
-                            isEditing={isEditingTooltip}
-                            onTextChange={handleAnnotationChange}
-                            onStartEdit={() => setIsEditingTooltip(true)}
-                            onFinishEdit={() => setIsEditingTooltip(false)}
-                            containerWidth={containerSize.width}
-                            containerHeight={containerSize.height}
-                            onPrevious={() => goToSlide(currentSlideIndex - 1)}
-                            onNext={() => goToSlide(currentSlideIndex + 1)}
-                            canGoPrevious={currentSlideIndex > 0}
-                            canGoNext={currentSlideIndex < totalSlides - 1}
-                            isTransitioning={isTransitioning}
-                        />
+                        viewOnly ? (
+                            <PlayerTooltip
+                                x={scaledCursorX}
+                                y={scaledCursorY}
+                                text={annotationText}
+                                containerWidth={containerSize.width}
+                                containerHeight={containerSize.height}
+                                onPrevious={() => goToSlide(currentSlideIndex - 1)}
+                                onNext={() => goToSlide(currentSlideIndex + 1)}
+                                canGoPrevious={currentSlideIndex > 0}
+                                canGoNext={currentSlideIndex < totalSlides - 1}
+                                isTransitioning={isTransitioning}
+                            />
+                        ) : (
+                            <ClickTooltip
+                                x={scaledCursorX}
+                                y={scaledCursorY}
+                                text={annotationText}
+                                isEditing={isEditingTooltip}
+                                onTextChange={handleAnnotationChange}
+                                onStartEdit={() => setIsEditingTooltip(true)}
+                                onFinishEdit={() => setIsEditingTooltip(false)}
+                                containerWidth={containerSize.width}
+                                containerHeight={containerSize.height}
+                                onPrevious={() => goToSlide(currentSlideIndex - 1)}
+                                onNext={() => goToSlide(currentSlideIndex + 1)}
+                                canGoPrevious={currentSlideIndex > 0}
+                                canGoNext={currentSlideIndex < totalSlides - 1}
+                                isTransitioning={isTransitioning}
+                            />
+                        )
                     )}
                 </div>
             </div>
@@ -291,7 +313,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
             {/* Keyboard hint */}
             <p className="text-xs text-foreground/40 mt-2">
                 Use <kbd className="px-1.5 py-0.5 bg-foreground/10 rounded text-foreground/60 font-mono">←</kbd> and <kbd className="px-1.5 py-0.5 bg-foreground/10 rounded text-foreground/60 font-mono">→</kbd> to navigate
-                {isEditingTooltip && <span className="ml-2 text-primary">(finish editing first)</span>}
+                {!viewOnly && isEditingTooltip && <span className="ml-2 text-primary">(finish editing first)</span>}
             </p>
         </div>
     )

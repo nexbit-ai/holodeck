@@ -1,6 +1,6 @@
 "use client";
 
-import { 
+import {
   Play,
   Mic,
   Send,
@@ -48,7 +48,7 @@ export default function AgentPage() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   // Demo player state
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedDemo, setSelectedDemo] = useState<Recording | null>(null);
@@ -192,8 +192,8 @@ export default function AgentPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-2">Demo Player</h3>
                 <p className="text-sm text-foreground/60">
-                  {recordings.length === 0 
-                    ? "No demos available. Create a demo first." 
+                  {recordings.length === 0
+                    ? "No demos available. Create a demo first."
                     : "Select a demo to play"}
                 </p>
               </div>
@@ -204,6 +204,7 @@ export default function AgentPage() {
                 recording={demoContent}
                 currentSlideIndex={currentSlideIndex}
                 onSlideChange={handleSlideChange}
+                viewOnly={true}
               />
             </div>
           )}
@@ -237,11 +238,10 @@ export default function AgentPage() {
               className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  message.sender === "user"
+                className={`max-w-[80%] rounded-lg px-4 py-2 ${message.sender === "user"
                     ? "bg-primary text-white"
                     : "bg-background border border-primary/10 text-foreground"
-                }`}
+                  }`}
               >
                 {message.sender === "nex" && (
                   <div className="flex items-center gap-2 mb-1">
@@ -255,7 +255,7 @@ export default function AgentPage() {
               </div>
             </div>
           ))}
-          
+
           {isTyping && (
             <div className="flex justify-start">
               <div className="bg-background border border-primary/10 rounded-lg px-4 py-2">
@@ -267,7 +267,7 @@ export default function AgentPage() {
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
 
