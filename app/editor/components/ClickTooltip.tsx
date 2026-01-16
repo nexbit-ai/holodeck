@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageCircle, X, Check } from 'lucide-react'
+import { MessageCircle, X, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface ClickTooltipProps {
     x: number
@@ -13,6 +13,11 @@ interface ClickTooltipProps {
     onFinishEdit: () => void
     containerWidth: number
     containerHeight: number
+    onPrevious?: () => void
+    onNext?: () => void
+    canGoPrevious?: boolean
+    canGoNext?: boolean
+    isTransitioning?: boolean
 }
 
 export function ClickTooltip({
@@ -25,12 +30,17 @@ export function ClickTooltip({
     onFinishEdit,
     containerWidth,
     containerHeight,
+    onPrevious,
+    onNext,
+    canGoPrevious = false,
+    canGoNext = false,
+    isTransitioning = false,
 }: ClickTooltipProps) {
     const [localText, setLocalText] = useState(text)
 
     // Position the tooltip - try to keep it in bounds
     const tooltipWidth = 280
-    const tooltipHeight = 120
+    const tooltipHeight = 160 // Increased height to accommodate navigation buttons
     const padding = 16
     const cursorOffset = 30
 
@@ -129,6 +139,53 @@ export function ClickTooltip({
                         <p className="text-xs text-foreground/40">
                             Press <kbd className="px-1 py-0.5 bg-foreground/10 rounded font-mono">⌘ Enter</kbd> to save
                         </p>
+                    </div>
+                )}
+
+                {/* Navigation Controls */}
+                {(onPrevious || onNext) && (
+                    <div className="px-3 pb-3 pt-2 border-t border-primary/10 flex items-center justify-between gap-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (onPrevious && canGoPrevious && !isTransitioning && !isEditing) {
+                                    onPrevious();
+                                }
+                            }}
+                            disabled={!canGoPrevious || isTransitioning || isEditing}
+                            className={`
+                                flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
+                                transition-all duration-200
+                                ${!canGoPrevious || isTransitioning || isEditing
+                                    ? 'bg-foreground/5 text-foreground/30 cursor-not-allowed'
+                                    : 'bg-surface border border-foreground/10 text-foreground hover:bg-primary/5 hover:border-primary/30'
+                                }
+                            `}
+                        >
+                            <ChevronLeft className="w-3 h-3" />
+                            Previous
+                        </button>
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (onNext && canGoNext && !isTransitioning && !isEditing) {
+                                    onNext();
+                                }
+                            }}
+                            disabled={!canGoNext || isTransitioning || isEditing}
+                            className={`
+                                flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
+                                transition-all duration-200
+                                ${!canGoNext || isTransitioning || isEditing
+                                    ? 'bg-foreground/5 text-foreground/30 cursor-not-allowed'
+                                    : 'bg-primary text-white hover:bg-primary/90 shadow-md'
+                                }
+                            `}
+                        >
+                            Next
+                            <ChevronRight className="w-3 h-3" />
+                        </button>
                     </div>
                 )}
             </div>

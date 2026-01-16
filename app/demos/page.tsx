@@ -22,7 +22,12 @@ import {
   User2,
   FolderArchive,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -55,6 +60,18 @@ export default function DemosPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // File upload state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  
+  // Menu state
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [demoToDelete, setDemoToDelete] = useState<Recording | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchRecordings = useCallback(async () => {
     setIsLoading(true);
@@ -78,6 +95,193 @@ export default function DemosPage() {
   useEffect(() => {
     fetchRecordings();
   }, [fetchRecordings]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenMenuId(null);
+    };
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuId]);
+
+  const handleDeleteClick = (recording: Recording, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDemoToDelete(recording);
+    setShowDeleteConfirm(true);
+    setOpenMenuId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!demoToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      console.log('Deleting demo with ID:', demoToDelete.id);
+      const encodedId = encodeURIComponent(demoToDelete.id);
+      console.log('Encoded ID:', encodedId);
+      const response = await fetch(`/api/recordings/${encodedId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete demo');
+      }
+
+      // Refresh the recordings list
+      await fetchRecordings();
+      setShowDeleteConfirm(false);
+      setDemoToDelete(null);
+    } catch (err) {
+      console.error('Error deleting demo:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete demo');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    setShowImportModal(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type (expecting JSON files)
+    if (!file.name.endsWith('.json')) {
+      setUploadError('Please select a valid JSON file');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    try {
+      // Validate JSON structure first
+      const fileContent = await file.text();
+      const demoData = JSON.parse(fileContent);
+
+      // Basic validation - check if it's a valid JSON object
+      if (typeof demoData !== 'object' || demoData === null) {
+        throw new Error('Invalid demo file format. File must contain a valid JSON object.');
+      }
+
+      // Upload to API
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/recordings/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to import demo');
+      }
+
+      const result = await response.json();
+      setUploadSuccess(true);
+      
+      // Refresh recordings list after a short delay
+      setTimeout(() => {
+        fetchRecordings();
+        setShowImportModal(false);
+        setUploadSuccess(false);
+        // Reset file input
+        if (event.target) {
+          event.target.value = '';
+        }
+      }, 1500);
+
+    } catch (err) {
+      console.error('Error importing demo:', err);
+      if (err instanceof SyntaxError) {
+        setUploadError('Invalid JSON file format. Please check the file and try again.');
+      } else {
+        setUploadError(err instanceof Error ? err.message : 'Failed to import demo file');
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) {
+      setUploadError('No file dropped');
+      return;
+    }
+
+    if (!file.name.endsWith('.json')) {
+      setUploadError('Please drop a valid JSON file');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    try {
+      // Validate JSON structure first
+      const fileContent = await file.text();
+      const demoData = JSON.parse(fileContent);
+
+      // Basic validation - check if it's a valid JSON object
+      if (typeof demoData !== 'object' || demoData === null) {
+        throw new Error('Invalid demo file format. File must contain a valid JSON object.');
+      }
+
+      // Upload to API
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/recordings/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to import demo');
+      }
+
+      setUploadSuccess(true);
+      
+      // Refresh recordings list after a short delay
+      setTimeout(() => {
+        fetchRecordings();
+        setShowImportModal(false);
+        setUploadSuccess(false);
+      }, 1500);
+
+    } catch (err) {
+      console.error('Error importing demo:', err);
+      if (err instanceof SyntaxError) {
+        setUploadError('Invalid JSON file format. Please check the file and try again.');
+      } else {
+        setUploadError(err instanceof Error ? err.message : 'Failed to import demo file');
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -245,7 +449,13 @@ export default function DemosPage() {
                     <button className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors">
                       New Demo
                     </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors">
+                    <button 
+                      onClick={() => {
+                        setShowCreateDropdown(false);
+                        handleImportClick();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors"
+                    >
                       Import Demo
                     </button>
                   </div>
@@ -384,12 +594,29 @@ export default function DemosPage() {
                   <div className="relative">
                     <DemoThumbnailWrapper thumbnail={recording.thumbnail} />
                     {/* Three-dot menu on top of thumbnail */}
-                    <button
-                      onClick={(e) => e.preventDefault()}
-                      className="absolute top-2 right-2 p-1.5 bg-surface/90 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                    >
-                      <MoreVertical className="w-4 h-4 text-foreground/60" />
-                    </button>
+                    <div className="absolute top-2 right-2 z-10">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === recording.id ? null : recording.id);
+                        }}
+                        className="p-1.5 bg-surface/90 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreVertical className="w-4 h-4 text-foreground/60" />
+                      </button>
+                      {openMenuId === recording.id && (
+                        <div className="absolute right-0 mt-1 w-40 bg-surface border border-primary/10 rounded-lg shadow-lg">
+                          <button
+                            onClick={(e) => handleDeleteClick(recording, e)}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {/* Text content with padding */}
                   <div className="p-4">
@@ -429,18 +656,186 @@ export default function DemosPage() {
                       {recording.creator} • {recording.date} • {(recording.size / 1024).toFixed(1)} KB
                     </p>
                   </div>
-                  <button
-                    onClick={(e) => e.preventDefault()}
-                    className="p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <MoreVertical className="w-4 h-4 text-foreground/60" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === recording.id ? null : recording.id);
+                      }}
+                      className="p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <MoreVertical className="w-4 h-4 text-foreground/60" />
+                    </button>
+                    {openMenuId === recording.id && (
+                      <div className="absolute right-0 top-full mt-1 w-40 bg-surface border border-primary/10 rounded-lg shadow-lg z-10">
+                        <button
+                          onClick={(e) => handleDeleteClick(recording, e)}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </Link>
               ))}
             </div>
           )}
         </div>
       </main>
+
+      {/* Import Demo Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
+          <div 
+            className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-foreground">Import Demo</h3>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setUploadError(null);
+                  setUploadSuccess(false);
+                }}
+                className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-foreground/60" />
+              </button>
+            </div>
+
+            {uploadSuccess ? (
+              <div className="flex flex-col items-center py-8">
+                <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
+                <p className="text-foreground font-medium mb-2">Demo imported successfully!</p>
+                <p className="text-sm text-foreground/60">The demo will appear in your list shortly.</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-foreground/70 mb-6">
+                  Upload a demo file from your computer. Supported format: JSON files.
+                </p>
+
+                {/* Drag and Drop Area */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center mb-4 hover:border-primary/40 transition-colors cursor-pointer"
+                  onClick={() => document.getElementById('file-input')?.click()}
+                >
+                  <Upload className="w-12 h-12 text-primary/40 mx-auto mb-4" />
+                  <p className="text-sm text-foreground mb-2">
+                    Drag and drop your demo file here
+                  </p>
+                  <p className="text-xs text-foreground/60 mb-4">or</p>
+                  <button className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm">
+                    Browse Files
+                  </button>
+                  <p className="text-xs text-foreground/40 mt-4">Supported: JSON files</p>
+                </div>
+
+                {/* Hidden File Input */}
+                <input
+                  id="file-input"
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                {/* Upload Status */}
+                {isUploading && (
+                  <div className="flex items-center gap-2 text-primary mb-4">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Uploading demo...</span>
+                  </div>
+                )}
+
+                {uploadError && (
+                  <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-red-600 font-medium">Error</p>
+                      <p className="text-xs text-red-600/80 mt-1">{uploadError}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowImportModal(false);
+                      setUploadError(null);
+                      setUploadSuccess(false);
+                    }}
+                    className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
+                    disabled={isUploading}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && demoToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
+          <div 
+            className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-foreground">Remove Demo</h3>
+                <p className="text-sm text-foreground/60 mt-1">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <p className="text-foreground mb-6">
+              Are you sure you want to remove <span className="font-semibold">"{demoToDelete.title}"</span>? This will permanently delete the demo.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDemoToDelete(null);
+                }}
+                className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Removing...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Remove
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

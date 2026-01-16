@@ -13,16 +13,19 @@ interface ClickSlideDeckProps {
     onSlideChange: (index: number) => void
 }
 
-// Display container dimensions
-const CONTAINER_WIDTH = 900
-const CONTAINER_HEIGHT = 550
+// Display container dimensions - will be calculated dynamically
+const DEFAULT_CONTAINER_WIDTH = 900
+const DEFAULT_CONTAINER_HEIGHT = 550
 
 export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: ClickSlideDeckProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const outerContainerRef = useRef<HTMLDivElement>(null)
     const [isTransitioning, setIsTransitioning] = useState(false)
     const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 })
     const [showCursor, setShowCursor] = useState(false)
     const [isEditingTooltip, setIsEditingTooltip] = useState(false)
+    const [containerSize, setContainerSize] = useState({ width: DEFAULT_CONTAINER_WIDTH, height: DEFAULT_CONTAINER_HEIGHT })
 
     // Get annotation functions and save state from store
     const updateAnnotation = useEditorStore((state) => state.updateAnnotation)
@@ -33,13 +36,38 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
     const totalSlides = snapshots.length
     const currentSnapshot = snapshots[currentSlideIndex]
 
+    // Update container size based on available space
+    useEffect(() => {
+        const updateSize = () => {
+            if (outerContainerRef.current) {
+                const rect = outerContainerRef.current.getBoundingClientRect()
+                // Reserve space for padding, badges, slide dots, and controls (about 250px)
+                const availableHeight = Math.max(400, rect.height - 250)
+                const availableWidth = Math.max(600, rect.width - 64) // padding
+                setContainerSize({
+                    width: availableWidth,
+                    height: availableHeight
+                })
+            }
+        }
+
+        // Initial size
+        const timer = setTimeout(updateSize, 100)
+        
+        window.addEventListener('resize', updateSize)
+        return () => {
+            clearTimeout(timer)
+            window.removeEventListener('resize', updateSize)
+        }
+    }, [currentSlideIndex]) // Recalculate when slide changes
+
     // Calculate scale factor based on recorded viewport vs container
     const originalWidth = currentSnapshot?.viewportWidth || 1920
     const originalHeight = currentSnapshot?.viewportHeight || 1080
 
     // Calculate scale to fit container while maintaining aspect ratio
-    const scaleX = CONTAINER_WIDTH / originalWidth
-    const scaleY = CONTAINER_HEIGHT / originalHeight
+    const scaleX = containerSize.width / originalWidth
+    const scaleY = containerSize.height / originalHeight
     const scale = Math.min(scaleX, scaleY)
 
     // Scaled cursor position
@@ -157,9 +185,12 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-full gap-4">
+        <div 
+            ref={outerContainerRef}
+            className="flex flex-col items-center justify-center h-full w-full gap-4 p-4"
+        >
             {/* Slide Display */}
-            <div className="relative bg-surface rounded-xl shadow-lg overflow-hidden">
+            <div className="relative bg-surface rounded-xl shadow-lg overflow-hidden flex-1 flex items-center justify-center w-full max-w-full">
                 {/* Slide number badge */}
                 <div className="absolute top-3 left-3 z-20 px-3 py-1.5 bg-background/90 backdrop-blur-sm rounded-full border border-foreground/10">
                     <span className="text-sm font-medium text-foreground">
@@ -174,10 +205,13 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
 
                 {/* Scaled iframe container with cursor overlay */}
                 <div
-                    className="relative overflow-hidden bg-gray-100"
+                    ref={containerRef}
+                    className="relative overflow-hidden bg-gray-100 mx-auto"
                     style={{
-                        width: CONTAINER_WIDTH,
-                        height: CONTAINER_HEIGHT
+                        width: containerSize.width,
+                        height: containerSize.height,
+                        maxWidth: '100%',
+                        maxHeight: '100%'
                     }}
                 >
                     {/* Scaled iframe wrapper */}
@@ -220,33 +254,21 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
                             onTextChange={handleAnnotationChange}
                             onStartEdit={() => setIsEditingTooltip(true)}
                             onFinishEdit={() => setIsEditingTooltip(false)}
-                            containerWidth={CONTAINER_WIDTH}
-                            containerHeight={CONTAINER_HEIGHT}
+                            containerWidth={containerSize.width}
+                            containerHeight={containerSize.height}
+                            onPrevious={() => goToSlide(currentSlideIndex - 1)}
+                            onNext={() => goToSlide(currentSlideIndex + 1)}
+                            canGoPrevious={currentSlideIndex > 0}
+                            canGoNext={currentSlideIndex < totalSlides - 1}
+                            isTransitioning={isTransitioning}
                         />
                     )}
                 </div>
             </div>
 
-            {/* Navigation Controls */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => goToSlide(currentSlideIndex - 1)}
-                    disabled={currentSlideIndex === 0 || isTransitioning || isEditingTooltip}
-                    className={`
-                        flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
-                        transition-all duration-200
-                        ${currentSlideIndex === 0 || isTransitioning || isEditingTooltip
-                            ? 'bg-foreground/5 text-foreground/30 cursor-not-allowed'
-                            : 'bg-surface border border-foreground/10 text-foreground hover:bg-primary/5 hover:border-primary/30'
-                        }
-                    `}
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                </button>
-
-                {/* Slide dots */}
-                <div className="flex items-center gap-2">
+            {/* Slide dots indicator */}
+            {snapshots.length > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-4">
                     {snapshots.map((_, index) => (
                         <button
                             key={index}
@@ -264,26 +286,10 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange }: 
                         />
                     ))}
                 </div>
-
-                <button
-                    onClick={() => goToSlide(currentSlideIndex + 1)}
-                    disabled={currentSlideIndex === totalSlides - 1 || isTransitioning || isEditingTooltip}
-                    className={`
-                        flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
-                        transition-all duration-200
-                        ${currentSlideIndex === totalSlides - 1 || isTransitioning || isEditingTooltip
-                            ? 'bg-foreground/5 text-foreground/30 cursor-not-allowed'
-                            : 'bg-primary text-white hover:bg-primary/90 shadow-md'
-                        }
-                    `}
-                >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                </button>
-            </div>
+            )}
 
             {/* Keyboard hint */}
-            <p className="text-xs text-foreground/40">
+            <p className="text-xs text-foreground/40 mt-2">
                 Use <kbd className="px-1.5 py-0.5 bg-foreground/10 rounded text-foreground/60 font-mono">←</kbd> and <kbd className="px-1.5 py-0.5 bg-foreground/10 rounded text-foreground/60 font-mono">→</kbd> to navigate
                 {isEditingTooltip && <span className="ml-2 text-primary">(finish editing first)</span>}
             </p>
