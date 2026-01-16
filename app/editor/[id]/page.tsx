@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Group, Panel, Separator } from 'react-resizable-panels'
-import { Save, Trash2, FileJson, Loader2, ArrowLeft } from 'lucide-react'
+import { X, FileJson, Loader2, ArrowLeft } from 'lucide-react'
 import { useEditorStore } from '../store'
 import { ClickSlideDeck } from '../components/ClickSlideDeck'
 import { Timeline } from '../components/Timeline'
@@ -21,7 +21,7 @@ export default function EditorWithIdPage() {
 
     const isLoaded = useEditorStore((state) => state.isLoaded)
     const clickRecording = useEditorStore((state) => state.clickRecording)
-    const exportProject = useEditorStore((state) => state.exportProject)
+
     const clearProject = useEditorStore((state) => state.clearProject)
     const loadRecording = useEditorStore((state) => state.loadRecording)
     const selectedSlideIndex = useEditorStore((state) => state.selectedSlideIndex)
@@ -172,15 +172,8 @@ export default function EditorWithIdPage() {
                                 onClick={handleClear}
                                 className="px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <X className="w-4 h-4" />
                                 Close
-                            </button>
-                            <button
-                                onClick={exportProject}
-                                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-                            >
-                                <Save className="w-4 h-4" />
-                                Save Project
                             </button>
                         </div>
                     </div>
