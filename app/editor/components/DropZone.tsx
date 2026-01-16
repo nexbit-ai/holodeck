@@ -2,14 +2,13 @@
 
 import { useCallback, useState } from 'react'
 import { Upload, FileJson } from 'lucide-react'
-import type { eventWithTime } from '@rrweb/types'
 import { useEditorStore } from '../store'
-import { parseClickEvents } from '../utils/parseEvents'
+import { isClickRecording } from '../types/recording'
 
 export function DropZone() {
     const [isDragging, setIsDragging] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const loadEvents = useEditorStore((state) => state.loadEvents)
+    const loadRecording = useEditorStore((state) => state.loadRecording)
 
     const handleFile = useCallback(async (file: File) => {
         setError(null)
@@ -23,32 +22,32 @@ export function DropZone() {
             const text = await file.text()
             const data = JSON.parse(text)
 
-            // Check if it's an array of events or a project file
-            let events: eventWithTime[]
-            if (Array.isArray(data)) {
-                events = data
-            } else if (data.events && Array.isArray(data.events)) {
-                events = data.events
-            } else {
-                setError('Invalid recording format. Expected an array of rrweb events.')
+            // Check if it's the click-only format (v2.0)
+            if (isClickRecording(data)) {
+                if (data.snapshots.length === 0) {
+                    setError('The recording file has no snapshots.')
+                    return
+                }
+                loadRecording(data)
                 return
             }
 
-            if (events.length === 0) {
-                setError('The recording file is empty.')
+            // Also check for project files that contain a recording
+            if (data.recording && isClickRecording(data.recording)) {
+                if (data.recording.snapshots.length === 0) {
+                    setError('The recording file has no snapshots.')
+                    return
+                }
+                loadRecording(data.recording)
                 return
             }
 
-            // Parse click events
-            const clickEvents = parseClickEvents(events)
-
-            // Load into store
-            loadEvents(events, clickEvents)
+            setError('Invalid recording format. Please use a v2.0 click recording.')
         } catch (err) {
             console.error('Failed to parse file:', err)
-            setError('Failed to parse the JSON file. Make sure it\'s a valid rrweb recording.')
+            setError('Failed to parse the JSON file.')
         }
-    }, [loadEvents])
+    }, [loadRecording])
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault()

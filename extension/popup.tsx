@@ -112,17 +112,21 @@ function IndexPopup() {
                     return
                 }
 
-                if (response?.success && response?.events) {
-                    // Trigger download
-                    const blob = new Blob([JSON.stringify(response.events, null, 2)], {
+                if (response?.success && response?.recording) {
+                    // Trigger download with timestamp filename
+                    const blob = new Blob([JSON.stringify(response.recording, null, 2)], {
                         type: "application/json",
                     })
                     const url = URL.createObjectURL(blob)
 
+                    // Generate timestamp filename: recording-2026-01-16T02-30-45.json
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+                    const filename = `holodeck-recordings/recording-${timestamp}.json`
+
                     chrome.downloads.download({
                         url: url,
-                        filename: "recording.json",
-                        saveAs: true,
+                        filename: filename,
+                        saveAs: false, // Auto-save without folder picker
                     })
 
                     setState("idle")
@@ -160,7 +164,7 @@ function IndexPopup() {
         <div className="bg-cream p-5 font-sans">
             {/* Header */}
             <div className="text-center mb-5">
-                <h1 className="text-xl font-bold text-terracotta mb-1">Holodeck Builder</h1>
+                <h1 className="text-xl font-bold text-terracotta mb-1">Demo Builder</h1>
                 <p className="text-xs text-gray-600">Record your product interactions</p>
             </div>
 
@@ -220,7 +224,7 @@ function IndexPopup() {
 
             {/* Footer */}
             <p className="text-center text-xs text-gray-400 mt-4">
-                Powered by rrweb
+                Powered by Nexbit
             </p>
         </div>
     )

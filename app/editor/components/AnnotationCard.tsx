@@ -2,51 +2,71 @@
 
 import { useState, useEffect } from 'react'
 import { Edit3, Save, X } from 'lucide-react'
-import { useEditorStore } from '../store'
+import { useEditorStore, type AnnotatedSnapshot } from '../store'
+
+// Format timestamp
+function formatTimestamp(ms: number, baseTime: number): string {
+    const seconds = Math.floor((ms - baseTime) / 1000)
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
 
 export function AnnotationCard() {
-    const selectedEventId = useEditorStore((state) => state.selectedEventId)
-    const clickEvents = useEditorStore((state) => state.clickEvents)
-    const annotations = useEditorStore((state) => state.annotations)
+    const clickRecording = useEditorStore((state) => state.clickRecording)
+    const selectedSlideIndex = useEditorStore((state) => state.selectedSlideIndex)
+    const setSelectedSlide = useEditorStore((state) => state.setSelectedSlide)
     const updateAnnotation = useEditorStore((state) => state.updateAnnotation)
-    const setSelectedEvent = useEditorStore((state) => state.setSelectedEvent)
 
     const [label, setLabel] = useState('')
     const [script, setScript] = useState('')
     const [isSaved, setIsSaved] = useState(false)
 
-    // Find the selected event
-    const selectedEvent = clickEvents.find((e) => e.id === selectedEventId)
-    const existingAnnotation = selectedEventId ? annotations[selectedEventId] : null
+    // Get the selected snapshot
+    const snapshots = (clickRecording?.snapshots || []) as AnnotatedSnapshot[]
+    const startTime = clickRecording?.startTime || 0
+    const selectedSnapshot = snapshots[selectedSlideIndex]
+    const existingAnnotation = selectedSnapshot?.annotation
+
+    // Get default label based on snapshot type
+    const getDefaultLabel = () => {
+        if (!selectedSnapshot) return 'Unknown'
+        if (selectedSnapshot.type === 'start') return 'Start'
+
+        // Count clicks up to this point
+        let clickNumber = 0
+        for (let i = 0; i <= selectedSlideIndex; i++) {
+            if (snapshots[i].type === 'click') clickNumber++
+        }
+        return `Click ${clickNumber}`
+    }
 
     // Sync form state with existing annotation
     useEffect(() => {
         if (existingAnnotation) {
-            setLabel(existingAnnotation.label)
-            setScript(existingAnnotation.script)
+            setLabel(existingAnnotation.label || '')
+            setScript(existingAnnotation.script || '')
         } else {
             setLabel('')
             setScript('')
         }
         setIsSaved(false)
-    }, [selectedEventId, existingAnnotation])
+    }, [selectedSlideIndex, existingAnnotation])
 
-    if (!selectedEventId || !selectedEvent) {
+    if (!selectedSnapshot) {
         return (
             <div className="p-4 border-t border-foreground/10">
                 <div className="text-center py-6 text-foreground/40">
                     <Edit3 className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Select an event to add annotations</p>
+                    <p className="text-sm">Select a step to add annotations</p>
                 </div>
             </div>
         )
     }
 
     const handleSave = () => {
-        if (!selectedEventId) return
-
-        updateAnnotation(selectedEventId, {
-            label: label || selectedEvent.type,
+        updateAnnotation(selectedSlideIndex, {
+            label: label || getDefaultLabel(),
             script,
         })
         setIsSaved(true)
@@ -56,8 +76,10 @@ export function AnnotationCard() {
     }
 
     const handleClose = () => {
-        setSelectedEvent(null)
+        setSelectedSlide(0)
     }
+
+    const defaultLabel = getDefaultLabel()
 
     return (
         <div className="p-4 border-t border-foreground/10 bg-surface">
@@ -76,7 +98,7 @@ export function AnnotationCard() {
 
             <div className="mb-3 p-2 bg-primary/5 rounded-lg">
                 <p className="text-xs text-foreground/60">
-                    {selectedEvent.type} at <span className="font-mono">{selectedEvent.formattedTime}</span>
+                    {defaultLabel} at <span className="font-mono">{formatTimestamp(selectedSnapshot.timestamp, startTime)}</span>
                 </p>
             </div>
 
@@ -89,19 +111,19 @@ export function AnnotationCard() {
                         type="text"
                         value={label}
                         onChange={(e) => setLabel(e.target.value)}
-                        placeholder={selectedEvent.type}
+                        placeholder={defaultLabel}
                         className="w-full px-3 py-2 text-sm bg-background border border-foreground/10 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                     />
                 </div>
 
                 <div>
                     <label className="block text-xs font-medium text-foreground/70 mb-1.5">
-                        AI Agent Script
+                        Description
                     </label>
                     <textarea
                         value={script}
                         onChange={(e) => setScript(e.target.value)}
-                        placeholder="What should the AI say at this step?"
+                        placeholder="Describe what happens at this step..."
                         rows={4}
                         className="w-full px-3 py-2 text-sm bg-background border border-foreground/10 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all resize-none"
                     />
