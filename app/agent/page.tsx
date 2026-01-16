@@ -18,6 +18,10 @@ interface Message {
   text: string;
   sender: "user" | "nex";
   timestamp: Date;
+  button?: {
+    text: string;
+    action: () => void;
+  };
 }
 
 interface Recording {
@@ -39,13 +43,14 @@ export default function AgentPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Hey! I'm Nex, your AI demo assistant. I'm here to help you explore Lattice - an HR platform that helps companies build engaged, high-performing teams. Want to learn more or jump straight into demos?",
+      text: "Hey! I'm Nex. I'm here to help you explore AdoptAI - The Next-Gen Agentification Platform for the Enterprise. \n Want to learn more or jump straight into demos?",
       sender: "nex",
       timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [waitingForBookingResponse, setWaitingForBookingResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -120,21 +125,62 @@ export default function AgentPage() {
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
+    const userInput = inputValue.trim();
     const userMessage: Message = {
       id: messages.length + 1,
-      text: inputValue,
+      text: userInput,
       sender: "user",
       timestamp: new Date()
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsTyping(true);
+
+    // Check if waiting for booking response
+    if (waitingForBookingResponse) {
+      const lowerInput = userInput.toLowerCase();
+      if (lowerInput === "yes" || lowerInput === "y" || lowerInput.includes("yes")) {
+        setTimeout(() => {
+          const bookingMessage: Message = {
+            id: messages.length + 2,
+            text: "Great! Let's get you scheduled for a full demo with our team.",
+            sender: "nex",
+            timestamp: new Date(),
+            button: {
+              text: "Book a Demo",
+              action: () => {
+                // Handle booking action - could open a modal or redirect
+                window.open("https://calendly.com/kp-nexbit/30min", "_blank");
+              }
+            }
+          };
+          setMessages(prev => [...prev, bookingMessage]);
+          setWaitingForBookingResponse(false);
+          setIsTyping(false);
+        }, 1000);
+        return;
+      } else {
+        setTimeout(() => {
+          const nexMessage: Message = {
+            id: messages.length + 2,
+            text: "No problem! Feel free to ask if you change your mind or have any questions.",
+            sender: "nex",
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, nexMessage]);
+          setWaitingForBookingResponse(false);
+          setIsTyping(false);
+        }, 1000);
+        return;
+      }
+    }
 
     // Simulate AI response
     setTimeout(() => {
       let responseText = "";
-      const lowerInput = inputValue.toLowerCase();
+      let shouldAskForBooking = false;
+      const lowerInput = userInput.toLowerCase();
 
       if (lowerInput.includes("demo") || lowerInput.includes("watch")) {
         if (lowerInput.includes("ai") || lowerInput.includes("agent")) {
@@ -149,7 +195,8 @@ export default function AgentPage() {
       } else if (lowerInput.includes("analytics") || lowerInput.includes("data")) {
         responseText = "The Analytics demo showcases our powerful reporting features. Should I start it?";
       } else {
-        responseText = "I can help you explore demos, answer questions about features, or guide you through Lattice. What would you like to know?";
+        responseText = "here you go";
+        shouldAskForBooking = true;
       }
 
       const nexMessage: Message = {
@@ -160,7 +207,23 @@ export default function AgentPage() {
       };
 
       setMessages(prev => [...prev, nexMessage]);
-      setIsTyping(false);
+      
+      // If "here you go" was sent, ask about booking
+      if (shouldAskForBooking) {
+        setTimeout(() => {
+          const bookingQuestion: Message = {
+            id: messages.length + 3,
+            text: "Do you want to book a full demo with team?",
+            sender: "nex",
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, bookingQuestion]);
+          setWaitingForBookingResponse(true);
+          setIsTyping(false);
+        }, 1500);
+      } else {
+        setIsTyping(false);
+      }
     }, 1000);
   };
 
@@ -212,9 +275,9 @@ export default function AgentPage() {
       </div>
 
       {/* Right Column - Chatbot (40%) */}
-      <div className="w-[40%] flex flex-col bg-surface border-l border-primary/10">
+      <div className="w-[40%] flex flex-col bg-surface border-l border-primary/10 h-screen overflow-hidden">
         {/* Chat Header */}
-        <div className="bg-surface border-b border-primary/10 px-4 py-4 flex items-center justify-between">
+        <div className="bg-surface border-b border-primary/10 px-4 py-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
@@ -231,7 +294,7 @@ export default function AgentPage() {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 min-h-0">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -249,6 +312,17 @@ export default function AgentPage() {
                   </div>
                 )}
                 <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                {message.button && (
+                  <div className="mt-3">
+                    <button
+                      onClick={message.button.action}
+                      className="w-full px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                      {message.button.text}
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 <span className="text-xs opacity-70 mt-1 block">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
@@ -272,7 +346,7 @@ export default function AgentPage() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-primary/10 p-4">
+        <div className="border-t border-primary/10 p-4 flex-shrink-0">
           <div className="flex items-center gap-2">
             <button className="p-2 text-foreground/60 hover:text-foreground hover:bg-primary/5 rounded-lg transition-colors">
               <Mic className="w-5 h-5" />
