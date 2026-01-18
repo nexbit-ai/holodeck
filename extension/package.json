@@ -33,6 +33,17 @@
         ],
         "host_permissions": [
             "<all_urls>"
+        ],
+        "web_accessible_resources": [
+            {
+                "resources": [
+                    "assets/icons/*",
+                    "assets/logo.jpg"
+                ],
+                "matches": [
+                    "<all_urls>"
+                ]
+            }
         ]
     }
 }
