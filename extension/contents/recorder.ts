@@ -176,6 +176,12 @@ function handleClick(event: MouseEvent) {
     const snapshot = createSnapshot("click", event.clientX, event.clientY)
     recording.snapshots.push(snapshot)
 
+    // Notify background to update badge with click count
+    chrome.runtime.sendMessage({
+        type: "CLICK_RECORDED",
+        snapshotCount: recording.snapshots.length
+    })
+
     console.log(`[Holodeck] Click captured at (${event.clientX}, ${event.clientY}). Total: ${recording.snapshots.length} snapshots`)
 }
 
@@ -198,6 +204,9 @@ function startRecording(): { success: boolean; startTime?: number; error?: strin
 
         // Add click listener
         document.addEventListener("click", handleClick, true)
+
+        // Notify background to change icon
+        chrome.runtime.sendMessage({ type: "RECORDING_STARTED" })
 
         console.log("[Holodeck] Click-only recording started")
         return { success: true, startTime: recordingStartTime }
@@ -223,6 +232,9 @@ function stopRecording(): { success: boolean; recording?: ClickRecording; error?
         const capturedRecording = { ...recording }
 
         console.log(`[Holodeck] Recording stopped. Captured ${capturedRecording.snapshots.length} snapshots.`)
+
+        // Notify background to change icon
+        chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
 
         // Clear state
         recording = null
@@ -257,6 +269,36 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         return true
     }
 
+    if (message.type === "CANCEL_RECORDING") {
+        // Cancel recording without saving - just discard the data
+        if (!isRecording) {
+            sendResponse({ success: false, error: "Not recording" })
+            return true
+        }
+
+        try {
+            // Remove click listener
+            document.removeEventListener("click", handleClick, true)
+
+            isRecording = false
+            const snapshotCount = recording?.snapshots.length || 0
+
+            // Clear state without returning data
+            recording = null
+            recordingStartTime = null
+
+            console.log(`[Holodeck] Recording cancelled. Discarded ${snapshotCount} snapshots.`)
+
+            // Notify background to reset icon
+            chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
+
+            sendResponse({ success: true })
+        } catch (error) {
+            sendResponse({ success: false, error: String(error) })
+        }
+        return true
+    }
+
     if (message.type === "GET_STATUS") {
         sendResponse({
             isRecording,
@@ -267,6 +309,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     return false
+})
+
+// Listen for countdown completion from countdown-overlay.tsx
+window.addEventListener("holodeck-countdown-complete", () => {
+    console.log("[Holodeck] Countdown complete, starting recording...")
+    const result = startRecording()
+    if (result.success) {
+        console.log("[Holodeck] Recording started successfully after countdown")
+    } else {
+        console.error("[Holodeck] Failed to start recording:", result.error)
+    }
+})
+
+// Listen for countdown cancellation
+window.addEventListener("holodeck-countdown-cancelled", () => {
+    console.log("[Holodeck] Countdown cancelled by user")
 })
 
 console.log("[Holodeck] Click-only recorder loaded and ready")
