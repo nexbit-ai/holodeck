@@ -280,12 +280,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                             style={{
                                 width: originalWidth,
                                 height: originalHeight,
-                                overflow: 'hidden'
-                            }}
-                            sandbox="allow-same-origin"
-                            scrolling="no"
-                            title="Recording snapshot"
-                        />
+                                overflow: 'hidden',
                                 transform: `scale(${scale})`,
                                 transformOrigin: 'top left',
                             }}
