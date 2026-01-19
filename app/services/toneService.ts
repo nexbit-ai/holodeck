@@ -1,0 +1,51 @@
+
+const API_BASE_URL = "http://localhost:8000/api/v1/config/tone";
+
+export interface ToneSettings {
+    id: string;
+    organization_id: string;
+    tone: string;
+    description: string | null;
+    version: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UpdateToneData {
+    organization_id: string;
+    tone: string;
+    description?: string;
+}
+
+export const toneService = {
+    async getTone(organizationId: string): Promise<ToneSettings | null> {
+        const response = await fetch(`${API_BASE_URL}?organization_id=${organizationId}`);
+
+        if (response.status === 404) {
+            return null;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch tone settings: ${response.statusText}`);
+        }
+
+        return response.json();
+    },
+
+    async updateTone(data: UpdateToneData): Promise<ToneSettings> {
+        const response = await fetch(API_BASE_URL, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to update tone settings: ${response.statusText}`);
+        }
+
+        return response.json();
+    }
+};

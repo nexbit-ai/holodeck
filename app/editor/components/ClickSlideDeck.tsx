@@ -12,6 +12,9 @@ interface ClickSlideDeckProps {
     recording: ClickRecording
     currentSlideIndex: number
     onSlideChange: (index: number) => void
+    primaryColor?: string
+    secondaryColor?: string
+    accentColor?: string
     viewOnly?: boolean // When true, uses simple non-editable PlayerTooltip
 }
 
@@ -19,7 +22,7 @@ interface ClickSlideDeckProps {
 const DEFAULT_CONTAINER_WIDTH = 900
 const DEFAULT_CONTAINER_HEIGHT = 550
 
-export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, viewOnly = false }: ClickSlideDeckProps) {
+export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, primaryColor = '#6366F1', secondaryColor = '#10B981', accentColor = '#F59E0B', viewOnly = false }: ClickSlideDeckProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const outerContainerRef = useRef<HTMLDivElement>(null)
@@ -47,16 +50,9 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
         const updateSize = () => {
             if (outerContainerRef.current) {
                 const rect = outerContainerRef.current.getBoundingClientRect()
-                // Reserve minimal space for slide dots and keyboard hint (about 60px)
-                const maxAvailableHeight = Math.max(300, rect.height - 60)
-                const maxAvailableWidth = Math.max(400, rect.width - 32)
-
-                // Calculate scale to fit within available bounds while maintaining aspect ratio
-                const scaleX = maxAvailableWidth / originalWidth
-                const scaleY = maxAvailableHeight / originalHeight
-                const bestScale = Math.min(scaleX, scaleY)
-
-                // Set container to the ACTUAL scaled dimensions (no empty space!)
+                // Use full available height and stretch by 20%
+                const availableHeight = Math.max(400, rect.height * 1.2)
+                const availableWidth = Math.max(600, rect.width - 20)
                 setContainerSize({
                     width: Math.round(originalWidth * bestScale),
                     height: Math.round(originalHeight * bestScale)
@@ -94,7 +90,8 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
 
         if (doc) {
             doc.open()
-            doc.write(currentSnapshot.html)
+            // Inject style to hide scrollbars and noscript tags in the recorded content
+            doc.write(`<style>::-webkit-scrollbar { display: none; } noscript { display: none !important; } body { overflow: hidden !important; -ms-overflow-style: none; scrollbar-width: none; }</style>` + currentSnapshot.html)
             doc.close()
 
             // Apply scroll position
@@ -194,31 +191,18 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
     return (
         <div
             ref={outerContainerRef}
-            className="flex flex-col items-center justify-start h-full w-full gap-2 p-2"
+            className="relative flex flex-col items-center justify-center h-full w-full"
         >
             {/* Slide Display */}
             <div className="relative bg-surface rounded-xl shadow-lg overflow-hidden flex-1 flex items-center justify-center w-full max-w-full">
-                {/* Slide number badge */}
-                <div className="absolute top-3 left-3 z-20 px-3 py-1.5 bg-background/90 backdrop-blur-sm rounded-full border border-foreground/10">
-                    <span className="text-sm font-medium text-foreground">
-                        {getSlideLabel(currentSlideIndex)} ({currentSlideIndex + 1} of {totalSlides})
-                    </span>
-                </div>
-
-                {/* Viewport info badge */}
-                <div className="absolute top-3 right-3 z-20 px-2 py-1 bg-background/70 backdrop-blur-sm rounded text-xs text-foreground/50">
-                    {originalWidth}×{originalHeight} ({Math.round(scale * 100)}%)
-                </div>
 
                 {/* Scaled iframe container with cursor overlay */}
                 <div
                     ref={containerRef}
-                    className="relative overflow-hidden bg-gray-100 mx-auto"
+                    className="relative overflow-hidden rounded-lg mx-auto"
                     style={{
-                        width: containerSize.width,
-                        height: containerSize.height,
-                        maxWidth: '100%',
-                        maxHeight: '100%'
+                        width: originalWidth * scale,
+                        height: originalHeight * scale,
                     }}
                 >
                     {/* Scaled iframe wrapper */}
@@ -236,8 +220,10 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
                             style={{
                                 width: originalWidth,
                                 height: originalHeight,
+                                overflow: 'hidden'
                             }}
                             sandbox="allow-same-origin"
+                            scrolling="no"
                             title="Recording snapshot"
                         />
                     </div>
@@ -282,15 +268,18 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
                                 canGoPrevious={currentSlideIndex > 0}
                                 canGoNext={currentSlideIndex < totalSlides - 1}
                                 isTransitioning={isTransitioning}
+                                primaryColor={primaryColor}
+                                secondaryColor={secondaryColor}
+                                accentColor={accentColor}
                             />
                         )
                     )}
                 </div>
             </div>
 
-            {/* Slide dots indicator */}
+            {/* Slide dots indicator - positioned absolutely */}
             {snapshots.length > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4">
+                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-2 rounded-full">
                     {snapshots.map((_, index) => (
                         <button
                             key={index}
@@ -310,8 +299,8 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
                 </div>
             )}
 
-            {/* Keyboard hint */}
-            <p className="text-xs text-foreground/40 mt-2">
+            {/* Keyboard hint - positioned absolutely */}
+            <p className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 text-xs text-foreground/40 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full">
                 Use <kbd className="px-1.5 py-0.5 bg-foreground/10 rounded text-foreground/60 font-mono">←</kbd> and <kbd className="px-1.5 py-0.5 bg-foreground/10 rounded text-foreground/60 font-mono">→</kbd> to navigate
                 {!viewOnly && isEditingTooltip && <span className="ml-2 text-primary">(finish editing first)</span>}
             </p>

@@ -24,7 +24,9 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { Sidebar } from "../components/Sidebar";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { ChatLogsSection } from "../components/ChatLogsSection";
 
 export default function InsightsPage() {
   const [activeNav, setActiveNav] = useState("Insights");
@@ -232,100 +234,7 @@ export default function InsightsPage() {
     { name: "Mobile Chrome", views: 400, percentage: 1 }
   ];
 
-  // Chatbot Logs Data
-  const chatbotLogs = [
-    {
-      id: 1,
-      input: "Yes, I would love that",
-      output: "Cool! Book a quick catch-up: https://calendly.com/kp-nexbit/30min",
-      demoId: "DEMO-001",
-      created: "Dec 29, 4:45 PM"
-    },
-    {
-      id: 2,
-      input: "No, I have few questions before that",
-      output: "Hey Human! Just let me know your questions, and I'll do my best to answer them.",
-      demoId: "DEMO-002",
-      created: "Dec 29, 3:22 PM"
-    },
-    {
-      id: 3,
-      input: "what all integrations do you support?",
-      output: "Hey, sure thing! Here are some of my integrations: **CRM Integration** - Connect with Salesforce, HubSpot, and more. **Email Integration** - Sync with Gmail, Outlook. **Calendar Integration** - Works with Google Calendar, Outlook Calendar. **Slack Integration** - Get notifications and updates in Slack. **API Integration** - Custom integrations via our API. Would you like me to help you set up any of these?",
-      demoId: "DEMO-003",
-      created: "Dec 28, 2:15 PM"
-    },
-    {
-      id: 4,
-      input: "Tell me more about Lattice",
-      output: "I don't have that specific detail, but I'd be happy to connect you with someone who can help! Would you like me to schedule a call?",
-      demoId: "DEMO-001",
-      created: "Dec 27, 11:30 AM"
-    },
-    {
-      id: 5,
-      input: "Hey Nex, what can you do?",
-      output: "Hey there! I'm Nex, your AI assistant. I can help you with: answering questions, scheduling meetings, providing product information, connecting you with the right people, and much more! What would you like to know?",
-      demoId: "DEMO-004",
-      created: "Dec 26, 5:10 PM"
-    },
-    {
-      id: 6,
-      input: "How do I get started?",
-      output: "Great question! Getting started is easy. First, you'll want to set up your profile and preferences. Then, you can start asking me questions or I can help you schedule a demo. Would you like me to walk you through it?",
-      demoId: "DEMO-002",
-      created: "Dec 25, 9:20 AM"
-    },
-    {
-      id: 7,
-      input: "What's your pricing?",
-      output: "I'd be happy to discuss pricing options with you! We have several plans available. Would you like me to connect you with our sales team for detailed pricing information?",
-      demoId: "DEMO-005",
-      created: "Dec 24, 1:45 PM"
-    },
-    {
-      id: 8,
-      input: "Can you help me with a technical issue?",
-      output: "Of course! I can help troubleshoot technical issues. Can you describe what problem you're experiencing? I'll do my best to help or connect you with our technical support team.",
-      demoId: "DEMO-003",
-      created: "Dec 23, 10:15 AM"
-    },
-    {
-      id: 9,
-      input: "Show me a demo",
-      output: "Absolutely! I'd love to show you a demo. You can book a personalized demo session here: https://calendly.com/kp-nexbit/30min. Or I can answer any specific questions you have right now!",
-      demoId: "DEMO-001",
-      created: "Dec 22, 4:30 PM"
-    },
-    {
-      id: 10,
-      input: "What makes you different from other chatbots?",
-      output: "Great question! What sets me apart is my ability to understand context, provide personalized responses, and seamlessly integrate with your existing tools. I'm designed to be more conversational and helpful, not just answer FAQs. Want to see it in action?",
-      demoId: "DEMO-004",
-      created: "Dec 21, 2:00 PM"
-    },
-    {
-      id: 11,
-      input: "Do you support multiple languages?",
-      output: "Yes! I can communicate in multiple languages. Currently, I support English, Spanish, French, German, and several others. Which language would you like to use?",
-      demoId: "DEMO-006",
-      created: "Dec 20, 11:20 AM"
-    },
-    {
-      id: 12,
-      input: "How secure is my data?",
-      output: "Security is our top priority. We use enterprise-grade encryption, comply with GDPR and SOC 2 standards, and never share your data with third parties. Your conversations are private and secure. Would you like more details about our security practices?",
-      demoId: "DEMO-002",
-      created: "Dec 19, 12:05 PM"
-    },
-    {
-      id: 13,
-      input: "Can I customize your responses?",
-      output: "Absolutely! You can customize my tone, style, and even add custom guidelines. Check out the Chat Settings page to configure how I respond. I can be professional, friendly, casual, technical, or supportive - whatever fits your needs!",
-      demoId: "DEMO-005",
-      created: "Dec 18, 3:40 PM"
-    }
-  ];
+  // AI Demos Data
 
   // Metrics Data
   const metricsData = [
@@ -394,145 +303,7 @@ export default function InsightsPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left Sidebar */}
-      <aside className="w-64 bg-surface border-r border-primary/10 flex flex-col h-screen sticky top-0">
-        {/* Logo */}
-        <div className="p-6 border-b border-primary/10">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image
-              src="/assets/logo.jpg"
-              alt="Nexbit Logo"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <h1 className="text-2xl font-bold text-primary">Nexbit</h1>
-          </Link>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          <Link
-            href="/dashboard"
-            onClick={() => setActiveNav("Home")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Home"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <Home className="w-4 h-4" />
-            Home
-          </Link>
-
-          <Link
-            href="/demos"
-            onClick={() => setActiveNav("Demos")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Demos"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-            Demos
-          </Link>
-
-          <Link
-            href="/chats"
-            onClick={() => setActiveNav("Chats")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Chats"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <MessageCircle className="w-4 h-4" />
-            Chats
-          </Link>
-
-          <div>
-            <button
-              onClick={() => setShowAudienceDropdown(!showAudienceDropdown)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Audience
-              </span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showAudienceDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            {showAudienceDropdown && (
-              <div className="ml-6 mt-1">
-                <Link
-                  href="/audience"
-                  className="block px-3 py-2 text-sm text-foreground/70 hover:text-primary rounded-lg transition-colors"
-                >
-                  View all
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link
-            href="/insights"
-            onClick={() => setActiveNav("Insights")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Insights"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Insights
-          </Link>
-
-          <div>
-            <button
-              onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showSettingsDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            {showSettingsDropdown && (
-              <div className="ml-6 mt-1">
-                <Link
-                  href="#"
-                  className="block px-3 py-2 text-sm text-foreground/70 hover:text-primary rounded-lg transition-colors"
-                >
-                  General
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link
-            href="/integrations"
-            onClick={() => setActiveNav("Integrations")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Integrations"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <LinkIcon className="w-4 h-4" />
-            Integrations
-          </Link>
-        </nav>
-
-        {/* User Profile */}
-        <div className="p-4 border-t border-primary/10">
-          <div className="flex items-center gap-3 px-3 py-2 hover:bg-primary/5 rounded-lg cursor-pointer transition-colors">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <User className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Krishna</p>
-              <p className="text-xs text-foreground/60">Free Plan</p>
-            </div>
-            <ChevronDown className="w-4 h-4 text-foreground/60" />
-          </div>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
@@ -583,42 +354,7 @@ export default function InsightsPage() {
         <div className="px-8 py-8 space-y-8">
           {/* Logs Tab Content */}
           {activeTab === "Logs" && (
-            <section className="bg-surface rounded-lg p-6 shadow-sm border border-primary/5">
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-primary/10">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground/70">Input</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground/70">Output</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground/70">DemoID</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-foreground/70">Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {chatbotLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-primary/5 hover:bg-primary/5 transition-colors">
-                        <td className="py-4 px-4 text-sm text-foreground">
-                          {log.input}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-start gap-2">
-                            <MessageSquare className="w-4 h-4 text-foreground/60 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-foreground">{log.output}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-sm text-foreground">
-                          {log.demoId}
-                        </td>
-                        <td className="py-4 px-4 text-sm text-foreground">
-                          {log.created}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <ChatLogsSection />
           )}
 
           {/* Views Section */}

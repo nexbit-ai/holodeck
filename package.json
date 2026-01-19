@@ -13,8 +13,8 @@
     "next": "16.1.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-simple-maps": "^3.0.0",
     "react-resizable-panels": "^4.4.1",
+    "react-simple-maps": "^3.0.0",
     "rrweb-player": "^1.0.0-alpha.4",
     "zustand": "^5.0.10"
   },
