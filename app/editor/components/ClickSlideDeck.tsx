@@ -121,8 +121,23 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
 
         if (doc) {
             doc.open()
-            // Inject style to hide scrollbars and noscript tags in the recorded content
-            doc.write(`<style>::-webkit-scrollbar { display: none; } noscript { display: none !important; } body { overflow: hidden !important; -ms-overflow-style: none; scrollbar-width: none; }</style>` + currentSnapshot.html)
+
+            let html = currentSnapshot.html
+            // Inject base tag and styles into head to fix asset resolution and hiding scrollbars
+            const baseTag = currentSnapshot.url ? `<base href="${currentSnapshot.url}">` : ''
+            const styleTag = `<style>::-webkit-scrollbar { display: none; } noscript { display: none !important; } body { overflow: hidden !important; -ms-overflow-style: none; scrollbar-width: none; }</style>`
+            const injection = baseTag + styleTag
+
+            // Use regex to insert after <head> or <html>
+            if (/<head[^>]*>/i.test(html)) {
+                html = html.replace(/<head[^>]*>/i, `$&${injection}`)
+            } else if (/<html[^>]*>/i.test(html)) {
+                html = html.replace(/<html[^>]*>/i, `$&<head>${injection}</head>`)
+            } else {
+                html = injection + html
+            }
+
+            doc.write(html)
             doc.close()
 
             // Apply scroll position

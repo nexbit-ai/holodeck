@@ -70,7 +70,19 @@ export function SlideThumbnail({
 
         if (doc) {
             doc.open()
-            doc.write(snapshot.html)
+            let html = snapshot.html
+            // Add base tag to resolve relative assets (fonts, etc)
+            const baseTag = snapshot.url ? `<base href="${snapshot.url}">` : ''
+
+            if (/<head[^>]*>/i.test(html)) {
+                html = html.replace(/<head[^>]*>/i, `$&${baseTag}`)
+            } else if (/<html[^>]*>/i.test(html)) {
+                html = html.replace(/<html[^>]*>/i, `$&<head>${baseTag}</head>`)
+            } else {
+                html = baseTag + html
+            }
+
+            doc.write(html)
             doc.close()
 
             // Apply scroll position

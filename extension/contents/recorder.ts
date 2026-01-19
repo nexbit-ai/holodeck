@@ -129,6 +129,14 @@ function captureDOM(): string {
     const scripts = docClone.querySelectorAll('script')
     scripts.forEach(script => script.remove())
 
+    // Remove preloads and other head noise that causes 404s
+    const removals = docClone.querySelectorAll('link[rel="preload"], link[rel="prefetch"], link[rel="modulepreload"], link[rel="next-head"]')
+    removals.forEach(el => el.remove())
+
+    // Remove iframes to prevent nested fetches
+    const iframes = docClone.querySelectorAll('iframe')
+    iframes.forEach(iframe => iframe.remove())
+
     // Remove existing link stylesheets (we'll inline them)
     const links = docClone.querySelectorAll('link[rel="stylesheet"]')
     links.forEach(link => link.remove())
@@ -138,10 +146,15 @@ function captureDOM(): string {
     const styleElement = document.createElement('style')
     styleElement.textContent = allCSS
 
-    // Add the captured styles to head
+    // Add base tag to resolve relative assets (fonts, etc)
+    const baseElement = document.createElement('base')
+    baseElement.href = window.location.href
+
+    // Add the captured styles and base to head
     const head = docClone.querySelector('head')
     if (head) {
         head.insertBefore(styleElement, head.firstChild)
+        head.insertBefore(baseElement, head.firstChild)
     }
 
     // Get the HTML with doctype
