@@ -52,7 +52,6 @@ export default function ShowcasePage() {
     const [newShowcase, setNewShowcase] = useState({
         title: "",
         demoId: "",
-        coreMessage: "",
         ctaText: "Book Full Demo",
         ctaType: "Open Calendar"
     });
@@ -167,22 +166,12 @@ export default function ShowcasePage() {
                 <div className="px-8 py-6 border-b border-primary/10 bg-surface">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-                                <Sparkles className="w-8 h-8 text-primary" />
+                            <h1 className="text-3xl font-bold text-foreground">
                                 Agentic Showcase
                             </h1>
                             <p className="text-foreground/70 mt-1">
                                 Design and manage interactive experiences for your prospects.
                             </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={handleCopyLink}
-                                className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20 active:scale-95"
-                            >
-                                {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                                {copied ? "Copied!" : "Share Showcase"}
-                            </button>
                         </div>
                     </div>
 
@@ -222,7 +211,6 @@ export default function ShowcasePage() {
                                             setNewShowcase({
                                                 title: "",
                                                 demoId: "",
-                                                coreMessage: "",
                                                 ctaText: "Book Full Demo",
                                                 ctaType: "Open Calendar"
                                             });
@@ -308,10 +296,6 @@ export default function ShowcasePage() {
                                             <ChevronDown className="w-4 h-4 rotate-90" />
                                             Back to Showcase List
                                         </button>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                            <span className="text-xs font-semibold text-foreground/60 uppercase tracking-widest">Live Editor</span>
-                                        </div>
                                     </div>
                                     <div className="h-[700px] relative" style={{
                                         '--showcase-primary': primaryColor,
@@ -417,33 +401,6 @@ export default function ShowcasePage() {
                                                     onChange={(e) => setNewShowcase({ ...newShowcase, title: e.target.value })}
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="text-xs text-foreground/50 block mb-2 font-semibold uppercase">Base Demo</label>
-                                                <div className="relative">
-                                                    <select
-                                                        className="w-full bg-background/50 border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
-                                                        value={newShowcase.demoId}
-                                                        onChange={(e) => setNewShowcase({ ...newShowcase, demoId: e.target.value })}
-                                                    >
-                                                        <option value="">Select a recording...</option>
-                                                        {recordings.map(rec => (
-                                                            <option key={rec.id} value={rec.id}>{rec.title}</option>
-                                                        ))}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 pointer-events-none" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm text-left">
-                                            <h4 className="font-bold text-foreground mb-4">AI Context</h4>
-                                            <label className="text-xs text-foreground/50 block mb-2 font-semibold uppercase">Core Message</label>
-                                            <textarea
-                                                className="w-full bg-background/50 border border-primary/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none h-[115px]"
-                                                placeholder="What should the AI focus on?"
-                                                value={newShowcase.coreMessage}
-                                                onChange={(e) => setNewShowcase({ ...newShowcase, coreMessage: e.target.value })}
-                                            />
                                         </div>
 
                                         <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm space-y-4 text-left">
