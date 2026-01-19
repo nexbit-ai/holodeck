@@ -18,6 +18,9 @@ interface ClickTooltipProps {
     canGoPrevious?: boolean
     canGoNext?: boolean
     isTransitioning?: boolean
+    primaryColor?: string
+    secondaryColor?: string
+    accentColor?: string
     hasZoom?: boolean
     onZoomClick?: () => void
 }
@@ -37,6 +40,9 @@ export function ClickTooltip({
     canGoPrevious = false,
     canGoNext = false,
     isTransitioning = false,
+    primaryColor = '#6366F1',
+    secondaryColor = '#10B981',
+    accentColor = '#F59E0B',
     hasZoom = false,
     onZoomClick,
 }: ClickTooltipProps) {
@@ -92,24 +98,26 @@ export function ClickTooltip({
             }}
         >
             {/* Tooltip card */}
-            <div className="bg-surface border-2 border-primary rounded-xl shadow-xl overflow-hidden">
+            <div className="bg-surface border-2 rounded-xl shadow-xl overflow-hidden" style={{ borderColor: primaryColor }}>
                 {/* Header */}
-                <div className="px-3 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between">
+                <div className="px-3 py-2 border-b flex items-center justify-between" style={{ backgroundColor: primaryColor + '10', borderColor: primaryColor + '30' }}>
                     <div className="flex items-center gap-2">
-                        <MessageCircle className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-semibold text-primary">Step Description</span>
+                        <MessageCircle className="w-4 h-4" style={{ color: primaryColor }} />
+                        <span className="text-xs font-semibold" style={{ color: primaryColor }}>Step Description</span>
                     </div>
                     {isEditing ? (
                         <button
                             onClick={handleSave}
-                            className="p-1 rounded hover:bg-primary/20 text-primary transition-colors"
+                            className="p-1 rounded hover:bg-primary/20 transition-colors"
+                            style={{ color: primaryColor }}
                         >
                             <Check className="w-4 h-4" />
                         </button>
                     ) : (
                         <button
                             onClick={onStartEdit}
-                            className="text-xs text-primary/70 hover:text-primary transition-colors"
+                            className="text-xs hover:text-primary transition-colors"
+                            style={{ color: primaryColor + 'B0' }}
                         >
                             Edit
                         </button>
@@ -124,7 +132,8 @@ export function ClickTooltip({
                             onChange={(e) => setLocalText(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Describe what happens when you click here..."
-                            className="w-full h-16 text-sm bg-background border border-foreground/10 rounded-lg px-3 py-2 focus:outline-none focus:border-primary resize-none"
+                            className="w-full h-16 text-sm bg-background border rounded-lg px-3 py-2 focus:outline-none resize-none"
+                            style={{ borderColor: 'var(--foreground-10, #e5e7eb)', outlineColor: primaryColor }}
                             autoFocus
                         />
                     ) : (
@@ -148,7 +157,7 @@ export function ClickTooltip({
 
                 {/* Navigation Controls */}
                 {(onPrevious || onNext) && (
-                    <div className="px-3 pb-3 pt-2 border-t border-primary/10 flex items-center justify-between gap-2">
+                    <div className="px-3 pb-3 pt-2 border-t flex items-center justify-between gap-2" style={{ borderColor: primaryColor + '20' }}>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -162,9 +171,10 @@ export function ClickTooltip({
                                 transition-all duration-200
                                 ${!canGoPrevious || isTransitioning || isEditing
                                     ? 'bg-foreground/5 text-foreground/30 cursor-not-allowed'
-                                    : 'bg-surface border border-foreground/10 text-foreground hover:bg-primary/5 hover:border-primary/30'
+                                    : 'bg-surface border text-foreground hover:bg-primary/5'
                                 }
                             `}
+                            style={!canGoPrevious && !isTransitioning && !isEditing ? {} : { borderColor: secondaryColor + '40' }}
                         >
                             <ChevronLeft className="w-3 h-3" />
                             Previous
@@ -209,9 +219,10 @@ export function ClickTooltip({
                                 transition-all duration-200
                                 ${!canGoNext || isTransitioning || isEditing
                                     ? 'bg-foreground/5 text-foreground/30 cursor-not-allowed'
-                                    : 'bg-primary text-white hover:bg-primary/90 shadow-md'
+                                    : 'text-white hover:opacity-90 shadow-md'
                                 }
                             `}
+                            style={!canGoNext || isTransitioning || isEditing ? {} : { backgroundColor: accentColor }}
                         >
                             Next
                             <ChevronRight className="w-3 h-3" />

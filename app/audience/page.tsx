@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { Sidebar } from "../components/Sidebar";
 
 export default function AudiencePage() {
   const [activeNav, setActiveNav] = useState("Audience");
@@ -122,145 +123,7 @@ export default function AudiencePage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left Sidebar */}
-      <aside className="w-64 bg-surface border-r border-primary/10 flex flex-col h-screen sticky top-0">
-        {/* Logo */}
-        <div className="p-6 border-b border-primary/10">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image
-              src="/assets/logo.jpg"
-              alt="Nexbit Logo"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <h1 className="text-2xl font-bold text-primary">Nexbit</h1>
-          </Link>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          <Link
-            href="/dashboard"
-            onClick={() => setActiveNav("Home")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Home"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <Home className="w-4 h-4" />
-            Home
-          </Link>
-
-          <Link
-            href="/demos"
-            onClick={() => setActiveNav("Demos")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Demos"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-            Demos
-          </Link>
-
-          <Link
-            href="/chats"
-            onClick={() => setActiveNav("Chats")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Chats"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <MessageCircle className="w-4 h-4" />
-            Chats
-          </Link>
-
-          <div>
-            <button
-              onClick={() => setShowAudienceDropdown(!showAudienceDropdown)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Audience
-              </span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showAudienceDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            {showAudienceDropdown && (
-              <div className="ml-6 mt-1">
-                <Link
-                  href="/audience"
-                  className="block px-3 py-2 text-sm text-foreground/70 hover:text-primary rounded-lg transition-colors bg-primary/5 text-primary"
-                >
-                  View all
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link
-            href="/insights"
-            onClick={() => setActiveNav("Insights")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Insights"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Insights
-          </Link>
-
-          <div>
-            <button
-              onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showSettingsDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            {showSettingsDropdown && (
-              <div className="ml-6 mt-1">
-                <Link
-                  href="#"
-                  className="block px-3 py-2 text-sm text-foreground/70 hover:text-primary rounded-lg transition-colors"
-                >
-                  General
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link
-            href="/integrations"
-            onClick={() => setActiveNav("Integrations")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Integrations"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <LinkIcon className="w-4 h-4" />
-            Integrations
-          </Link>
-        </nav>
-
-        {/* User Profile */}
-        <div className="p-4 border-t border-primary/10">
-          <div className="flex items-center gap-3 px-3 py-2 hover:bg-primary/5 rounded-lg cursor-pointer transition-colors">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <User className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Krishna</p>
-              <p className="text-xs text-foreground/60">Free Plan</p>
-            </div>
-            <ChevronDown className="w-4 h-4 text-foreground/60" />
-          </div>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">

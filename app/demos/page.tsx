@@ -38,6 +38,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DemoThumbnailWrapper } from "./components/DemoThumbnail";
 import { useState, useEffect, useCallback } from "react";
+import { Sidebar } from "../components/Sidebar";
 
 interface Recording {
   id: string;
@@ -65,19 +66,19 @@ export default function DemosPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // File upload state
   const [showImportModal, setShowImportModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  
+
   // Menu state
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [demoToDelete, setDemoToDelete] = useState<Recording | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Share state
   const [showShareModal, setShowShareModal] = useState(false);
   const [demoToShare, setDemoToShare] = useState<Recording | null>(null);
@@ -241,7 +242,7 @@ export default function DemosPage() {
 
       const result = await response.json();
       setUploadSuccess(true);
-      
+
       // Refresh recordings list after a short delay
       setTimeout(() => {
         fetchRecordings();
@@ -314,7 +315,7 @@ export default function DemosPage() {
       }
 
       setUploadSuccess(true);
-      
+
       // Refresh recordings list after a short delay
       setTimeout(() => {
         fetchRecordings();
@@ -336,146 +337,7 @@ export default function DemosPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left Sidebar */}
-      <aside className="w-64 bg-surface border-r border-primary/10 flex flex-col h-screen sticky top-0">
-        {/* Logo */}
-        <div className="p-6 border-b border-primary/10">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image
-              src="/assets/logo.jpg"
-              alt="Nexbit Logo"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <h1 className="text-2xl font-bold text-primary">Nexbit</h1>
-          </Link>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          <Link
-            href="/dashboard"
-            onClick={() => setActiveNav("Home")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Home"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <Home className="w-4 h-4" />
-            Home
-          </Link>
-
-          <Link
-            href="/demos"
-            onClick={() => setActiveNav("Demos")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Demos"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-            Demos
-          </Link>
-
-          <Link
-            href="/chats"
-            onClick={() => setActiveNav("Chats")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Chats"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <MessageCircle className="w-4 h-4" />
-            Chats
-          </Link>
-
-          <div>
-            <button
-              onClick={() => setShowAudienceDropdown(!showAudienceDropdown)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Audience
-              </span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showAudienceDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            {showAudienceDropdown && (
-              <div className="ml-6 mt-1">
-                <Link
-                  href="/audience"
-                  className="block px-3 py-2 text-sm text-foreground/70 hover:text-primary rounded-lg transition-colors"
-                >
-                  View all
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link
-            href="/insights"
-            onClick={() => setActiveNav("Insights")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Insights"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Insights
-          </Link>
-
-          <div>
-            <button
-              onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showSettingsDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            {showSettingsDropdown && (
-              <div className="ml-6 mt-1">
-                <Link
-                  href="#"
-                  className="block px-3 py-2 text-sm text-foreground/70 hover:text-primary rounded-lg transition-colors"
-                >
-                  General
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <Link
-            href="/integrations"
-            onClick={() => setActiveNav("Integrations")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${activeNav === "Integrations"
-              ? "bg-primary text-white"
-              : "text-foreground hover:bg-primary/5"
-              }`}
-          >
-            <LinkIcon className="w-4 h-4" />
-            Integrations
-          </Link>
-        </nav>
-
-        {/* User Profile */}
-        <div className="p-4 border-t border-primary/10">
-          <div className="flex items-center gap-3 px-3 py-2 hover:bg-primary/5 rounded-lg cursor-pointer transition-colors">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center relative">
-              <User className="w-4 h-4 text-primary" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-surface"></span>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Krishna</p>
-              <p className="text-xs text-foreground/60">Free Plan</p>
-            </div>
-            <ChevronDown className="w-4 h-4 text-foreground/60" />
-          </div>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
@@ -500,7 +362,7 @@ export default function DemosPage() {
                     <button className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors">
                       New Demo
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         setShowCreateDropdown(false);
                         handleImportClick();
@@ -754,7 +616,7 @@ export default function DemosPage() {
       {/* Import Demo Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
-          <div 
+          <div
             className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
             onClick={(e) => e.stopPropagation()}
           >
@@ -851,7 +713,7 @@ export default function DemosPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && demoToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
-          <div 
+          <div
             className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
             onClick={(e) => e.stopPropagation()}
           >
@@ -864,7 +726,7 @@ export default function DemosPage() {
                 <p className="text-sm text-foreground/60 mt-1">This action cannot be undone</p>
               </div>
             </div>
-            
+
             <p className="text-foreground mb-6">
               Are you sure you want to remove <span className="font-semibold">"{demoToDelete.title}"</span>? This will permanently delete the demo.
             </p>
@@ -905,7 +767,7 @@ export default function DemosPage() {
       {/* Share Modal */}
       {showShareModal && demoToShare && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowShareModal(false)}>
-          <div 
+          <div
             className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
             onClick={(e) => e.stopPropagation()}
           >
