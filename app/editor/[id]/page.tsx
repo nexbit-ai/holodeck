@@ -2,12 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Group, Panel, Separator } from 'react-resizable-panels'
-import { X, FileJson, Loader2, ArrowLeft } from 'lucide-react'
+import { X, FileJson, Loader2, ArrowLeft, Download } from 'lucide-react'
 import { useEditorStore } from '../store'
 import { ClickSlideDeck } from '../components/ClickSlideDeck'
-import { Timeline } from '../components/Timeline'
-import { AnnotationCard } from '../components/AnnotationCard'
+import { SlideSidebar } from '../components/SlideSidebar'
 import { isClickRecording } from '../types/recording'
 import Link from 'next/link'
 
@@ -21,11 +19,13 @@ export default function EditorWithIdPage() {
 
     const isLoaded = useEditorStore((state) => state.isLoaded)
     const clickRecording = useEditorStore((state) => state.clickRecording)
-
+    const exportProject = useEditorStore((state) => state.exportProject)
     const clearProject = useEditorStore((state) => state.clearProject)
     const loadRecording = useEditorStore((state) => state.loadRecording)
     const selectedSlideIndex = useEditorStore((state) => state.selectedSlideIndex)
     const setSelectedSlide = useEditorStore((state) => state.setSelectedSlide)
+    const isSaving = useEditorStore((state) => state.isSaving)
+    const lastSaved = useEditorStore((state) => state.lastSaved)
 
     // Get counts
     const snapshotCount = clickRecording?.snapshots.length || 0
@@ -142,7 +142,7 @@ export default function EditorWithIdPage() {
         )
     }
 
-    // Editor state - show split pane
+    // Editor state - show new layout with sidebar on left
     return (
         <div className="h-screen flex flex-col bg-background">
             {/* Header */}
@@ -163,11 +163,20 @@ export default function EditorWithIdPage() {
                                 <h1 className="text-lg font-bold text-foreground">Demo Editor</h1>
                                 <p className="text-xs text-foreground/50">
                                     {snapshotCount} snapshots • {clickCount} clicks
+                                    {isSaving && <span className="ml-2 text-primary">Saving...</span>}
+                                    {!isSaving && lastSaved && <span className="ml-2 text-green-500">✓ Saved</span>}
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => exportProject()}
+                                className="px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Export
+                            </button>
                             <button
                                 onClick={handleClear}
                                 className="px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
@@ -180,32 +189,23 @@ export default function EditorWithIdPage() {
                 </div>
             </header>
 
-            {/* Main content with resizable panels */}
-            <Group orientation="horizontal" className="flex-1">
-                {/* Left Panel - Slide Deck */}
-                <Panel defaultSize={65} minSize={40}>
-                    <div className="h-full p-6 overflow-auto flex items-center justify-center">
-                        <ClickSlideDeck
-                            recording={clickRecording}
-                            currentSlideIndex={selectedSlideIndex}
-                            onSlideChange={handleSlideChange}
-                        />
-                    </div>
-                </Panel>
+            {/* Main content with flexbox layout - Left sidebar + Center preview */}
+            <div className="flex-1 flex overflow-hidden">
+                {/* Left Sidebar - Slide Thumbnails */}
+                <div className="w-80 min-w-[280px] max-w-[400px] flex-shrink-0 overflow-hidden">
+                    <SlideSidebar />
+                </div>
 
-                {/* Resize Handle */}
-                <Separator className="w-1.5 bg-foreground/5 hover:bg-primary/30 transition-colors cursor-col-resize" />
-
-                {/* Right Panel - Timeline & Annotations */}
-                <Panel defaultSize={35} minSize={25}>
-                    <div className="h-full bg-surface border-l border-foreground/10 flex flex-col overflow-hidden">
-                        <div className="flex-1 overflow-y-auto">
-                            <Timeline />
-                        </div>
-                        <AnnotationCard />
-                    </div>
-                </Panel>
-            </Group>
+                {/* Center Panel - Main Slide Preview */}
+                <div className="flex-1 h-full p-6 overflow-auto flex items-center justify-center bg-background">
+                    <ClickSlideDeck
+                        recording={clickRecording}
+                        currentSlideIndex={selectedSlideIndex}
+                        onSlideChange={handleSlideChange}
+                    />
+                </div>
+            </div>
         </div>
     )
 }
+

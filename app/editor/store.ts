@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import type { ClickRecording, ClickSnapshot } from './types/recording'
+import type { ClickRecording, ClickSnapshot, ZoomPan } from './types/recording'
 
 export interface Annotation {
     label: string
     script: string
+    zoomPan?: ZoomPan
 }
 
 // Extended snapshot with annotation
@@ -31,6 +32,7 @@ interface EditorState {
     loadRecording: (recording: ClickRecording | AnnotatedRecording, id?: string) => void
     setSelectedSlide: (index: number) => void
     updateAnnotation: (snapshotIndex: number, annotation: Annotation) => void
+    updateZoomPan: (snapshotIndex: number, zoomPan: ZoomPan | undefined) => void
     deleteSnapshot: (snapshotIndex: number) => void
     deleteSnapshots: (indices: number[]) => void
     saveRecording: () => Promise<void>
@@ -75,6 +77,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         updatedSnapshots[snapshotIndex] = {
             ...updatedSnapshots[snapshotIndex],
             annotation,
+        }
+
+        const updatedRecording = {
+            ...clickRecording,
+            snapshots: updatedSnapshots,
+        }
+
+        set({ clickRecording: updatedRecording })
+
+        // Auto-save if we have a recording ID
+        if (recordingId) {
+            get().saveRecording()
+        }
+    },
+
+    updateZoomPan: (snapshotIndex, zoomPan) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const currentAnnotation = updatedSnapshots[snapshotIndex].annotation || { label: '', script: '' }
+
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            annotation: {
+                ...currentAnnotation,
+                zoomPan,
+            },
         }
 
         const updatedRecording = {
