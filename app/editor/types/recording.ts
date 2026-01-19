@@ -1,5 +1,15 @@
 // Types for click-only recording format (v2.0)
 
+// Zoom and pan configuration for a slide
+export interface ZoomPan {
+    enabled: boolean
+    // Rectangle coordinates (in original viewport coordinates)
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
 export interface ClickSnapshot {
     type: "start" | "click"
     timestamp: number

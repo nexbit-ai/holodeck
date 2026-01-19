@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageCircle, X, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MessageCircle, X, Check, ChevronLeft, ChevronRight, ZoomIn, Trash2 } from 'lucide-react'
 
 interface ClickTooltipProps {
     x: number
@@ -18,6 +18,8 @@ interface ClickTooltipProps {
     canGoPrevious?: boolean
     canGoNext?: boolean
     isTransitioning?: boolean
+    hasZoom?: boolean
+    onZoomClick?: () => void
 }
 
 export function ClickTooltip({
@@ -35,6 +37,8 @@ export function ClickTooltip({
     canGoPrevious = false,
     canGoNext = false,
     isTransitioning = false,
+    hasZoom = false,
+    onZoomClick,
 }: ClickTooltipProps) {
     const [localText, setLocalText] = useState(text)
 
@@ -165,6 +169,32 @@ export function ClickTooltip({
                             <ChevronLeft className="w-3 h-3" />
                             Previous
                         </button>
+
+                        {/* Zoom Preview button */}
+                        {onZoomClick && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isTransitioning && !isEditing) {
+                                        onZoomClick();
+                                    }
+                                }}
+                                disabled={isTransitioning || isEditing}
+                                className={`
+                                    flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium
+                                    transition-all duration-200
+                                    ${hasZoom
+                                        ? 'bg-primary/20 text-primary border border-primary/30'
+                                        : 'bg-surface border border-foreground/10 text-foreground/70 hover:bg-primary/5 hover:border-primary/30 hover:text-primary'
+                                    }
+                                    ${isTransitioning || isEditing ? 'opacity-50 cursor-not-allowed' : ''}
+                                `}
+                                title={hasZoom ? "Edit zoom area" : "Add zoom effect"}
+                            >
+                                <ZoomIn className="w-3 h-3" />
+                                {hasZoom ? 'Zoom' : 'Zoom'}
+                            </button>
+                        )}
 
                         <button
                             onClick={(e) => {

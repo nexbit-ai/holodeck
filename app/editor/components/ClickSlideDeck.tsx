@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Image as ImageIcon, Play } from 'lucide-react'
-import type { ClickRecording } from '../types/recording'
+import type { ClickRecording, ZoomPan } from '../types/recording'
 import { useEditorStore, type AnnotatedSnapshot } from '../store'
 import { MouseCursor } from './MouseCursor'
 import { ClickTooltip } from './ClickTooltip'
 import { PlayerTooltip } from './PlayerTooltip'
+import { ZoomPanSelector } from './ZoomPanSelector'
 
 interface ClickSlideDeckProps {
     recording: ClickRecording
@@ -28,9 +29,12 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
     const [showCursor, setShowCursor] = useState(false)
     const [isEditingTooltip, setIsEditingTooltip] = useState(false)
     const [containerSize, setContainerSize] = useState({ width: DEFAULT_CONTAINER_WIDTH, height: DEFAULT_CONTAINER_HEIGHT })
+    const [isZoomMode, setIsZoomMode] = useState(false)
+    const [isZoomed, setIsZoomed] = useState(false)
 
     // Get annotation functions and save state from store
     const updateAnnotation = useEditorStore((state) => state.updateAnnotation)
+    const updateZoomPan = useEditorStore((state) => state.updateZoomPan)
     const isSaving = useEditorStore((state) => state.isSaving)
     const lastSaved = useEditorStore((state) => state.lastSaved)
 
@@ -84,6 +88,33 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
     // Get current annotation text from embedded snapshot
     const currentSnapshotAnnotated = currentSnapshot as AnnotatedSnapshot | undefined
     const annotationText = currentSnapshotAnnotated?.annotation?.script || ''
+    const currentZoomPan = currentSnapshotAnnotated?.annotation?.zoomPan
+
+    // Calculate zoom transform for player mode
+    const getZoomTransform = useCallback(() => {
+        if (!currentZoomPan?.enabled || !isZoomed) {
+            return { transform: 'scale(1) translate(0, 0)', transformOrigin: 'center center' }
+        }
+
+        // Calculate zoom scale based on the selection area
+        const zoomScale = Math.min(
+            containerSize.width / (currentZoomPan.width * scale),
+            containerSize.height / (currentZoomPan.height * scale)
+        )
+
+        // Calculate center of the zoom area in scaled coordinates
+        const zoomCenterX = (currentZoomPan.x + currentZoomPan.width / 2) * scale
+        const zoomCenterY = (currentZoomPan.y + currentZoomPan.height / 2) * scale
+
+        // Calculate translation to center the zoom area
+        const translateX = containerSize.width / 2 - zoomCenterX
+        const translateY = containerSize.height / 2 - zoomCenterY
+
+        return {
+            transform: `scale(${zoomScale}) translate(${translateX / zoomScale}px, ${translateY / zoomScale}px)`,
+            transformOrigin: 'center center'
+        }
+    }, [currentZoomPan, isZoomed, containerSize, scale])
 
     // Load HTML into iframe
     useEffect(() => {
@@ -115,7 +146,22 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
 
         // Reset editing state when slide changes
         setIsEditingTooltip(false)
+        setIsZoomMode(false)
+        setIsZoomed(false)
     }, [currentSnapshot])
+
+    // Trigger zoom animation for player mode
+    useEffect(() => {
+        if (viewOnly && currentZoomPan?.enabled) {
+            // Delay zoom effect slightly for better visual
+            const timer = setTimeout(() => {
+                setIsZoomed(true)
+            }, 400)
+            return () => clearTimeout(timer)
+        } else {
+            setIsZoomed(false)
+        }
+    }, [viewOnly, currentZoomPan, currentSlideIndex])
 
     // Handle annotation text update
     const handleAnnotationChange = useCallback((text: string) => {
@@ -125,6 +171,22 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
             script: text,
         })
     }, [currentSlideIndex, currentSnapshotAnnotated, updateAnnotation])
+
+    // Handle zoom confirmation
+    const handleZoomConfirm = useCallback((zoomPan: ZoomPan) => {
+        updateZoomPan(currentSlideIndex, zoomPan)
+        setIsZoomMode(false)
+    }, [currentSlideIndex, updateZoomPan])
+
+    // Handle zoom cancel
+    const handleZoomCancel = useCallback(() => {
+        setIsZoomMode(false)
+    }, [])
+
+    // Toggle zoom mode
+    const handleZoomClick = useCallback(() => {
+        setIsZoomMode(true)
+    }, [])
 
     // Navigate to slide with animation
     const goToSlide = useCallback((index: number) => {
@@ -221,25 +283,34 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
                         maxHeight: '100%'
                     }}
                 >
-                    {/* Scaled iframe wrapper */}
+                    {/* Zoom container wrapper */}
                     <div
+                        className="relative w-full h-full"
                         style={{
-                            width: originalWidth,
-                            height: originalHeight,
-                            transform: `scale(${scale})`,
-                            transformOrigin: 'top left',
+                            ...getZoomTransform(),
+                            transition: isZoomed ? 'transform 0.8s ease-in-out' : 'transform 0.4s ease-out',
                         }}
                     >
-                        <iframe
-                            ref={iframeRef}
-                            className="border-0 bg-white"
+                        {/* Scaled iframe wrapper */}
+                        <div
                             style={{
                                 width: originalWidth,
                                 height: originalHeight,
+                                transform: `scale(${scale})`,
+                                transformOrigin: 'top left',
                             }}
-                            sandbox="allow-same-origin"
-                            title="Recording snapshot"
-                        />
+                        >
+                            <iframe
+                                ref={iframeRef}
+                                className="border-0 bg-white"
+                                style={{
+                                    width: originalWidth,
+                                    height: originalHeight,
+                                }}
+                                sandbox="allow-same-origin"
+                                title="Recording snapshot"
+                            />
+                        </div>
                     </div>
 
                     {/* Mouse cursor overlay (positioned in scaled coordinates) */}
@@ -282,8 +353,26 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, vi
                                 canGoPrevious={currentSlideIndex > 0}
                                 canGoNext={currentSlideIndex < totalSlides - 1}
                                 isTransitioning={isTransitioning}
+                                hasZoom={!!currentZoomPan?.enabled}
+                                onZoomClick={handleZoomClick}
                             />
                         )
+                    )}
+
+                    {/* Zoom Pan Selector (only in editor mode when zoom mode is active) */}
+                    {!viewOnly && isZoomMode && currentSnapshot?.type === 'click' && currentSnapshot.clickX !== undefined && currentSnapshot.clickY !== undefined && (
+                        <ZoomPanSelector
+                            containerWidth={containerSize.width}
+                            containerHeight={containerSize.height}
+                            originalWidth={originalWidth}
+                            originalHeight={originalHeight}
+                            scale={scale}
+                            clickX={currentSnapshot.clickX}
+                            clickY={currentSnapshot.clickY}
+                            initialZoomPan={currentZoomPan}
+                            onConfirm={handleZoomConfirm}
+                            onCancel={handleZoomCancel}
+                        />
                     )}
                 </div>
             </div>
