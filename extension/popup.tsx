@@ -158,13 +158,16 @@ function IndexPopup() {
                             name: `Recording ${new Date().toISOString()}`,
                             sourceUrl: tab.url || "unknown",
                             duration: elapsedTime,
-                            eventCount: response.recording.length,
-                            events: response.recording,
+                            eventCount: response.recording.snapshots?.length || 0,
+                            events: response.recording.snapshots, // New backend expects an array of events/snapshots
                             metadata: {
                                 extensionVersion: chrome.runtime.getManifest().version,
                                 browserName: "Chrome",
                                 screenWidth: window.screen.width,
                                 screenHeight: window.screen.height,
+                                // Include original recording metadata
+                                recordingVersion: response.recording.version,
+                                recordingStartTime: response.recording.startTime,
                             },
                         }
 

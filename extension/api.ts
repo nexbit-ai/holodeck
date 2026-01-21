@@ -140,6 +140,9 @@ export async function uploadRecording(
         throw new Error("Not authenticated")
     }
 
+    console.log("[Holodeck Debug] Uploading recording to:", `${API_URL}/api/v1/recordings`)
+    console.log("[Holodeck Debug] Payload:", JSON.stringify(payload, null, 2))
+
     const response = await fetch(`${API_URL}/api/v1/recordings`, {
         method: "POST",
         headers: {

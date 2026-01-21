@@ -5,9 +5,19 @@ export const config: PlasmoCSConfig = {
     run_at: "document_idle"
 }
 
+export enum EventType {
+    START = 0,
+    CLICK = 1,
+    RESIZE = 2,
+    SCROLL = 3,
+    META = 4,
+    COVER = 5,
+    END = 6,
+}
+
 // Click snapshot data structure
 export interface ClickSnapshot {
-    type: "start" | "click"
+    type: EventType | "start" | "click"
     timestamp: number
     html: string
     clickX?: number
@@ -167,7 +177,7 @@ function captureDOM(): string {
 }
 
 // Create a snapshot
-function createSnapshot(type: "start" | "click", clickX?: number, clickY?: number): ClickSnapshot {
+function createSnapshot(type: EventType, clickX?: number, clickY?: number): ClickSnapshot {
     return {
         type,
         timestamp: Date.now(),
@@ -186,7 +196,7 @@ function createSnapshot(type: "start" | "click", clickX?: number, clickY?: numbe
 function handleClick(event: MouseEvent) {
     if (!isRecording || !recording) return
 
-    const snapshot = createSnapshot("click", event.clientX, event.clientY)
+    const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY)
     recording.snapshots.push(snapshot)
 
     // Notify background to update badge with click count
@@ -212,7 +222,7 @@ function startRecording(): { success: boolean; startTime?: number; error?: strin
         recording = {
             version: "2.0",
             startTime: recordingStartTime,
-            snapshots: [createSnapshot("start")]
+            snapshots: [createSnapshot(EventType.START)]
         }
 
         // Add click listener

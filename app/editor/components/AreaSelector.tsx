@@ -2,54 +2,56 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Check, X, Move, Maximize2 } from 'lucide-react'
-import type { ZoomPan } from '../types/recording'
 
-interface ZoomPanSelectorProps {
+interface AreaRect {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
+interface AreaSelectorProps {
     containerWidth: number
     containerHeight: number
     originalWidth: number
     originalHeight: number
     scale: number
-    clickX: number
-    clickY: number
-    initialZoomPan?: ZoomPan
-    onConfirm: (zoomPan: ZoomPan) => void
+    initialRect?: AreaRect
+    onConfirm: (rect: AreaRect) => void
     onCancel: () => void
+    label: string
+    color?: string
 }
 
-const DEFAULT_WIDTH = 400
-const DEFAULT_HEIGHT = 300
-const MIN_SIZE = 100
+const MIN_SIZE = 10
 
-export function ZoomPanSelector({
+export function AreaSelector({
     containerWidth,
     containerHeight,
     originalWidth,
     originalHeight,
     scale,
-    clickX,
-    clickY,
-    initialZoomPan,
+    initialRect,
     onConfirm,
     onCancel,
-}: ZoomPanSelectorProps) {
+    label,
+    color = '#b05a36',
+}: AreaSelectorProps) {
     // Store coordinates in original (unscaled) viewport space
-    const [rect, setRect] = useState(() => {
-        if (initialZoomPan && initialZoomPan.enabled) {
+    const [rect, setRect] = useState<AreaRect>(() => {
+        if (initialRect) {
             return {
-                x: initialZoomPan.x,
-                y: initialZoomPan.y,
-                width: initialZoomPan.width,
-                height: initialZoomPan.height,
+                x: initialRect.x,
+                y: initialRect.y,
+                width: initialRect.width,
+                height: initialRect.height,
             }
         }
-        // Use 1/4th of the screen area (1/2 width and 1/2 height)
-        const width = originalWidth / 2
-        const height = originalHeight / 2
-
-        // Center selection around click point, then clamp to screen bounds
-        const x = Math.max(0, Math.min(clickX - width / 2, originalWidth - width))
-        const y = Math.max(0, Math.min(clickY - height / 2, originalHeight - height))
+        // Use 1/4th of the screen area centered
+        const width = originalWidth / 4
+        const height = originalHeight / 4
+        const x = (originalWidth - width) / 2
+        const y = (originalHeight - height) / 2
 
         return { x, y, width, height }
     })
@@ -57,9 +59,7 @@ export function ZoomPanSelector({
     const [isDragging, setIsDragging] = useState(false)
     const [isResizing, setIsResizing] = useState(false)
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-    const [rectStart, setRectStart] = useState({ x: 0, y: 0, width: 0, height: 0 })
-
-    const containerRef = useRef<HTMLDivElement>(null)
+    const [rectStart, setRectStart] = useState<AreaRect>({ x: 0, y: 0, width: 0, height: 0 })
 
     // Convert original coordinates to scaled display coordinates
     const displayRect = {
@@ -69,12 +69,6 @@ export function ZoomPanSelector({
         height: rect.height * scale,
     }
 
-    // Calculate zoom preview info
-    const zoomScale = Math.min(
-        originalWidth / rect.width,
-        originalHeight / rect.height
-    )
-
     // Handle mouse move for dragging and resizing
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!isDragging && !isResizing) return
@@ -83,25 +77,20 @@ export function ZoomPanSelector({
         const dy = (e.clientY - dragStart.y) / scale
 
         if (isDragging) {
-            // Move the rectangle
             let newX = rectStart.x + dx
             let newY = rectStart.y + dy
 
-            // Clamp to bounds
             newX = Math.max(0, Math.min(newX, originalWidth - rect.width))
             newY = Math.max(0, Math.min(newY, originalHeight - rect.height))
 
             setRect(prev => ({ ...prev, x: newX, y: newY }))
         } else if (isResizing) {
-            // Resize from bottom-right corner
             let newWidth = rectStart.width + dx
             let newHeight = rectStart.height + dy
 
-            // Clamp to minimum size
             newWidth = Math.max(MIN_SIZE, newWidth)
             newHeight = Math.max(MIN_SIZE, newHeight)
 
-            // Clamp to container bounds
             newWidth = Math.min(newWidth, originalWidth - rect.x)
             newHeight = Math.min(newHeight, originalHeight - rect.y)
 
@@ -141,65 +130,45 @@ export function ZoomPanSelector({
         setRectStart({ ...rect })
     }
 
-    const handleConfirm = () => {
-        onConfirm({
-            enabled: true,
-            x: Math.round(rect.x),
-            y: Math.round(rect.y),
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-        })
-    }
-
     return (
-        <div
-            ref={containerRef}
-            className="absolute inset-0 z-40"
-            style={{ cursor: isDragging ? 'grabbing' : 'default' }}
-        >
-            {/* Semi-transparent overlay outside selection */}
-            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+        <div className="absolute inset-0 z-40" style={{ cursor: isDragging ? 'grabbing' : 'default' }}>
+            <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
-            {/* Selection rectangle cutout */}
             <div
-                className="absolute bg-transparent border-2 border-primary shadow-lg"
+                className="absolute bg-transparent border-2 shadow-lg"
                 style={{
                     left: displayRect.x,
                     top: displayRect.y,
                     width: displayRect.width,
                     height: displayRect.height,
-                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.4)',
+                    borderColor: color,
+                    boxShadow: `0 0 0 9999px rgba(0, 0, 0, 0.3)`,
                 }}
             >
                 {/* Clear the inner area */}
                 <div className="absolute inset-0 bg-transparent" />
 
-                {/* Drag handle (center) */}
+                {/* Drag handle */}
                 <div
                     className="absolute inset-0 cursor-grab active:cursor-grabbing flex items-center justify-center"
                     onMouseDown={handleDragStart}
                 >
-                    <div className="px-3 py-1.5 bg-primary/90 rounded-full flex items-center gap-2 text-white text-xs font-medium shadow-lg">
+                    <div className="px-3 py-1 bg-white/90 rounded-full flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider shadow-lg" style={{ color }}>
                         <Move className="w-3 h-3" />
-                        Drag to move
+                        {label}
                     </div>
                 </div>
 
-                {/* Resize handle (bottom-right corner) */}
+                {/* Resize handle */}
                 <div
-                    className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-tl-lg cursor-se-resize flex items-center justify-center"
+                    className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize flex items-center justify-center bg-white/90 rounded-tl-lg shadow-sm"
                     onMouseDown={handleResizeStart}
                 >
-                    <Maximize2 className="w-3 h-3 text-white rotate-90" />
+                    <Maximize2 className="w-3 h-3 rotate-90" style={{ color }} />
                 </div>
-
-                {/* Corner indicators */}
-                <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary" />
-                <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary" />
-                <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary" />
             </div>
 
-            {/* Control buttons */}
+            {/* Controls */}
             <div
                 className="absolute flex items-center gap-2"
                 style={{
@@ -210,29 +179,19 @@ export function ZoomPanSelector({
             >
                 <button
                     onClick={onCancel}
-                    className="px-3 py-1.5 bg-surface border border-foreground/20 rounded-lg text-sm font-medium text-foreground hover:bg-foreground/5 transition-colors flex items-center gap-1.5 shadow-lg"
+                    className="px-3 py-1.5 bg-surface border border-foreground/10 rounded-lg text-[13px] font-semibold text-foreground hover:bg-foreground/5 transition-all shadow-xl flex items-center gap-2"
                 >
                     <X className="w-4 h-4" />
                     Cancel
                 </button>
                 <button
-                    onClick={handleConfirm}
-                    className="px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5 shadow-lg"
+                    onClick={() => onConfirm(rect)}
+                    className="px-3 py-1.5 text-white rounded-lg text-[13px] font-bold transition-all shadow-xl flex items-center gap-2"
+                    style={{ backgroundColor: color }}
                 >
                     <Check className="w-4 h-4" />
-                    Apply Zoom ({zoomScale.toFixed(1)}x)
+                    Apply {label}
                 </button>
-            </div>
-
-            {/* Zoom preview info */}
-            <div
-                className="absolute px-2 py-1 bg-background/90 backdrop-blur-sm rounded text-xs text-foreground border border-foreground/10"
-                style={{
-                    left: displayRect.x,
-                    top: displayRect.y - 28,
-                }}
-            >
-                Zoom Area: {Math.round(rect.width)} × {Math.round(rect.height)}px
             </div>
         </div>
     )

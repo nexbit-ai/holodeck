@@ -10,8 +10,18 @@ export interface ZoomPan {
     height: number
 }
 
+export enum EventType {
+    START = 0,
+    CLICK = 1,
+    RESIZE = 2,
+    SCROLL = 3,
+    META = 4,
+    COVER = 5,
+    END = 6,
+}
+
 export interface ClickSnapshot {
-    type: "start" | "click"
+    type: EventType | "start" | "click" | "cover" | "end" // Temporary migration support
     timestamp: number
     html: string
     clickX?: number
@@ -21,6 +31,11 @@ export interface ClickSnapshot {
     url: string
     viewportWidth: number
     viewportHeight: number
+    // Cover/End slide specific fields
+    title?: string
+    logo?: string
+    description?: string
+    ctaLink?: string
 }
 
 export interface ClickRecording {

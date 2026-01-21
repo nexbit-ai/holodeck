@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MousePointerClick, Play, Trash2 } from 'lucide-react'
+import { MousePointerClick, Play, Trash2, Layout, CheckCircle } from 'lucide-react'
 import type { AnnotatedSnapshot } from '../store'
+import { EventType } from '../types/recording'
 
 interface SlideThumbnailProps {
     snapshot: AnnotatedSnapshot
@@ -35,8 +36,10 @@ export function SlideThumbnail({
     const thumbnailHeight = Math.round(containerWidth * aspectRatio)
     const scale = containerWidth / originalWidth
 
-    const isStart = snapshot.type === 'start'
-    const isClick = snapshot.type === 'click'
+    const isStart = snapshot.type === 'start' || snapshot.type === EventType.START
+    const isCover = snapshot.type === 'cover' || snapshot.type === EventType.COVER
+    const isEnd = snapshot.type === 'end' || snapshot.type === EventType.END
+    const isClick = snapshot.type === 'click' || snapshot.type === EventType.CLICK
     const hasAnnotation = !!snapshot.annotation?.script
 
     // Measure container width on mount and resize
@@ -120,11 +123,7 @@ export function SlideThumbnail({
                 absolute top-2 left-2 z-10 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
                 ${isSelected ? 'bg-primary text-white' : 'bg-background/90 text-foreground'}
             `}>
-                {isStart ? (
-                    <Play className="w-3 h-3" />
-                ) : (
-                    index
-                )}
+                {index}
             </div>
 
             {/* Click indicator */}

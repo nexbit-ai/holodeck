@@ -1,10 +1,36 @@
 import { create } from 'zustand'
 import type { ClickRecording, ClickSnapshot, ZoomPan } from './types/recording'
+import { EventType } from './types/recording'
+
+export interface Hotspot {
+    id: string
+    x: number
+    y: number
+    text: string
+}
+
+export interface BlurRegion {
+    id: string
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
+export interface CropData {
+    x: number
+    y: number
+    width: number
+    height: number
+}
 
 export interface Annotation {
     label: string
     script: string
     zoomPan?: ZoomPan
+    hotspots?: Hotspot[]
+    blurRegions?: BlurRegion[]
+    crop?: CropData
 }
 
 // Extended snapshot with annotation
@@ -27,15 +53,31 @@ interface EditorState {
     isLoaded: boolean
     isSaving: boolean
     lastSaved: Date | null
+    isZoomMode: boolean
+    isHotspotMode: boolean
+    isBlurMode: boolean
+    isCropMode: boolean
 
     // Actions
     loadRecording: (recording: ClickRecording | AnnotatedRecording, id?: string) => void
     setSelectedSlide: (index: number) => void
     updateAnnotation: (snapshotIndex: number, annotation: Annotation) => void
     updateZoomPan: (snapshotIndex: number, zoomPan: ZoomPan | undefined) => void
+    updateCoverMetadata: (snapshotIndex: number, metadata: { title?: string, logo?: string, description?: string }) => void
+    updateEndMetadata: (snapshotIndex: number, metadata: { title?: string, logo?: string, description?: string, ctaLink?: string }) => void
     deleteSnapshot: (snapshotIndex: number) => void
     deleteSnapshots: (indices: number[]) => void
     saveRecording: () => Promise<void>
+    setZoomMode: (active: boolean) => void
+    setHotspotMode: (active: boolean) => void
+    setBlurMode: (active: boolean) => void
+    setCropMode: (active: boolean) => void
+    addHotspot: (snapshotIndex: number, hotspot: Hotspot) => void
+    updateHotspot: (snapshotIndex: number, hotspotId: string, text: string) => void
+    deleteHotspot: (snapshotIndex: number, hotspotId: string) => void
+    addBlurRegion: (snapshotIndex: number, region: BlurRegion) => void
+    deleteBlurRegion: (snapshotIndex: number, regionId: string) => void
+    updateCrop: (snapshotIndex: number, crop: CropData | undefined) => void
     clearProject: () => void
     exportProject: () => void
 }
@@ -48,15 +90,60 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     isLoaded: false,
     isSaving: false,
     lastSaved: null,
+    isZoomMode: false,
+    isHotspotMode: false,
+    isBlurMode: false,
+    isCropMode: false,
 
     // Actions
     loadRecording: (recording, id) => {
+        let annotatedRecording = recording as AnnotatedRecording
+
+        // Automatically add cover slide if not present
+        const hasCover = annotatedRecording.snapshots.some(s => s.type === 'cover' || s.type === EventType.COVER)
+        if (!hasCover && annotatedRecording.snapshots.length > 0) {
+            const firstSnapshot = annotatedRecording.snapshots[0]
+            const coverSlide: AnnotatedSnapshot = {
+                ...firstSnapshot,
+                type: EventType.COVER,
+                title: 'Welcome to the Demo',
+                description: 'Click Get Started to begin',
+                timestamp: firstSnapshot.timestamp - 1000,
+            }
+            annotatedRecording = {
+                ...annotatedRecording,
+                snapshots: [coverSlide, ...annotatedRecording.snapshots]
+            }
+        }
+
+        // Automatically add end slide if not present
+        const hasEnd = annotatedRecording.snapshots.some(s => s.type === 'end' || s.type === EventType.END)
+        if (!hasEnd && annotatedRecording.snapshots.length > 0) {
+            const lastSnapshot = annotatedRecording.snapshots[annotatedRecording.snapshots.length - 1]
+            const endSlide: AnnotatedSnapshot = {
+                ...lastSnapshot,
+                type: EventType.END,
+                title: 'Enjoyed the guided demo?',
+                description: 'See more features on our website',
+                ctaLink: 'https://nexbit.ai',
+                timestamp: lastSnapshot.timestamp + 10000,
+            }
+            annotatedRecording = {
+                ...annotatedRecording,
+                snapshots: [...annotatedRecording.snapshots, endSlide]
+            }
+        }
+
         set({
-            clickRecording: recording as AnnotatedRecording,
+            clickRecording: annotatedRecording,
             recordingId: id || null,
             isLoaded: true,
             selectedSlideIndex: 0,
             lastSaved: null,
+            isZoomMode: false,
+            isHotspotMode: false,
+            isBlurMode: false,
+            isCropMode: false,
         })
     },
 
@@ -87,6 +174,50 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         set({ clickRecording: updatedRecording })
 
         // Auto-save if we have a recording ID
+        if (recordingId) {
+            get().saveRecording()
+        }
+    },
+
+    updateCoverMetadata: (snapshotIndex, metadata) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            ...metadata
+        }
+
+        const updatedRecording = {
+            ...clickRecording,
+            snapshots: updatedSnapshots,
+        }
+
+        set({ clickRecording: updatedRecording })
+
+        if (recordingId) {
+            get().saveRecording()
+        }
+    },
+
+    updateEndMetadata: (snapshotIndex, metadata) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            ...metadata
+        }
+
+        const updatedRecording = {
+            ...clickRecording,
+            snapshots: updatedSnapshots,
+        }
+
+        set({ clickRecording: updatedRecording })
+
         if (recordingId) {
             get().saveRecording()
         }
@@ -214,6 +345,185 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
     },
 
+    setZoomMode: (active) => {
+        set({ isZoomMode: active })
+    },
+
+    setHotspotMode: (active) => {
+        set({ isHotspotMode: active })
+    },
+
+    setBlurMode: (active) => {
+        set({ isBlurMode: active })
+    },
+
+    setCropMode: (active) => {
+        set({ isCropMode: active })
+    },
+
+    addHotspot: (snapshotIndex, hotspot) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const currentAnnotation = updatedSnapshots[snapshotIndex].annotation || { label: '', script: '' }
+        const currentHotspots = currentAnnotation.hotspots || []
+
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            annotation: {
+                ...currentAnnotation,
+                hotspots: [...currentHotspots, hotspot],
+            },
+        }
+
+        set({
+            clickRecording: {
+                ...clickRecording,
+                snapshots: updatedSnapshots,
+            }
+        })
+
+        if (recordingId) get().saveRecording()
+    },
+
+    updateHotspot: (snapshotIndex, hotspotId, text) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const currentAnnotation = updatedSnapshots[snapshotIndex].annotation
+        if (!currentAnnotation || !currentAnnotation.hotspots) return
+
+        const updatedHotspots = currentAnnotation.hotspots.map(h =>
+            h.id === hotspotId ? { ...h, text } : h
+        )
+
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            annotation: {
+                ...currentAnnotation,
+                hotspots: updatedHotspots,
+            },
+        }
+
+        set({
+            clickRecording: {
+                ...clickRecording,
+                snapshots: updatedSnapshots,
+            }
+        })
+
+        if (recordingId) get().saveRecording()
+    },
+
+    deleteHotspot: (snapshotIndex, hotspotId) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const currentAnnotation = updatedSnapshots[snapshotIndex].annotation
+        if (!currentAnnotation || !currentAnnotation.hotspots) return
+
+        const updatedHotspots = currentAnnotation.hotspots.filter(h => h.id !== hotspotId)
+
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            annotation: {
+                ...currentAnnotation,
+                hotspots: updatedHotspots,
+            },
+        }
+
+        set({
+            clickRecording: {
+                ...clickRecording,
+                snapshots: updatedSnapshots,
+            }
+        })
+
+        if (recordingId) get().saveRecording()
+    },
+
+    addBlurRegion: (snapshotIndex, region) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const currentAnnotation = updatedSnapshots[snapshotIndex].annotation || { label: '', script: '' }
+        const currentBlurs = currentAnnotation.blurRegions || []
+
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            annotation: {
+                ...currentAnnotation,
+                blurRegions: [...currentBlurs, region],
+            },
+        }
+
+        set({
+            clickRecording: {
+                ...clickRecording,
+                snapshots: updatedSnapshots,
+            }
+        })
+
+        if (recordingId) get().saveRecording()
+    },
+
+    deleteBlurRegion: (snapshotIndex, regionId) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const currentAnnotation = updatedSnapshots[snapshotIndex].annotation
+        if (!currentAnnotation || !currentAnnotation.blurRegions) return
+
+        const updatedBlurs = currentAnnotation.blurRegions.filter(r => r.id !== regionId)
+
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            annotation: {
+                ...currentAnnotation,
+                blurRegions: updatedBlurs,
+            },
+        }
+
+        set({
+            clickRecording: {
+                ...clickRecording,
+                snapshots: updatedSnapshots,
+            }
+        })
+
+        if (recordingId) get().saveRecording()
+    },
+
+    updateCrop: (snapshotIndex, crop) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const currentAnnotation = updatedSnapshots[snapshotIndex].annotation || { label: '', script: '' }
+
+        updatedSnapshots[snapshotIndex] = {
+            ...updatedSnapshots[snapshotIndex],
+            annotation: {
+                ...currentAnnotation,
+                crop,
+            },
+        }
+
+        set({
+            clickRecording: {
+                ...clickRecording,
+                snapshots: updatedSnapshots,
+            }
+        })
+
+        if (recordingId) get().saveRecording()
+    },
+
     clearProject: () => {
         set({
             clickRecording: null,
@@ -222,6 +532,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             isLoaded: false,
             isSaving: false,
             lastSaved: null,
+            isZoomMode: false,
+            isHotspotMode: false,
+            isBlurMode: false,
+            isCropMode: false,
         })
     },
 
