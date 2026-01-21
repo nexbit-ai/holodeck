@@ -17,7 +17,7 @@ const stytchOptions = {
 // Create the Stytch client synchronously
 // This matches the documentation pattern: https://stytch.com/docs/b2b/quickstarts/nextjs
 const publicToken = process.env.NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN;
-const stytchClient = publicToken 
+export const stytchClient = publicToken 
     ? createStytchB2BUIClient(publicToken, stytchOptions)
     : null;
 

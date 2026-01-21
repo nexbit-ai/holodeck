@@ -1,3 +1,4 @@
+import { getAuthHeaders } from "../utils/apiAuth";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
 
@@ -20,7 +21,10 @@ export interface AuthUrlResponse {
 export const hubspotService = {
     async getAuthUrl(organizationId: string, redirectUri: string): Promise<AuthUrlResponse> {
         const response = await fetch(
-            `${API_BASE_URL}/hubspot/oauth/authorize?organization_id=${organizationId}&redirect_uri=${encodeURIComponent(redirectUri)}`
+            `${API_BASE_URL}/hubspot/oauth/authorize?organization_id=${organizationId}&redirect_uri=${encodeURIComponent(redirectUri)}`,
+            {
+                headers: getAuthHeaders(),
+            }
         );
 
         if (!response.ok) {
@@ -33,9 +37,7 @@ export const hubspotService = {
     async exchangeCode(code: string, organizationId: string): Promise<HubSpotIntegration> {
         const response = await fetch(`${API_BASE_URL}/hubspot/oauth/callback`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 code,
                 organization_id: organizationId,
@@ -51,7 +53,9 @@ export const hubspotService = {
     },
 
     async getIntegrationStatus(organizationId: string): Promise<HubSpotIntegration> {
-        const response = await fetch(`${API_BASE_URL}/hubspot/integration?organization_id=${organizationId}`);
+        const response = await fetch(`${API_BASE_URL}/hubspot/integration?organization_id=${organizationId}`, {
+            headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
             if (response.status === 404) {
@@ -66,6 +70,7 @@ export const hubspotService = {
     async disconnectIntegration(organizationId: string): Promise<void> {
         const response = await fetch(`${API_BASE_URL}/hubspot/integration?organization_id=${organizationId}`, {
             method: "DELETE",
+            headers: getAuthHeaders(),
         });
 
         if (!response.ok) {

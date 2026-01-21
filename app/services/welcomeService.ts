@@ -21,6 +21,8 @@ export interface UpdateWelcomeMessageData {
     conditions?: Record<string, any>;
 }
 
+import { getAuthHeaders } from "../utils/apiAuth";
+
 const API_BASE_URL = "http://localhost:8000/api/v1/config/welcome";
 
 export const welcomeService = {
@@ -29,7 +31,9 @@ export const welcomeService = {
      */
     getWelcomeMessages: async (organizationId: string): Promise<WelcomeMessage[]> => {
         try {
-            const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`);
+            const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`, {
+                headers: getAuthHeaders(),
+            });
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch welcome messages: ${response.statusText}`);
@@ -47,7 +51,9 @@ export const welcomeService = {
      */
     getDefaultWelcomeMessage: async (organizationId: string): Promise<WelcomeMessage> => {
         try {
-            const response = await fetch(`${API_BASE_URL}/default?organization_id=${encodeURIComponent(organizationId)}`);
+            const response = await fetch(`${API_BASE_URL}/default?organization_id=${encodeURIComponent(organizationId)}`, {
+                headers: getAuthHeaders(),
+            });
 
             if (!response.ok) {
                 if (response.status === 404) {
@@ -70,9 +76,7 @@ export const welcomeService = {
         try {
             const response = await fetch(API_BASE_URL, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(data),
             });
 
@@ -95,9 +99,7 @@ export const welcomeService = {
         try {
             const response = await fetch(`${API_BASE_URL}/${id}?organization_id=${encodeURIComponent(organizationId)}`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(data),
             });
 
@@ -120,6 +122,7 @@ export const welcomeService = {
         try {
             const response = await fetch(`${API_BASE_URL}/${id}?organization_id=${encodeURIComponent(organizationId)}`, {
                 method: "DELETE",
+                headers: getAuthHeaders(),
             });
 
             if (!response.ok) {

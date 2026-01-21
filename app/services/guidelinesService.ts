@@ -12,6 +12,8 @@ export interface UpdateGuidelinesData {
     guidelines: string;
 }
 
+import { getAuthHeaders } from "../utils/apiAuth";
+
 const API_BASE_URL = "http://localhost:8000/api/v1/config/guidelines";
 
 export const guidelinesService = {
@@ -20,7 +22,9 @@ export const guidelinesService = {
      */
     getGuidelines: async (organizationId: string): Promise<GuidelinesConfig | null> => {
         try {
-            const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`);
+            const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`, {
+                headers: getAuthHeaders(),
+            });
 
             if (!response.ok) {
                 if (response.status === 404) {
@@ -43,9 +47,7 @@ export const guidelinesService = {
         try {
             const response = await fetch(API_BASE_URL, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(data),
             });
 
@@ -68,6 +70,7 @@ export const guidelinesService = {
         try {
             const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`, {
                 method: "DELETE",
+                headers: getAuthHeaders(),
             });
 
             if (!response.ok) {

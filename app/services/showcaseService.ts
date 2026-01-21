@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "../utils/apiAuth";
+
 const API_BASE_URL = "http://localhost:8000/api/v1";
 
 export interface Showcase {
@@ -61,9 +63,7 @@ export const showcaseService = {
     async createShowcase(data: CreateShowcaseData): Promise<Showcase> {
         const response = await fetch(`${API_BASE_URL}/showcases`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
 
@@ -81,7 +81,10 @@ export const showcaseService = {
      */
     async getShowcases(organizationId: string, limit: number = 100): Promise<Showcase[]> {
         const response = await fetch(
-            `${API_BASE_URL}/showcases?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`
+            `${API_BASE_URL}/showcases?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`,
+            {
+                headers: getAuthHeaders(),
+            }
         );
 
         if (!response.ok) {
@@ -100,7 +103,10 @@ export const showcaseService = {
      */
     async getShowcase(showcaseId: string, organizationId: string): Promise<Showcase> {
         const response = await fetch(
-            `${API_BASE_URL}/showcases/${showcaseId}?organization_id=${encodeURIComponent(organizationId)}`
+            `${API_BASE_URL}/showcases/${showcaseId}?organization_id=${encodeURIComponent(organizationId)}`,
+            {
+                headers: getAuthHeaders(),
+            }
         );
 
         if (!response.ok) {
@@ -127,9 +133,7 @@ export const showcaseService = {
             `${API_BASE_URL}/showcases/${showcaseId}?organization_id=${encodeURIComponent(organizationId)}`,
             {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(data),
             }
         );
