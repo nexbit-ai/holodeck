@@ -20,7 +20,8 @@ import {
     Mail,
     Linkedin,
     MessageSquare,
-    Globe
+    Globe,
+    AlertCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ChatInterface } from "../components/ChatInterface";
@@ -31,6 +32,10 @@ import {
     Panel,
     Separator,
 } from "react-resizable-panels";
+import { showcaseService, Showcase } from "../services/showcaseService";
+import { chatService } from "../services/chatService";
+
+const DEFAULT_ORGANIZATION_ID = "demo-org";
 
 export default function ShowcasePage() {
     const [activeTab, setActiveTab] = useState<"home" | "performance">("home");
@@ -45,8 +50,15 @@ export default function ShowcasePage() {
     const [secondaryColor, setSecondaryColor] = useState("#10B981");
     const [accentColor, setAccentColor] = useState("#F59E0B");
     const [showShareModal, setShowShareModal] = useState(false);
-    const [selectedShareShowcase, setSelectedShareShowcase] = useState<any>(null);
+    const [selectedShareShowcase, setSelectedShareShowcase] = useState<Showcase | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [showcases, setShowcases] = useState<Showcase[]>([]);
+    const [isLoadingShowcases, setIsLoadingShowcases] = useState(false);
+    const [isCreatingShowcase, setIsCreatingShowcase] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [chatId, setChatId] = useState<string | null>(null);
+    const [editingShowcase, setEditingShowcase] = useState<Showcase | null>(null);
+    const [isCreateMode, setIsCreateMode] = useState(false);
 
     // Form state
     const [newShowcase, setNewShowcase] = useState({
@@ -70,6 +82,23 @@ export default function ShowcasePage() {
             }
         };
         fetchRecordings();
+    }, []);
+
+    useEffect(() => {
+        const fetchShowcases = async () => {
+            setIsLoadingShowcases(true);
+            setError(null);
+            try {
+                const data = await showcaseService.getShowcases(DEFAULT_ORGANIZATION_ID);
+                setShowcases(data);
+            } catch (err: any) {
+                console.error('Error fetching showcases:', err);
+                setError(err.message || 'Failed to load showcases');
+            } finally {
+                setIsLoadingShowcases(false);
+            }
+        };
+        fetchShowcases();
     }, []);
 
     // Load demo content when demoId changes
@@ -101,28 +130,29 @@ export default function ShowcasePage() {
         loadDemoContent();
     }, [newShowcase.demoId]);
 
-    const sharedShowcases = [
-        {
-            id: "sh-1",
-            title: "Nexbit Enterprise Demo",
-            views: 1240,
-            completion: "68%",
-            lastShared: "2 days ago",
-            createdAt: "Jan 15, 2024",
-            createdBy: "Krishna",
-            url: "https://nexbit.ai/agent/demo-1"
-        },
-        {
-            id: "sh-2",
-            title: "Interactive Onboarding",
-            views: 850,
-            completion: "45%",
-            lastShared: "5 days ago",
-            createdAt: "Jan 12, 2024",
-            createdBy: "Sarah",
-            url: "https://nexbit.ai/agent/onboarding"
+    // Helper function to format date for display (e.g., "21 Jan 2026")
+    const formatDate = (dateString: string) => {
+        if (!dateString) return "Invalid Date";
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "Invalid Date";
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch (e) {
+            return "Invalid Date";
         }
-    ];
+    };
+
+    // Helper function to get full share URL
+    const getShareUrl = (showcase: Showcase) => {
+        if (showcase.showcaseShareLink) {
+            // If it's a relative path, prepend the base URL
+            if (showcase.showcaseShareLink.startsWith('/')) {
+                return `${window.location.origin}${showcase.showcaseShareLink}`;
+            }
+            return showcase.showcaseShareLink;
+        }
+        return `${window.location.origin}/showcase/${showcase.id}`;
+    };
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText("https://nexbit.ai/agent/demo-1");
@@ -136,8 +166,59 @@ export default function ShowcasePage() {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
-    const handleShare = (type: 'email' | 'linkedin' | 'slack', showcase: any) => {
-        const url = showcase.url;
+    const handleCreateShowcase = async () => {
+        if (!newShowcase.title.trim()) {
+            setError("Please enter a showcase title");
+            return;
+        }
+
+        setIsCreatingShowcase(true);
+        setError(null);
+
+        try {
+            // Create showcase with the form data
+            const showcaseData = {
+                title: newShowcase.title,
+                organizationId: DEFAULT_ORGANIZATION_ID,
+                demoId: newShowcase.demoId || undefined,
+                chatId: chatId || undefined,
+                primaryColor: primaryColor,
+                secondaryColor: secondaryColor,
+                accentColor: accentColor,
+                live: true
+            };
+
+            const createdShowcase = await showcaseService.createShowcase(showcaseData);
+            
+            // Refresh showcases list
+            const updatedShowcases = await showcaseService.getShowcases(DEFAULT_ORGANIZATION_ID);
+            setShowcases(updatedShowcases);
+            
+            // Reset form and return to tiles view
+            setNewShowcase({
+                title: "",
+                demoId: "",
+                ctaText: "Book Full Demo",
+                ctaType: "Open Calendar"
+            });
+            setPrimaryColor("#6366F1");
+            setSecondaryColor("#10B981");
+            setAccentColor("#F59E0B");
+            setChatId(null);
+            setSelectedDemoContent(null);
+            setEditingShowcase(null);
+            setIsCreateMode(false);
+            setViewMode("tiles");
+        } catch (err: any) {
+            console.error('Error creating showcase:', err);
+            setError(err.message || 'Failed to create showcase');
+        } finally {
+            setIsCreatingShowcase(false);
+        }
+    };
+
+    const handleShare = (type: 'email' | 'linkedin' | 'slack', showcase: Showcase) => {
+        const url = getShareUrl(showcase);
         const title = encodeURIComponent(`Check out this interactive demo: ${showcase.title}`);
 
         switch (type) {
@@ -214,6 +295,13 @@ export default function ShowcasePage() {
                                                 ctaText: "Book Full Demo",
                                                 ctaType: "Open Calendar"
                                             });
+                                            setPrimaryColor("#6366F1");
+                                            setSecondaryColor("#10B981");
+                                            setAccentColor("#F59E0B");
+                                            setSelectedDemoContent(null);
+                                            setChatId(null);
+                                            setEditingShowcase(null);
+                                            setIsCreateMode(true);
                                             setViewMode("playground");
                                         }}
                                         className="aspect-[4/3] bg-surface border-2 border-dashed border-primary/20 rounded-3xl flex flex-col items-center justify-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all group"
@@ -228,21 +316,69 @@ export default function ShowcasePage() {
                                     </button>
 
                                     {/* Existing Showcase Tiles */}
-                                    {sharedShowcases.map((sh) => (
+                                    {isLoadingShowcases ? (
+                                        <div className="col-span-full flex justify-center py-12">
+                                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                                        </div>
+                                    ) : showcases.length === 0 ? (
+                                        <div className="col-span-full text-center py-12">
+                                            <p className="text-foreground/60">No showcases yet. Create your first one!</p>
+                                        </div>
+                                    ) : (
+                                        showcases.map((sh) => (
                                         <div
                                             key={sh.id}
                                             className="aspect-[4/3] bg-surface border border-primary/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col"
                                         >
                                             <div
-                                                onClick={() => setViewMode("playground")}
+                                                onClick={async () => {
+                                                    // Load showcase data
+                                                    setEditingShowcase(sh);
+                                                    setIsCreateMode(false);
+                                                    setNewShowcase({
+                                                        title: sh.title,
+                                                        demoId: sh.demoId || "",
+                                                        ctaText: "Book Full Demo",
+                                                        ctaType: "Open Calendar"
+                                                    });
+                                                    setPrimaryColor(sh.primaryColor || "#6366F1");
+                                                    setSecondaryColor(sh.secondaryColor || "#10B981");
+                                                    setAccentColor(sh.accentColor || "#F59E0B");
+                                                    setChatId(sh.chatId);
+                                                    
+                                                    // Load demo content if demoId exists
+                                                    if (sh.demoId) {
+                                                        try {
+                                                            const response = await fetch(`/api/recordings?id=${encodeURIComponent(sh.demoId)}`);
+                                                            const data = await response.json();
+                                                            if (data.content) {
+                                                                if (isClickRecording(data.content)) {
+                                                                    setSelectedDemoContent(data.content);
+                                                                    setCurrentSlideIndex(0);
+                                                                } else if (data.content.recording && isClickRecording(data.content.recording)) {
+                                                                    setSelectedDemoContent(data.content.recording);
+                                                                    setCurrentSlideIndex(0);
+                                                                }
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('Error loading demo content:', err);
+                                                        }
+                                                    } else {
+                                                        setSelectedDemoContent(null);
+                                                    }
+                                                    
+                                                    setViewMode("playground");
+                                                }}
                                                 className="h-1/2 bg-background/50 flex items-center justify-center relative cursor-pointer group/preview"
                                             >
                                                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center group-hover/preview:scale-110 transition-transform">
                                                     <Play className="w-6 h-6 text-primary" />
                                                 </div>
-                                                <div className="absolute top-4 right-4 px-2 py-1 bg-green-500/10 text-green-600 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                    Live
-                                                </div>
+                                                {sh.live && (
+                                                    <div className="absolute top-4 right-4 px-2 py-1 bg-green-500/10 text-green-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                        Live
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex-1 p-5 border-t border-primary/5 flex flex-col justify-between">
                                                 <div>
@@ -250,11 +386,7 @@ export default function ShowcasePage() {
                                                     <div className="flex flex-col gap-1 mt-1">
                                                         <div className="flex items-center gap-1.5 text-[10px] text-foreground/40 font-medium">
                                                             <Clock className="w-3 h-3" />
-                                                            Created {sh.createdAt}
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 text-[10px] text-foreground/40 font-medium">
-                                                            <Users className="w-3 h-3" />
-                                                            By {sh.createdBy}
+                                                            Created {formatDate(sh.createdAt)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -284,18 +416,36 @@ export default function ShowcasePage() {
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                    ))
+                                    )}
                                 </div>
                             ) : (
                                 <div className="space-y-8">
                                     <div className="flex items-center justify-between mb-4">
                                         <button
-                                            onClick={() => setViewMode("tiles")}
+                                            onClick={() => {
+                                                setViewMode("tiles");
+                                                setEditingShowcase(null);
+                                                setIsCreateMode(false);
+                                                setError(null);
+                                            }}
                                             className="text-sm font-medium text-primary hover:underline flex items-center gap-2"
                                         >
                                             <ChevronDown className="w-4 h-4 rotate-90" />
                                             Back to Showcase List
                                         </button>
+                                        {editingShowcase && (
+                                            <div className="text-sm text-foreground/60">
+                                                {editingShowcase.live ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                                        Live
+                                                    </span>
+                                                ) : (
+                                                    <span>Draft</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="h-[700px] relative" style={{
                                         '--showcase-primary': primaryColor,
@@ -381,6 +531,8 @@ export default function ShowcasePage() {
                                                         className="h-full"
                                                         primaryColor={primaryColor}
                                                         secondaryColor={secondaryColor}
+                                                        conversationId={chatId}
+                                                        onConversationIdChange={(id) => setChatId(id)}
                                                     />
                                                 </div>
                                             </Panel>
@@ -470,24 +622,53 @@ export default function ShowcasePage() {
                                         </div>
                                     </div>
 
-                                    {/* Action Buttons */}
-                                    <div className="flex items-center justify-end gap-4 pt-6 border-t border-primary/10">
-                                        <button
-                                            onClick={() => setViewMode("tiles")}
-                                            className="px-8 py-3 text-sm font-semibold text-foreground/60 hover:text-foreground transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                // Mock creation
-                                                setViewMode("tiles");
-                                            }}
-                                            className="bg-primary text-white px-10 py-3 rounded-2xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
-                                        >
-                                            Create Agentic Showcase
-                                        </button>
-                                    </div>
+                                    {/* Error Display */}
+                                    {error && (
+                                        <div className="p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    {/* Action Buttons - Only show when creating a new showcase */}
+                                    {isCreateMode && (
+                                        <div className="flex items-center justify-end gap-4 pt-6 border-t border-primary/10">
+                                            <button
+                                                onClick={() => {
+                                                    setViewMode("tiles");
+                                                    setError(null);
+                                                    setNewShowcase({
+                                                        title: "",
+                                                        demoId: "",
+                                                        ctaText: "Book Full Demo",
+                                                        ctaType: "Open Calendar"
+                                                    });
+                                                    setSelectedDemoContent(null);
+                                                    setChatId(null);
+                                                    setEditingShowcase(null);
+                                                    setIsCreateMode(false);
+                                                }}
+                                                className="px-8 py-3 text-sm font-semibold text-foreground/60 hover:text-foreground transition-colors"
+                                                disabled={isCreatingShowcase}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleCreateShowcase}
+                                                className="flex items-center gap-2 bg-primary text-white px-10 py-3 rounded-2xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={isCreatingShowcase || !newShowcase.title.trim()}
+                                            >
+                                                {isCreatingShowcase ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        Creating...
+                                                    </>
+                                                ) : (
+                                                    "Create Agentic Showcase"
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -550,7 +731,20 @@ export default function ShowcasePage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-primary/5">
-                                        {sharedShowcases.map((sh) => (
+                                        {isLoadingShowcases ? (
+                                            <tr>
+                                                <td colSpan={5} className="px-6 py-8 text-center">
+                                                    <Loader2 className="w-6 h-6 text-primary animate-spin mx-auto" />
+                                                </td>
+                                            </tr>
+                                        ) : showcases.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="px-6 py-8 text-center text-foreground/60">
+                                                    No showcases found
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            showcases.map((sh) => (
                                             <tr key={sh.id} className="hover:bg-primary/5 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
@@ -560,33 +754,44 @@ export default function ShowcasePage() {
                                                         <span className="font-semibold text-foreground text-sm">{sh.title}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-foreground/70">{sh.views.toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-sm text-foreground/70">-</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-medium">{sh.completion}</span>
-                                                        <div className="w-16 h-1.5 bg-foreground/5 rounded-full overflow-hidden hidden sm:block">
-                                                            <div className="h-full bg-primary" style={{ width: sh.completion }} />
-                                                        </div>
+                                                        <span className="text-sm font-medium">{sh.live ? "Live" : "Draft"}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-foreground/70">
                                                     <div className="flex items-center gap-1.5">
                                                         <Clock className="w-3.5 h-3.5" />
-                                                        {sh.lastShared}
+                                                        {formatDate(sh.updatedAt)}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        <button className="p-2 hover:bg-primary/10 rounded-lg text-foreground/60 transition-colors" title="Copy Link">
+                                                        <button
+                                                            onClick={() => {
+                                                                const url = getShareUrl(sh);
+                                                                handleCopySpecificLink(url, sh.id);
+                                                            }}
+                                                            className="p-2 hover:bg-primary/10 rounded-lg text-foreground/60 transition-colors" 
+                                                            title="Copy Link"
+                                                        >
                                                             <Copy className="w-4 h-4" />
                                                         </button>
-                                                        <button className="p-2 hover:bg-primary/10 rounded-lg text-primary transition-colors" title="View Public Page">
-                                                            <ExternalLink className="w-4 h-4" />
-                                                        </button>
+                                                        {sh.showcaseShareLink && (
+                                                            <button
+                                                                onClick={() => window.open(getShareUrl(sh), '_blank')}
+                                                                className="p-2 hover:bg-primary/10 rounded-lg text-primary transition-colors" 
+                                                                title="View Public Page"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -622,10 +827,14 @@ export default function ShowcasePage() {
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 px-1">Experience Link</label>
                                     <div className="flex gap-2">
                                         <div className="flex-1 bg-background/50 border border-primary/10 rounded-xl px-4 py-3 text-sm text-foreground/60 truncate font-mono">
-                                            {selectedShareShowcase.url}
+                                            {selectedShareShowcase ? getShareUrl(selectedShareShowcase) : ''}
                                         </div>
                                         <button
-                                            onClick={() => handleCopySpecificLink(selectedShareShowcase.url, 'modal')}
+                                            onClick={() => {
+                                                if (selectedShareShowcase) {
+                                                    handleCopySpecificLink(getShareUrl(selectedShareShowcase), 'modal');
+                                                }
+                                            }}
                                             className={`px-4 rounded-xl font-bold text-xs transition-all flex items-center gap-2 ${copiedId === 'modal' ? 'bg-green-500 text-white' : 'bg-primary text-white hover:bg-primary/90'
                                                 }`}
                                         >

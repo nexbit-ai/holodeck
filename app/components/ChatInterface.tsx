@@ -29,6 +29,8 @@ interface ChatInterfaceProps {
     showHeader?: boolean;
     primaryColor?: string;
     secondaryColor?: string;
+    conversationId?: string | null;
+    onConversationIdChange?: (conversationId: string) => void;
 }
 
 export function ChatInterface({
@@ -36,25 +38,40 @@ export function ChatInterface({
     className = "",
     showHeader = true,
     primaryColor = "#6366F1",
-    secondaryColor = "#10B981"
+    secondaryColor = "#10B981",
+    conversationId: initialConversationId = null,
+    onConversationIdChange
 }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
-    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [conversationId, setConversationId] = useState<string | null>(initialConversationId);
     // Add a loading state for the initial welcome message to prevent flash
     const [isInitializing, setIsInitializing] = useState(true);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTo({
+                top: messagesContainerRef.current.scrollHeight,
+                behavior: "smooth"
+            });
+        }
     };
 
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Sync conversationId when prop changes
+    useEffect(() => {
+        if (initialConversationId !== null && initialConversationId !== conversationId) {
+            setConversationId(initialConversationId);
+        }
+    }, [initialConversationId]);
 
     // Fetch welcome message on mount
     useEffect(() => {
@@ -112,6 +129,9 @@ export function ChatInterface({
 
             if (response.conversation_id && response.conversation_id !== conversationId) {
                 setConversationId(response.conversation_id);
+                if (onConversationIdChange) {
+                    onConversationIdChange(response.conversation_id);
+                }
             }
 
             const nexMessage: Message = {
@@ -165,7 +185,7 @@ export function ChatInterface({
             )}
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 min-h-0">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4 min-h-0">
                 {messages.map((message) => (
                     <div
                         key={message.id}

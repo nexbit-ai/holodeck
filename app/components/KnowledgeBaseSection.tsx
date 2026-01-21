@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { BookOpen, Upload, Trash2, FileText, Loader2, Check, AlertCircle, X, Search } from "lucide-react";
+import { BookOpen, Upload, Trash2, FileText, Loader2, Check, AlertCircle, X, Search, Link as LinkIcon, Plus } from "lucide-react";
 import { knowledgeBaseService, KBDocument } from "../services/knowledgeBaseService";
 
 export function KnowledgeBaseSection() {
@@ -13,6 +13,8 @@ export function KnowledgeBaseSection() {
 
     // Upload state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [urlInput, setUrlInput] = useState("");
+    const [modalTab, setModalTab] = useState<"file" | "url">("file");
 
     useEffect(() => {
         fetchDocuments();
@@ -94,10 +96,45 @@ export function KnowledgeBaseSection() {
         }
     };
 
+    const handleUploadUrl = async () => {
+        if (!urlInput.trim()) {
+            setError("Please enter a URL");
+            return;
+        }
+
+        // Basic URL validation
+        try {
+            new URL(urlInput.trim());
+        } catch {
+            setError("Please enter a valid URL (e.g., https://example.com)");
+            return;
+        }
+
+        setUploading(true);
+        setError(null);
+
+        try {
+            await knowledgeBaseService.uploadUrl({
+                url: urlInput.trim(),
+                organization_id: "demo-org"
+            });
+
+            await fetchDocuments();
+            handleCloseModal();
+        } catch (err: any) {
+            console.error("URL upload failed", err);
+            setError(err.message || "Failed to add URL");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleCloseModal = () => {
         setShowUploadModal(false);
         setSelectedFile(null);
+        setUrlInput("");
         setError(null);
+        setModalTab("file");
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -121,13 +158,13 @@ export function KnowledgeBaseSection() {
                     onClick={() => setShowUploadModal(true)}
                     className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
                 >
-                    <Upload className="w-4 h-4" />
-                    Upload Document
+                    <Plus className="w-4 h-4" />
+                    Add Content
                 </button>
             </div>
 
             <p className="text-sm text-foreground/70 mb-4">
-                Upload text-based documents (TXT, MD) that your chatbot can reference when answering questions.
+                Upload text-based documents (TXT, MD) or add URLs that your chatbot can reference when answering questions.
             </p>
 
             {loading ? (
@@ -149,17 +186,34 @@ export function KnowledgeBaseSection() {
                         >
                             <div className="flex items-center gap-4 flex-1">
                                 <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                                    <FileText className="w-5 h-5 text-primary" />
+                                    {doc.file_type === "url" ? (
+                                        <LinkIcon className="w-5 h-5 text-primary" />
+                                    ) : (
+                                        <FileText className="w-5 h-5 text-primary" />
+                                    )}
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-medium text-foreground">{doc.filename}</p>
                                     <div className="flex items-center gap-4 mt-1">
                                         <span className="text-xs text-foreground/60">
-                                            {doc.file_type || "text/plain"}
+                                            {doc.file_type === "url" ? "URL" : doc.file_type || "text/plain"}
                                         </span>
+                                        {doc.metadata?.source_url && (
+                                            <>
+                                                <span className="text-xs text-foreground/60">•</span>
+                                                <a
+                                                    href={doc.metadata.source_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs text-primary hover:underline"
+                                                >
+                                                    {doc.metadata.source_url}
+                                                </a>
+                                            </>
+                                        )}
                                         <span className="text-xs text-foreground/60">•</span>
                                         <span className="text-xs text-foreground/60">
-                                            Uploaded {new Date(doc.created_at).toLocaleDateString()}
+                                            Added {new Date(doc.created_at).toLocaleDateString()}
                                         </span>
                                     </div>
                                 </div>
@@ -181,7 +235,7 @@ export function KnowledgeBaseSection() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-surface rounded-lg p-6 max-w-md w-full shadow-xl">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold text-foreground">Upload Document</h3>
+                            <h3 className="text-xl font-bold text-foreground">Add Content</h3>
                             <button
                                 onClick={handleCloseModal}
                                 className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
@@ -189,48 +243,106 @@ export function KnowledgeBaseSection() {
                                 <X className="w-5 h-5 text-foreground/60" />
                             </button>
                         </div>
-                        <div className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center mb-4 transition-colors hover:border-primary/40">
-                            <Upload className="w-12 h-12 text-primary/40 mx-auto mb-4" />
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                                className="hidden"
-                                id="file-upload"
-                                accept=".txt,.md,.json,.csv" // Restricting to likely text formats for now
-                            />
-                            {selectedFile ? (
-                                <div className="text-center">
-                                    <p className="font-medium text-primary mb-1">{selectedFile.name}</p>
-                                    <p className="text-xs text-foreground/60">
-                                        {(selectedFile.size / 1024).toFixed(1)} KB
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            setSelectedFile(null);
-                                            if (fileInputRef.current) fileInputRef.current.value = "";
-                                        }}
-                                        className="text-xs text-red-500 hover:text-red-700 mt-2 underline"
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    <label
-                                        htmlFor="file-upload"
-                                        className="cursor-pointer"
-                                    >
-                                        <span className="block text-sm text-foreground mb-2">
-                                            Click to browse files
-                                        </span>
-                                        <p className="text-xs text-foreground/60">
-                                            Supported: TXT, MD, JSON, CSV (Text files)
-                                        </p>
-                                    </label>
-                                </>
-                            )}
+
+                        {/* Tabs */}
+                        <div className="flex gap-2 mb-4 border-b border-primary/10">
+                            <button
+                                onClick={() => {
+                                    setModalTab("file");
+                                    setError(null);
+                                }}
+                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+                                    modalTab === "file"
+                                        ? "text-primary"
+                                        : "text-foreground/60 hover:text-foreground"
+                                }`}
+                            >
+                                Upload Document
+                                {modalTab === "file" && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setModalTab("url");
+                                    setError(null);
+                                }}
+                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+                                    modalTab === "url"
+                                        ? "text-primary"
+                                        : "text-foreground/60 hover:text-foreground"
+                                }`}
+                            >
+                                Add URL
+                                {modalTab === "url" && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                                )}
+                            </button>
                         </div>
+
+                        {modalTab === "file" ? (
+                            <div className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center mb-4 transition-colors hover:border-primary/40">
+                                <Upload className="w-12 h-12 text-primary/40 mx-auto mb-4" />
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                    id="file-upload"
+                                    accept=".txt,.md,.json,.csv" // Restricting to likely text formats for now
+                                />
+                                {selectedFile ? (
+                                    <div className="text-center">
+                                        <p className="font-medium text-primary mb-1">{selectedFile.name}</p>
+                                        <p className="text-xs text-foreground/60">
+                                            {(selectedFile.size / 1024).toFixed(1)} KB
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedFile(null);
+                                                if (fileInputRef.current) fileInputRef.current.value = "";
+                                            }}
+                                            className="text-xs text-red-500 hover:text-red-700 mt-2 underline"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <label
+                                            htmlFor="file-upload"
+                                            className="cursor-pointer"
+                                        >
+                                            <span className="block text-sm text-foreground mb-2">
+                                                Click to browse files
+                                            </span>
+                                            <p className="text-xs text-foreground/60">
+                                                Supported: TXT, MD, JSON, CSV (Text files)
+                                            </p>
+                                        </label>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-foreground mb-2">
+                                    Enter URL
+                                </label>
+                                <input
+                                    type="url"
+                                    value={urlInput}
+                                    onChange={(e) => {
+                                        setUrlInput(e.target.value);
+                                        setError(null);
+                                    }}
+                                    placeholder="https://example.com/article"
+                                    className="w-full px-4 py-3 bg-background border border-primary/10 rounded-lg text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                />
+                                <p className="text-xs text-foreground/60 mt-2">
+                                    The content will be automatically extracted and added to your knowledge base.
+                                </p>
+                            </div>
+                        )}
 
                         {error && (
                             <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg flex items-center gap-2">
@@ -248,12 +360,22 @@ export function KnowledgeBaseSection() {
                                 Cancel
                             </button>
                             <button
-                                onClick={handleUpload}
+                                onClick={modalTab === "file" ? handleUpload : handleUploadUrl}
                                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-                                disabled={!selectedFile || uploading}
+                                disabled={
+                                    (modalTab === "file" && !selectedFile) ||
+                                    (modalTab === "url" && !urlInput.trim()) ||
+                                    uploading
+                                }
                             >
-                                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                Upload
+                                {uploading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : modalTab === "file" ? (
+                                    <Upload className="w-4 h-4" />
+                                ) : (
+                                    <LinkIcon className="w-4 h-4" />
+                                )}
+                                {modalTab === "file" ? "Upload" : "Add URL"}
                             </button>
                         </div>
                     </div>

@@ -29,6 +29,12 @@ export interface UploadDocumentData {
     file_type?: string;
 }
 
+export interface UploadUrlData {
+    url: string;
+    organization_id: string;
+    metadata?: Record<string, any>;
+}
+
 export const knowledgeBaseService = {
     async getDocuments(organizationId: string): Promise<KBDocument[]> {
         const response = await fetch(`${API_BASE_URL}/documents?organization_id=${organizationId}`);
@@ -66,6 +72,23 @@ export const knowledgeBaseService = {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.detail || `Failed to delete document: ${response.statusText}`);
         }
+    },
+
+    async uploadUrl(data: UploadUrlData): Promise<KBDocument> {
+        const response = await fetch(`${API_BASE_URL}/urls`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to upload URL: ${response.statusText}`);
+        }
+
+        return response.json();
     },
 
     async search(organizationId: string, query: string, limit: number = 5): Promise<{ results: SearchResult[] }> {

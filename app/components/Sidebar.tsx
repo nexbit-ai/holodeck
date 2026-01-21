@@ -6,7 +6,6 @@ import {
     MessageCircle,
     Users,
     BarChart3,
-    Settings,
     ChevronDown,
     Link as LinkIcon,
     User,
@@ -20,7 +19,7 @@ import { usePathname } from "next/navigation";
 export function Sidebar() {
     const pathname = usePathname();
     const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
-    const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+    const [showUserProfileDropdown, setShowUserProfileDropdown] = useState(false);
 
     const isActive = (path: string) => pathname === path;
 
@@ -98,29 +97,6 @@ export function Sidebar() {
                     Insights
                 </Link>
 
-                <div>
-                    <button
-                        onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-primary/5 rounded-lg transition-colors"
-                    >
-                        <span className="flex items-center gap-2">
-                            <Settings className="w-4 h-4" />
-                            Settings
-                        </span>
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showSettingsDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    {showSettingsDropdown && (
-                        <div className="ml-6 mt-1">
-                            <Link
-                                href="#"
-                                className="block px-3 py-2 text-sm text-foreground/70 hover:text-primary rounded-lg transition-colors"
-                            >
-                                General
-                            </Link>
-                        </div>
-                    )}
-                </div>
-
                 <Link
                     href="/integrations"
                     className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${isActive("/integrations")
@@ -134,17 +110,48 @@ export function Sidebar() {
             </nav>
 
             {/* User Profile */}
-            <div className="p-4 border-t border-primary/10">
-                <div className="flex items-center gap-3 px-3 py-2 hover:bg-primary/5 rounded-lg cursor-pointer transition-colors">
+            <div className="p-4 border-t border-primary/10 relative">
+                <button
+                    onClick={() => setShowUserProfileDropdown(!showUserProfileDropdown)}
+                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-primary/5 rounded-lg cursor-pointer transition-colors"
+                >
                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                         <User className="w-4 h-4 text-primary" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                         <p className="text-sm font-medium text-foreground">Krishna</p>
                         <p className="text-xs text-foreground/60">Free Plan</p>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-foreground/60" />
-                </div>
+                    <ChevronDown className={`w-4 h-4 text-foreground/60 transition-transform ${showUserProfileDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showUserProfileDropdown && (
+                    <>
+                        {/* Backdrop */}
+                        <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowUserProfileDropdown(false)}
+                        />
+                        {/* Popup */}
+                        <div className="absolute bottom-full left-4 mb-2 w-56 bg-surface border border-primary/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            <div className="py-2">
+                                <Link
+                                    href="#"
+                                    onClick={() => setShowUserProfileDropdown(false)}
+                                    className="block px-4 py-2.5 text-sm text-foreground hover:bg-primary/5 transition-colors"
+                                >
+                                    Profile
+                                </Link>
+                                <Link
+                                    href="#"
+                                    onClick={() => setShowUserProfileDropdown(false)}
+                                    className="block px-4 py-2.5 text-sm text-foreground hover:bg-primary/5 transition-colors"
+                                >
+                                    Setting
+                                </Link>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </aside>
     );
