@@ -1,9 +1,7 @@
 // API service for recording uploads
 
-const API_URL = process.env.PLASMO_PUBLIC_API_URL || "https://api.nexbit.io"
-const APP_URL = process.env.PLASMO_PUBLIC_APP_URL || "http://localhost:3000"
-const DEV_TOKEN = process.env.PLASMO_PUBLIC_DEV_TOKEN || ""
-// Fallback JWT from environment (for extension-only flow)
+const API_URL = "https://api-studio.nexbit.ai"
+const APP_URL = "https://studio.nexbit.ai"
 const STYTCH_SESSION_JWT = process.env.PLASMO_PUBLIC_STYTCH_SESSION_JWT || ""
 
 // Storage keys for auth
@@ -161,13 +159,11 @@ export async function syncAuthFromWebApp(): Promise<boolean> {
         chrome.tabs.query({
             url: [
                 `${APP_URL}/*`,
-                "https://*.nexbit.ai/*",
-                "https://*.nexbit.io/*"
+                "https://*.nexbit.ai/*"
             ]
         }, (holodeskTabs) => {
 
             if (holodeskTabs.length === 0) {
-                console.log("[Nexbit Auth] No Nexbit tabs found to sync from")
                 resolve(false)
                 return
             }
@@ -181,13 +177,11 @@ export async function syncAuthFromWebApp(): Promise<boolean> {
 
             chrome.tabs.sendMessage(tabId, { type: "GET_AUTH_SESSION" }, async (response) => {
                 if (chrome.runtime.lastError) {
-                    console.log("[Nexbit Auth] Failed to get session from tab:", chrome.runtime.lastError)
                     resolve(false)
                     return
                 }
 
                 if (response?.success && response.sessionJwt) {
-                    console.log("[Nexbit Auth] Got session from web app, storing...")
                     await setAuthData({
                         sessionToken: response.sessionToken || "",
                         sessionJwt: response.sessionJwt,
@@ -196,7 +190,6 @@ export async function syncAuthFromWebApp(): Promise<boolean> {
                     })
                     resolve(true)
                 } else {
-                    console.log("[Nexbit Auth] No valid session in web app, clearing extension session")
                     await removeAuthToken()
                     resolve(false)
                 }
@@ -268,9 +261,6 @@ export async function uploadRecording(
     if (!headers["Authorization"]) {
         throw new Error("Not authenticated")
     }
-
-    console.log("[Nexbit Debug] Uploading recording to:", `${API_URL}/api/v1/recordings`)
-    console.log("[Nexbit Debug] Payload:", JSON.stringify(payload, null, 2))
 
     const response = await fetch(`${API_URL}/api/v1/recordings`, {
         method: "POST",

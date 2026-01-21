@@ -39,7 +39,6 @@ async function clearState() {
 
 // Clear all authentication data
 async function clearAuthStorage() {
-    console.log("[Nexbit] Clearing all auth data from storage")
     await chrome.storage.local.remove([
         "nexbit_auth_token",
         "nexbit_stytch_session_token",
@@ -68,8 +67,6 @@ async function setIconWithPrefix(prefix: string) {
 
 // Start pulsing animation for recording state
 function startPulsingIcon() {
-    console.log("[Nexbit] Starting icon pulse animation")
-
     // Clear any existing interval first to avoid multiple intervals
     if (pulseInterval) {
         clearInterval(pulseInterval)
@@ -91,8 +88,6 @@ function startPulsingIcon() {
 
 // Stop pulsing animation and reset to default
 function stopPulsingIcon() {
-    console.log("[Nexbit] Stopping icon pulse animation")
-
     if (pulseInterval) {
         clearInterval(pulseInterval)
         pulseInterval = null
@@ -127,7 +122,6 @@ async function updateBadge(count: number | null) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
         if (message.type === "START_RECORDING_SESSION") {
-            console.log("[Nexbit] Starting recording session", message)
             const state: InternalRecordingState = {
                 isRecording: true,
                 tabId: sender.tab?.id || message.tabId || null,
@@ -147,7 +141,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 state.snapshots.push(message.snapshot)
                 await saveState(state)
                 updateBadge(state.snapshots.length)
-                console.log(`[Nexbit] Snapshot added. Total: ${state.snapshots.length}`)
             }
             sendResponse({ success: true })
         }
@@ -158,7 +151,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         else if (message.type === "STOP_RECORDING_SESSION") {
-            console.log("[Nexbit] Stopping recording session")
             const state = await getInitialState()
             await clearState()
             stopPulsingIcon()
@@ -179,7 +171,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         else if (message.type === "CANCEL_RECORDING_SESSION") {
-            console.log("[Nexbit] Cancelling recording session")
             await clearState()
             stopPulsingIcon()
             updateBadge(null)
@@ -188,7 +179,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         // Handle auth session detected from web app
         else if (message.type === "AUTH_SESSION_DETECTED") {
-            console.log("[Nexbit] Received AUTH_SESSION_DETECTED from web app")
             if (message.sessionJwt) {
                 // Store the session in chrome.storage.local
                 await chrome.storage.local.set({
@@ -196,14 +186,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     "nexbit_stytch_session_jwt": message.sessionJwt,
                     "nexbit_user_name": message.userName || null
                 })
-                console.log("[Nexbit] Auth session synced from web app")
             }
             sendResponse({ success: true })
         }
 
         // Handle auth session cleared from web app (logout)
         else if (message.type === "AUTH_SESSION_CLEARED") {
-            console.log("[Nexbit] Received AUTH_SESSION_CLEARED from web app")
             await clearAuthStorage()
             sendResponse({ success: true })
         }
@@ -234,28 +222,3 @@ getInitialState().then(state => {
         updateBadge(state.snapshots.length)
     }
 })
-
-// Listen for cookie changes to detect logout reliably
-chrome.cookies.onChanged.addListener(async (changeInfo) => {
-    const { cookie, removed } = changeInfo
-
-    // Check for Stytch session cookies
-    if (cookie.name === "stytch_session_jwt" || cookie.name === "stytch_session") {
-        const domain = cookie.domain.toLowerCase()
-        const isLocalhost = domain.includes("localhost") || domain.includes("127.0.0.1") || domain === ""
-        const isNexbitDomain = domain.endsWith(".nexbit.ai") || domain.endsWith(".nexbit.io")
-
-        if (isLocalhost || isNexbitDomain) {
-            if (removed) {
-                console.log(`[Nexbit] Cookie ${cookie.name} removed, triggering logout sync`)
-                await clearAuthStorage()
-            } else {
-                console.log(`[Nexbit] Cookie ${cookie.name} updated/added`)
-                // Note: We don't automatically sync here because we need the name from localStorage
-                // The auth-bridge content script will handle the login sync
-            }
-        }
-    }
-})
-
-console.log("[Nexbit] Background script loaded")

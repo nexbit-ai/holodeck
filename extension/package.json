@@ -2,7 +2,7 @@
     "name": "nexbit-demo-builder",
     "displayName": "Nexbit Demo Builder",
     "version": "0.0.1",
-    "description": "Record DOM interactions for Nexbit replays",
+    "description": "Nexbit Demo Builder allows users to record visible DOM interactions on the currently active webpage after explicit user action.",
     "author": "Nexbit Team",
     "scripts": {
         "dev": "plasmo dev",
@@ -27,23 +27,7 @@
     "manifest": {
         "permissions": [
             "activeTab",
-            "storage",
-            "downloads",
-            "cookies"
-        ],
-        "host_permissions": [
-            "<all_urls>"
-        ],
-        "web_accessible_resources": [
-            {
-                "resources": [
-                    "assets/icons/*",
-                    "assets/logo.jpg"
-                ],
-                "matches": [
-                    "<all_urls>"
-                ]
-            }
+            "storage"
         ]
     }
 }

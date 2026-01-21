@@ -35,7 +35,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const userName = localStorage.getItem("nexbit_user_name")
 
         if (sessionJwt) {
-            console.log("[Nexbit Auth] Found Stytch session, sending to extension")
             sendResponse({
                 success: true,
                 sessionToken,
@@ -43,7 +42,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 userName
             })
         } else {
-            console.log("[Nexbit Auth] No Stytch session found")
             sendResponse({
                 success: false,
                 error: "No session found"
@@ -90,7 +88,6 @@ function syncIfChanged() {
     const currentJwt = getCookie(STYTCH_JWT_COOKIE)
 
     if (currentJwt !== lastSessionJwt) {
-        console.log("[Nexbit Auth] Auth state changed, notifying extension")
         lastSessionJwt = currentJwt
         notifyExtensionOfSession()
     }

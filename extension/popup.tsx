@@ -227,7 +227,7 @@ function IndexPopup() {
         return (
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
-                    <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
+                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Nexbit</h1>
                     <p className="text-xs text-gray-600">
                         {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
                     </p>
@@ -247,7 +247,7 @@ function IndexPopup() {
         return (
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
-                    <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
+                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Nexbit</h1>
                     <p className="text-xs text-gray-600">
                         {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
                     </p>
@@ -290,7 +290,7 @@ function IndexPopup() {
         return (
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
-                    <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
+                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Nexbit</h1>
                     <p className="text-xs text-gray-600">
                         {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
                     </p>
@@ -310,7 +310,7 @@ function IndexPopup() {
         return (
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
-                    <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
+                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Nexbit</h1>
                     <p className="text-xs text-gray-600">
                         {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
                     </p>
@@ -332,7 +332,7 @@ function IndexPopup() {
         <div className="bg-cream p-4 font-sans">
             {/* Header */}
             <div className="text-center mb-3 relative">
-                <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
+                <h1 className="text-3xl font-bold text-gray-900 mb-1">Nexbit</h1>
                 <p className="text-xs text-gray-600">
                     {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
                 </p>

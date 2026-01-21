@@ -137,7 +137,7 @@ function captureStylesheets(): string {
     }
 
     if (skippedCount > 0) {
-        console.log(`[Nexbit] Stylesheet capture: ${accessedCount} accessed, ${skippedCount} skipped (likely cross-origin). Inlining computed styles for critical elements...`)
+        console.warn(`[Nexbit] ${skippedCount} cross-origin stylesheets could not be accessed. Styles inlined via computed styles.`)
     }
 
     cachedCSS = allCSS
@@ -222,8 +222,6 @@ function handleClick(event: MouseEvent) {
         type: "ADD_SNAPSHOT",
         snapshot
     })
-
-    console.log(`[Nexbit] Click captured at (${event.clientX}, ${event.clientY}). Snapshot sent to background.`)
 }
 
 // Start recording (called after countdown or from background state)
@@ -231,14 +229,12 @@ function startRecordingListeners() {
     if (isRecording) return
     isRecording = true
     document.addEventListener("click", handleClick, true)
-    console.log("[Nexbit] Listeners attached for recording")
 }
 
 // Stop recording listeners
 function stopRecordingListeners() {
     isRecording = false
     document.removeEventListener("click", handleClick, true)
-    console.log("[Nexbit] Listeners removed for recording")
 }
 
 // Listen for messages from popup
@@ -305,7 +301,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // Listen for countdown completion from countdown-overlay.tsx
 window.addEventListener("nexbit-countdown-complete", () => {
-    console.log("[Nexbit] Countdown complete, notifying background...")
     const firstSnapshot = createSnapshot(EventType.START)
     chrome.runtime.sendMessage({
         type: "START_RECORDING_SESSION",
@@ -321,9 +316,6 @@ window.addEventListener("nexbit-countdown-complete", () => {
 // Check status on script load to re-attach listeners if recording
 chrome.runtime.sendMessage({ type: "GET_RECORDING_STATE" }, (response) => {
     if (response?.isRecording) {
-        console.log("[Nexbit] Active recording found on script load, re-attaching listeners")
         startRecordingListeners()
     }
 })
-
-console.log("[Nexbit] Stateless recorder loaded and synchronized")
