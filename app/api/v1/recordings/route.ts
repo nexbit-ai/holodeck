@@ -23,11 +23,12 @@ export async function POST(request: NextRequest) {
 
         // Include metadata in the saved file
         const recordingData = {
-            ...payload.events, // The events are usually the whole recording object in this case
             id: id,
             name: payload.name,
             sourceUrl: payload.sourceUrl,
             duration: payload.duration,
+            eventCount: payload.eventCount,
+            events: payload.events,
             metadata: payload.metadata,
             uploadedAt: new Date().toISOString()
         };
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
         // So payload.events is the ClickRecording object.
 
-        await fs.writeFile(filePath, JSON.stringify(payload.events, null, 2), 'utf-8');
+        await fs.writeFile(filePath, JSON.stringify(recordingData, null, 2), 'utf-8');
 
         console.log(`[API] Saved recording from extension: ${id}`);
 

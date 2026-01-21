@@ -15,6 +15,7 @@ import {
 } from "react-resizable-panels";
 import { chatService } from "../services/chatService";
 import { ChatInterface } from "../components/ChatInterface";
+import { recordingService, Recording } from "../services/recordingService";
 
 const ORGANIZATION_ID = "demo-org";
 
@@ -29,19 +30,6 @@ interface Message {
   };
 }
 
-interface Recording {
-  id: string;
-  filename: string;
-  title: string;
-  date: string;
-  size: number;
-  creator: string;
-  thumbnail?: {
-    html: string;
-    viewportWidth: number;
-    viewportHeight: number;
-  };
-}
 
 
 export default function AgentPage() {
@@ -80,12 +68,11 @@ export default function AgentPage() {
   useEffect(() => {
     async function fetchDemos() {
       try {
-        const response = await fetch('/api/recordings');
-        const data = await response.json();
-        if (data.recordings && data.recordings.length > 0) {
-          setRecordings(data.recordings);
+        const data = await recordingService.getRecordings();
+        if (data && data.length > 0) {
+          setRecordings(data);
           // Select the first demo by default
-          setSelectedDemo(data.recordings[0]);
+          setSelectedDemo(data[0]);
         }
       } catch (err) {
         console.error('Error fetching demos:', err);
@@ -102,17 +89,32 @@ export default function AgentPage() {
 
       setIsLoadingDemo(true);
       try {
-        const response = await fetch(`/api/recordings?id=${encodeURIComponent(selectedDemo.id)}`);
-        const data = await response.json();
+        const data = await recordingService.getRecording(selectedDemo.id);
 
-        if (data.content) {
-          // Check if it's a click recording
-          if (isClickRecording(data.content)) {
-            setDemoContent(data.content);
+        if (data) {
+          // If the data is already the recording content
+          if (isClickRecording(data)) {
+            setDemoContent(data);
             setCurrentSlideIndex(0);
-          } else if (data.content.recording && isClickRecording(data.content.recording)) {
-            setDemoContent(data.content.recording);
+          }
+          // If the internal backend returns objects with an 'events' field (mapping it to snapshots)
+          else if (data.events && Array.isArray(data.events)) {
+            setDemoContent({
+              version: "2.0",
+              startTime: data.startTime || 0,
+              snapshots: data.events
+            });
             setCurrentSlideIndex(0);
+          }
+          // The local route used to return it wrapped in 'content'
+          else if (data.content) {
+            if (isClickRecording(data.content)) {
+              setDemoContent(data.content);
+              setCurrentSlideIndex(0);
+            } else if (data.content.recording && isClickRecording(data.content.recording)) {
+              setDemoContent(data.content.recording);
+              setCurrentSlideIndex(0);
+            }
           }
         }
       } catch (err) {

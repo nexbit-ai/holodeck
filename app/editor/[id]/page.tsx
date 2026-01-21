@@ -9,6 +9,7 @@ import { SlideSidebar } from '../components/SlideSidebar'
 import { isClickRecording } from '../types/recording'
 import { EditorToolbar } from '../components/EditorToolbar'
 import Link from 'next/link'
+import { recordingService } from '../../services/recordingService'
 
 export default function EditorWithIdPage() {
     const params = useParams()
@@ -86,18 +87,23 @@ export default function EditorWithIdPage() {
             setError(null)
 
             try {
-                const response = await fetch(`/api/recordings?id=${encodeURIComponent(id)}`)
-                const data = await response.json()
+                const data = await recordingService.getRecording(id)
 
-                if (!response.ok || data.error) {
-                    setError(data.error || 'Recording not found')
+                if (!data) {
+                    setError('Recording not found')
                     setIsLoading(false)
                     return
                 }
 
-                const content = data.content
+                // Map backend response to ClickRecording format for the store
+                // The backend returns results from /api/v1/recordings/{id}
+                // Based on common patterns and the single demo fetch logic we've seen
+                const content = {
+                    version: "2.0",
+                    startTime: data.startTime || (data.events && data.events.length > 0 ? data.events[0].timestamp : Date.now()),
+                    snapshots: data.events || data.snapshots || []
+                }
 
-                // Check if it's the click-only format (v2.0)
                 if (isClickRecording(content)) {
                     if (content.snapshots.length === 0) {
                         setError('The recording file has no snapshots')
@@ -105,18 +111,6 @@ export default function EditorWithIdPage() {
                         return
                     }
                     loadRecording(content, id)  // Pass ID for auto-save
-                    setIsLoading(false)
-                    return
-                }
-
-                // Also check for project files that contain a recording
-                if (content?.recording && isClickRecording(content.recording)) {
-                    if (content.recording.snapshots.length === 0) {
-                        setError('The recording file has no snapshots')
-                        setIsLoading(false)
-                        return
-                    }
-                    loadRecording(content.recording, id)  // Pass ID for auto-save
                     setIsLoading(false)
                     return
                 }

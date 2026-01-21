@@ -34,6 +34,7 @@ import {
 } from "react-resizable-panels";
 import { showcaseService, Showcase } from "../services/showcaseService";
 import { chatService } from "../services/chatService";
+import { recordingService } from "../services/recordingService";
 
 const DEFAULT_ORGANIZATION_ID = "demo-org";
 
@@ -72,9 +73,8 @@ export default function ShowcasePage() {
         const fetchRecordings = async () => {
             setIsLoadingRecordings(true);
             try {
-                const response = await fetch('/api/recordings');
-                const data = await response.json();
-                setRecordings(data.recordings || []);
+                const data = await recordingService.getRecordings();
+                setRecordings(data || []);
             } catch (error) {
                 console.error('Error fetching recordings:', error);
             } finally {
@@ -110,16 +110,32 @@ export default function ShowcasePage() {
             }
 
             try {
-                const response = await fetch(`/api/recordings?id=${encodeURIComponent(newShowcase.demoId)}`);
-                const data = await response.json();
+                const data = await recordingService.getRecording(newShowcase.demoId);
 
-                if (data.content) {
-                    if (isClickRecording(data.content)) {
-                        setSelectedDemoContent(data.content);
+                if (data) {
+                    // Check if it's already the recording content
+                    if (isClickRecording(data)) {
+                        setSelectedDemoContent(data);
                         setCurrentSlideIndex(0);
-                    } else if (data.content.recording && isClickRecording(data.content.recording)) {
-                        setSelectedDemoContent(data.content.recording);
+                    }
+                    // Support backend format with 'events' field
+                    else if (data.events && Array.isArray(data.events)) {
+                        setSelectedDemoContent({
+                            version: "2.0",
+                            startTime: data.startTime || 0,
+                            snapshots: data.events
+                        });
                         setCurrentSlideIndex(0);
+                    }
+                    // Traditional content wrapping
+                    else if (data.content) {
+                        if (isClickRecording(data.content)) {
+                            setSelectedDemoContent(data.content);
+                            setCurrentSlideIndex(0);
+                        } else if (data.content.recording && isClickRecording(data.content.recording)) {
+                            setSelectedDemoContent(data.content.recording);
+                            setCurrentSlideIndex(0);
+                        }
                     }
                 }
             } catch (err) {
@@ -189,11 +205,11 @@ export default function ShowcasePage() {
             };
 
             const createdShowcase = await showcaseService.createShowcase(showcaseData);
-            
+
             // Refresh showcases list
             const updatedShowcases = await showcaseService.getShowcases(DEFAULT_ORGANIZATION_ID);
             setShowcases(updatedShowcases);
-            
+
             // Reset form and return to tiles view
             setNewShowcase({
                 title: "",
@@ -326,97 +342,97 @@ export default function ShowcasePage() {
                                         </div>
                                     ) : (
                                         showcases.map((sh) => (
-                                        <div
-                                            key={sh.id}
-                                            className="aspect-[4/3] bg-surface border border-primary/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col"
-                                        >
                                             <div
-                                                onClick={async () => {
-                                                    // Load showcase data
-                                                    setEditingShowcase(sh);
-                                                    setIsCreateMode(false);
-                                                    setNewShowcase({
-                                                        title: sh.title,
-                                                        demoId: sh.demoId || "",
-                                                        ctaText: "Book Full Demo",
-                                                        ctaType: "Open Calendar"
-                                                    });
-                                                    setPrimaryColor(sh.primaryColor || "#6366F1");
-                                                    setSecondaryColor(sh.secondaryColor || "#10B981");
-                                                    setAccentColor(sh.accentColor || "#F59E0B");
-                                                    setChatId(sh.chatId);
-                                                    
-                                                    // Load demo content if demoId exists
-                                                    if (sh.demoId) {
-                                                        try {
-                                                            const response = await fetch(`/api/recordings?id=${encodeURIComponent(sh.demoId)}`);
-                                                            const data = await response.json();
-                                                            if (data.content) {
-                                                                if (isClickRecording(data.content)) {
-                                                                    setSelectedDemoContent(data.content);
-                                                                    setCurrentSlideIndex(0);
-                                                                } else if (data.content.recording && isClickRecording(data.content.recording)) {
-                                                                    setSelectedDemoContent(data.content.recording);
-                                                                    setCurrentSlideIndex(0);
-                                                                }
-                                                            }
-                                                        } catch (err) {
-                                                            console.error('Error loading demo content:', err);
-                                                        }
-                                                    } else {
-                                                        setSelectedDemoContent(null);
-                                                    }
-                                                    
-                                                    setViewMode("playground");
-                                                }}
-                                                className="h-1/2 bg-background/50 flex items-center justify-center relative cursor-pointer group/preview"
+                                                key={sh.id}
+                                                className="aspect-[4/3] bg-surface border border-primary/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col"
                                             >
-                                                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center group-hover/preview:scale-110 transition-transform">
-                                                    <Play className="w-6 h-6 text-primary" />
-                                                </div>
-                                                {sh.live && (
-                                                    <div className="absolute top-4 right-4 px-2 py-1 bg-green-500/10 text-green-600 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                        Live
+                                                <div
+                                                    onClick={async () => {
+                                                        // Load showcase data
+                                                        setEditingShowcase(sh);
+                                                        setIsCreateMode(false);
+                                                        setNewShowcase({
+                                                            title: sh.title,
+                                                            demoId: sh.demoId || "",
+                                                            ctaText: "Book Full Demo",
+                                                            ctaType: "Open Calendar"
+                                                        });
+                                                        setPrimaryColor(sh.primaryColor || "#6366F1");
+                                                        setSecondaryColor(sh.secondaryColor || "#10B981");
+                                                        setAccentColor(sh.accentColor || "#F59E0B");
+                                                        setChatId(sh.chatId);
+
+                                                        // Load demo content if demoId exists
+                                                        if (sh.demoId) {
+                                                            try {
+                                                                const response = await fetch(`/api/recordings?id=${encodeURIComponent(sh.demoId)}`);
+                                                                const data = await response.json();
+                                                                if (data.content) {
+                                                                    if (isClickRecording(data.content)) {
+                                                                        setSelectedDemoContent(data.content);
+                                                                        setCurrentSlideIndex(0);
+                                                                    } else if (data.content.recording && isClickRecording(data.content.recording)) {
+                                                                        setSelectedDemoContent(data.content.recording);
+                                                                        setCurrentSlideIndex(0);
+                                                                    }
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Error loading demo content:', err);
+                                                            }
+                                                        } else {
+                                                            setSelectedDemoContent(null);
+                                                        }
+
+                                                        setViewMode("playground");
+                                                    }}
+                                                    className="h-1/2 bg-background/50 flex items-center justify-center relative cursor-pointer group/preview"
+                                                >
+                                                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center group-hover/preview:scale-110 transition-transform">
+                                                        <Play className="w-6 h-6 text-primary" />
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 p-5 border-t border-primary/5 flex flex-col justify-between">
-                                                <div>
-                                                    <h4 className="font-bold text-foreground truncate">{sh.title}</h4>
-                                                    <div className="flex flex-col gap-1 mt-1">
-                                                        <div className="flex items-center gap-1.5 text-[10px] text-foreground/40 font-medium">
-                                                            <Clock className="w-3 h-3" />
-                                                            Created {formatDate(sh.createdAt)}
+                                                    {sh.live && (
+                                                        <div className="absolute top-4 right-4 px-2 py-1 bg-green-500/10 text-green-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                            Live
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 p-5 border-t border-primary/5 flex flex-col justify-between">
+                                                    <div>
+                                                        <h4 className="font-bold text-foreground truncate">{sh.title}</h4>
+                                                        <div className="flex flex-col gap-1 mt-1">
+                                                            <div className="flex items-center gap-1.5 text-[10px] text-foreground/40 font-medium">
+                                                                <Clock className="w-3 h-3" />
+                                                                Created {formatDate(sh.createdAt)}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="flex items-center gap-2 mt-4">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setSelectedShareShowcase(sh);
-                                                            setShowShareModal(true);
-                                                        }}
-                                                        className="flex-1 bg-primary/10 text-primary py-2 rounded-xl text-xs font-bold hover:bg-primary/20 transition-all flex items-center justify-center gap-1.5"
-                                                    >
-                                                        <Share2 className="w-3.5 h-3.5" />
-                                                        Share
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setActiveTab("performance");
-                                                        }}
-                                                        className="flex-1 bg-surface border border-primary/10 text-foreground/70 py-2 rounded-xl text-xs font-bold hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
-                                                    >
-                                                        <BarChart3 className="w-3.5 h-3.5" />
-                                                        Analytics
-                                                    </button>
+                                                    <div className="flex items-center gap-2 mt-4">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedShareShowcase(sh);
+                                                                setShowShareModal(true);
+                                                            }}
+                                                            className="flex-1 bg-primary/10 text-primary py-2 rounded-xl text-xs font-bold hover:bg-primary/20 transition-all flex items-center justify-center gap-1.5"
+                                                        >
+                                                            <Share2 className="w-3.5 h-3.5" />
+                                                            Share
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveTab("performance");
+                                                            }}
+                                                            className="flex-1 bg-surface border border-primary/10 text-foreground/70 py-2 rounded-xl text-xs font-bold hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
+                                                        >
+                                                            <BarChart3 className="w-3.5 h-3.5" />
+                                                            Analytics
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        ))
                                     )}
                                 </div>
                             ) : (
@@ -745,52 +761,52 @@ export default function ShowcasePage() {
                                             </tr>
                                         ) : (
                                             showcases.map((sh) => (
-                                            <tr key={sh.id} className="hover:bg-primary/5 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
-                                                            <Play className="w-4 h-4 text-primary" />
+                                                <tr key={sh.id} className="hover:bg-primary/5 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+                                                                <Play className="w-4 h-4 text-primary" />
+                                                            </div>
+                                                            <span className="font-semibold text-foreground text-sm">{sh.title}</span>
                                                         </div>
-                                                        <span className="font-semibold text-foreground text-sm">{sh.title}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-foreground/70">-</td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-medium">{sh.live ? "Live" : "Draft"}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-foreground/70">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Clock className="w-3.5 h-3.5" />
-                                                        {formatDate(sh.updatedAt)}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                const url = getShareUrl(sh);
-                                                                handleCopySpecificLink(url, sh.id);
-                                                            }}
-                                                            className="p-2 hover:bg-primary/10 rounded-lg text-foreground/60 transition-colors" 
-                                                            title="Copy Link"
-                                                        >
-                                                            <Copy className="w-4 h-4" />
-                                                        </button>
-                                                        {sh.showcaseShareLink && (
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-foreground/70">-</td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-medium">{sh.live ? "Live" : "Draft"}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-foreground/70">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock className="w-3.5 h-3.5" />
+                                                            {formatDate(sh.updatedAt)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <button
-                                                                onClick={() => window.open(getShareUrl(sh), '_blank')}
-                                                                className="p-2 hover:bg-primary/10 rounded-lg text-primary transition-colors" 
-                                                                title="View Public Page"
+                                                                onClick={() => {
+                                                                    const url = getShareUrl(sh);
+                                                                    handleCopySpecificLink(url, sh.id);
+                                                                }}
+                                                                className="p-2 hover:bg-primary/10 rounded-lg text-foreground/60 transition-colors"
+                                                                title="Copy Link"
                                                             >
-                                                                <ExternalLink className="w-4 h-4" />
+                                                                <Copy className="w-4 h-4" />
                                                             </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                            {sh.showcaseShareLink && (
+                                                                <button
+                                                                    onClick={() => window.open(getShareUrl(sh), '_blank')}
+                                                                    className="p-2 hover:bg-primary/10 rounded-lg text-primary transition-colors"
+                                                                    title="View Public Page"
+                                                                >
+                                                                    <ExternalLink className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
                                         )}
                                     </tbody>
                                 </table>

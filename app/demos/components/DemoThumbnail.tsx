@@ -4,15 +4,65 @@ import { useEffect, useRef, useState } from 'react'
 import { FileText } from 'lucide-react'
 
 interface DemoThumbnailProps {
-    html: string
-    viewportWidth: number
-    viewportHeight: number
+    html?: string
+    snapshot?: any // RRWeb snapshot
+    viewportWidth?: number
+    viewportHeight?: number
+}
+
+// Simple RRWeb node to HTML converter
+function rrwebNodeToHtml(node: any): string {
+    if (!node) return ''
+
+    // NodeType.Text
+    if (node.type === 3) {
+        return node.textContent || ''
+    }
+
+    // NodeType.Element
+    if (node.type === 2) {
+        const tagName = node.tagName
+        const attributes = node.attributes || {}
+        const attrString = Object.entries(attributes)
+            .map(([key, value]) => {
+                if (key === 'src' || key === 'href') {
+                    // Prepend proxy or absolute URL if needed, but for thumbnail we keep it simple
+                    return `${key}="${value}"`
+                }
+                if (typeof value === 'string') {
+                    return `${key}="${value.replace(/"/g, '&quot;')}"`
+                }
+                return `${key}="${value}"`
+            })
+            .join(' ')
+
+        const children = (node.childNodes || [])
+            .map((child: any) => rrwebNodeToHtml(child))
+            .join('')
+
+        const selfClosing = ['img', 'br', 'hr', 'input', 'link', 'meta'].includes(tagName.toLowerCase())
+        if (selfClosing) {
+            return `<${tagName} ${attrString} />`
+        }
+
+        return `<${tagName} ${attrString}>${children}</${tagName}>`
+    }
+
+    // NodeType.Document
+    if (node.type === 0 || node.type === 1) {
+        return (node.childNodes || [])
+            .map((child: any) => rrwebNodeToHtml(child))
+            .join('')
+    }
+
+    return ''
 }
 
 export function DemoThumbnail({
     html,
-    viewportWidth,
-    viewportHeight,
+    snapshot,
+    viewportWidth = 1920,
+    viewportHeight = 1080,
 }: DemoThumbnailProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -45,18 +95,33 @@ export function DemoThumbnail({
         : 0.1
 
     useEffect(() => {
-        if (!iframeRef.current || !html) return
+        if (!iframeRef.current) return
+
+        let content = html || ''
+        if (!content && snapshot && snapshot.data && snapshot.data.node) {
+            content = rrwebNodeToHtml(snapshot.data.node)
+        }
+
+        if (!content) return
 
         const iframe = iframeRef.current
         const doc = iframe.contentDocument || iframe.contentWindow?.document
 
         if (doc) {
             doc.open()
-            doc.write(html)
+            // Inject basic styles to ensure thumbnail looks okay
+            const styledContent = `
+                <style>
+                    body { margin: 0; padding: 0; overflow: hidden; }
+                    img { max-width: 100%; height: auto; }
+                </style>
+                ${content}
+            `
+            doc.write(styledContent)
             doc.close()
             setIsLoaded(true)
         }
-    }, [html])
+    }, [html, snapshot])
 
     return (
         <div
@@ -96,11 +161,7 @@ export function DemoThumbnail({
 
 // Wrapper component that shows fallback icon when no thumbnail is available
 interface DemoThumbnailWrapperProps {
-    thumbnail?: {
-        html: string
-        viewportWidth: number
-        viewportHeight: number
-    }
+    thumbnail?: any
 }
 
 export function DemoThumbnailWrapper({ thumbnail }: DemoThumbnailWrapperProps) {
@@ -112,13 +173,36 @@ export function DemoThumbnailWrapper({ thumbnail }: DemoThumbnailWrapperProps) {
         )
     }
 
+    // Handle old format
+    if (thumbnail.html) {
+        return (
+            <div className="w-full aspect-video rounded-lg overflow-hidden">
+                <DemoThumbnail
+                    html={thumbnail.html}
+                    viewportWidth={thumbnail.viewportWidth || 1920}
+                    viewportHeight={thumbnail.viewportHeight || 1080}
+                />
+            </div>
+        )
+    }
+
+    // Handle new backend format
+    if (thumbnail.data && thumbnail.data.snapshot) {
+        return (
+            <div className="w-full aspect-video rounded-lg overflow-hidden">
+                <DemoThumbnail
+                    snapshot={thumbnail.data.snapshot}
+                    viewportWidth={1920} // Default for thumbnails
+                    viewportHeight={1080}
+                />
+            </div>
+        )
+    }
+
+    // Fallback
     return (
-        <div className="w-full aspect-video rounded-lg overflow-hidden">
-            <DemoThumbnail
-                html={thumbnail.html}
-                viewportWidth={thumbnail.viewportWidth}
-                viewportHeight={thumbnail.viewportHeight}
-            />
+        <div className="w-full aspect-video bg-primary/5 rounded-lg flex items-center justify-center">
+            <FileText className="w-16 h-16 text-primary/40" />
         </div>
     )
 }

@@ -1,8 +1,8 @@
 // API service for recording uploads
 
 const API_URL = process.env.PLASMO_PUBLIC_API_URL || "https://api.nexbit.io"
-const LOGIN_URL = process.env.PLASMO_PUBLIC_LOGIN_URL || "https://app.nexbit.io/login"
-const APP_URL = process.env.PLASMO_PUBLIC_APP_URL || "https://app.nexbit.io"
+const LOGIN_URL = process.env.PLASMO_PUBLIC_LOGIN_URL || "http://localhost:3000/login"
+const APP_URL = process.env.PLASMO_PUBLIC_APP_URL || "http://localhost:3000"
 const DEV_TOKEN = process.env.PLASMO_PUBLIC_DEV_TOKEN || ""
 
 // Storage key for auth token

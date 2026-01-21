@@ -39,20 +39,8 @@ import Image from "next/image";
 import { DemoThumbnailWrapper } from "./components/DemoThumbnail";
 import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "../components/Sidebar";
+import { recordingService, Recording } from "../services/recordingService";
 
-interface Recording {
-  id: string;
-  filename: string;
-  title: string;
-  date: string;
-  size: number;
-  creator: string;
-  thumbnail?: {
-    html: string;
-    viewportWidth: number;
-    viewportHeight: number;
-  };
-}
 
 export default function DemosPage() {
   const [activeNav, setActiveNav] = useState("Demos");
@@ -88,15 +76,10 @@ export default function DemosPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/recordings');
-      const data = await response.json();
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setRecordings(data.recordings || []);
-      }
+      const data = await recordingService.getRecordings();
+      setRecordings(data);
     } catch (err) {
-      setError('Failed to load recordings');
+      setError(err instanceof Error ? err.message : 'Failed to load recordings');
       console.error('Error fetching recordings:', err);
     } finally {
       setIsLoading(false);
@@ -545,7 +528,7 @@ export default function DemosPage() {
                       {recording.creator} • {recording.date}
                     </p>
                     <p className="text-xs text-foreground/40 mt-1">
-                      {(recording.size / 1024).toFixed(1)} KB
+                      {recording.eventCount} clicks
                     </p>
                   </div>
                 </Link>
@@ -573,7 +556,7 @@ export default function DemosPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground mb-1 truncate">{recording.title}</h3>
                     <p className="text-sm text-foreground/60">
-                      {recording.creator} • {recording.date} • {(recording.size / 1024).toFixed(1)} KB
+                      {recording.creator} • {recording.date} • {recording.eventCount}  clicks
                     </p>
                   </div>
                   <div className="relative">
