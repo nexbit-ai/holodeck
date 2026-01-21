@@ -10,6 +10,25 @@ A Chrome extension that records DOM interactions using rrweb for playback in Nex
 npm install
 ```
 
+### Environment Variables
+
+Create a `.env` file in the extension directory (optional, for extension-only flow):
+
+```bash
+# API Configuration
+PLASMO_PUBLIC_API_URL=https://api.nexbit.io
+PLASMO_PUBLIC_APP_URL=http://localhost:3000
+
+# Stytch Session JWT (optional - for extension-only flow)
+# If not set, extension will sync auth from web app via cookies
+PLASMO_PUBLIC_STYTCH_SESSION_JWT=your_stytch_session_jwt_here
+
+# Legacy dev token (deprecated - use Stytch JWT instead)
+PLASMO_PUBLIC_DEV_TOKEN=
+```
+
+**Note:** The extension primarily syncs authentication from the web app via cookies. The `PLASMO_PUBLIC_STYTCH_SESSION_JWT` environment variable is only used as a fallback for extension-only flows where the web app is not available.
+
 ### Run in development mode
 
 ```bash

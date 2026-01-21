@@ -3,6 +3,8 @@
 const API_URL = process.env.PLASMO_PUBLIC_API_URL || "https://api.nexbit.io"
 const APP_URL = process.env.PLASMO_PUBLIC_APP_URL || "http://localhost:3000"
 const DEV_TOKEN = process.env.PLASMO_PUBLIC_DEV_TOKEN || ""
+// Fallback JWT from environment (for extension-only flow)
+const STYTCH_SESSION_JWT = process.env.PLASMO_PUBLIC_STYTCH_SESSION_JWT || ""
 
 // Storage keys for auth
 const AUTH_TOKEN_KEY = "nexbit_auth_token"
@@ -52,6 +54,7 @@ export interface UserInfo {
 /**
  * Get auth token from chrome storage
  * Falls back to dev token if set in env
+ * @deprecated Use getStytchSessionJWT() instead for Stytch authentication
  */
 export async function getAuthToken(): Promise<string | null> {
     return new Promise((resolve) => {
@@ -60,6 +63,41 @@ export async function getAuthToken(): Promise<string | null> {
             resolve(token || null)
         })
     })
+}
+
+/**
+ * Get Stytch session JWT from chrome storage
+ * Falls back to environment variable if set (for extension-only flow)
+ * This is the preferred method for Stytch authentication
+ */
+export async function getStytchSessionJWT(): Promise<string | null> {
+    return new Promise((resolve) => {
+        chrome.storage.local.get([AUTH_SESSION_JWT_KEY], (result) => {
+            const jwt = result[AUTH_SESSION_JWT_KEY]
+            if (jwt) {
+                resolve(jwt)
+            } else {
+                // Fallback to environment variable if set
+                resolve(STYTCH_SESSION_JWT || null)
+            }
+        })
+    })
+}
+
+/**
+ * Get authorization headers with Stytch session JWT
+ */
+export async function getAuthHeaders(): Promise<HeadersInit> {
+    const sessionJWT = await getStytchSessionJWT()
+    const headers: HeadersInit = {
+        "Content-Type": "application/json",
+    }
+
+    if (sessionJWT) {
+        headers["Authorization"] = `Bearer ${sessionJWT}`
+    }
+
+    return headers
 }
 
 /**
@@ -194,16 +232,15 @@ export function openLoginPage(): void {
  * Get current user info from backend
  */
 export async function getCurrentUser(): Promise<UserInfo | null> {
-    const token = await getAuthToken()
-    if (!token) return null
+    const headers = await getAuthHeaders()
+    if (!headers["Authorization"]) {
+        return null
+    }
 
     try {
         const response = await fetch(`${API_URL}/api/v1/auth/me`, {
             method: "GET",
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
+            headers,
         })
 
         if (!response.ok) {
@@ -227,8 +264,8 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
 export async function uploadRecording(
     payload: RecordingPayload
 ): Promise<RecordingResponse> {
-    const token = await getAuthToken()
-    if (!token) {
+    const headers = await getAuthHeaders()
+    if (!headers["Authorization"]) {
         throw new Error("Not authenticated")
     }
 
@@ -237,10 +274,7 @@ export async function uploadRecording(
 
     const response = await fetch(`${API_URL}/api/v1/recordings`, {
         method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(payload),
     })
 
