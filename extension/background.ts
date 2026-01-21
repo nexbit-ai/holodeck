@@ -23,6 +23,13 @@ async function setIconWithPrefix(prefix: string) {
 // Start pulsing animation for recording state
 function startPulsingIcon() {
     console.log("[Holodeck] Starting icon pulse animation")
+
+    // Clear any existing interval first to avoid multiple intervals
+    if (pulseInterval) {
+        clearInterval(pulseInterval)
+        pulseInterval = null
+    }
+
     isPulseState = false
 
     // Set initial recording icon
@@ -44,6 +51,9 @@ function stopPulsingIcon() {
         clearInterval(pulseInterval)
         pulseInterval = null
     }
+
+    // Reset pulse state
+    isPulseState = false
 
     // Reset to default icon
     setIconWithPrefix("icon-default")
@@ -70,6 +80,7 @@ async function updateBadge(count: number | null) {
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "RECORDING_STARTED") {
+        console.log("[Holodeck] Received RECORDING_STARTED")
         startPulsingIcon()
         updateBadge(1) // Start with 0 clicks (1 snapshot is the "start")
         sendResponse({ success: true })
@@ -77,6 +88,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.type === "RECORDING_STOPPED") {
+        console.log("[Holodeck] Received RECORDING_STOPPED")
         stopPulsingIcon()
         updateBadge(null) // Clear badge
         sendResponse({ success: true })

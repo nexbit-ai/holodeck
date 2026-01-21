@@ -366,4 +366,11 @@ window.addEventListener("holodeck-countdown-cancelled", () => {
     console.log("[Holodeck] Countdown cancelled by user")
 })
 
+// Notify background to reset icon if page is closed during recording
+window.addEventListener("beforeunload", () => {
+    if (isRecording) {
+        chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
+    }
+})
+
 console.log("[Holodeck] Click-only recorder loaded and ready")

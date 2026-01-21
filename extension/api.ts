@@ -20,6 +20,9 @@ export interface RecordingPayload {
         extensionVersion?: string
         screenWidth?: number
         screenHeight?: number
+        // Include original recording metadata
+        recordingVersion?: string
+        recordingStartTime?: number
     }
 }
 

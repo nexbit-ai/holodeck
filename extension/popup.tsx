@@ -149,6 +149,9 @@ function IndexPopup() {
                 }
 
                 if (response?.success && response?.recording) {
+                    // Notify background to stop pulsing and clear badge
+                    chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
+
                     // Upload to backend instead of downloading
                     setState("uploading")
                     setError(null)
@@ -190,6 +193,10 @@ function IndexPopup() {
                         setState("idle")
                     }
                 } else {
+                    // Even if stopping failed in content script, we might want to try stopping the icon
+                    if (response?.error?.includes("Not recording")) {
+                        chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
+                    }
                     setError(response?.error || "Failed to stop recording")
                 }
             })
@@ -212,6 +219,9 @@ function IndexPopup() {
                 }
 
                 if (response?.success) {
+                    // Notify background to stop pulsing and clear badge
+                    chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
+
                     setState("idle")
                     setElapsedTime(0)
                     setRecordingStartTime(null)
