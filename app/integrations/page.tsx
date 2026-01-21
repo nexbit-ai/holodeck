@@ -45,7 +45,7 @@ export default function IntegrationsPage() {
     },
     {
       name: "Zapier",
-      description: "Send leads captured through Holodeck to 5000+ apps using Zapier.",
+      description: "Send leads captured through Nexbit to 5000+ apps using Zapier.",
       icon: <Zap className="w-6 h-6" style={{ color: '#FF4A00' }} />
     },
     {

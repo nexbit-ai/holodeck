@@ -3,8 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 
-// Path to the holodeck-recordings folder in Downloads
-const RECORDINGS_DIR = path.join(os.homedir(), 'Downloads', 'holodeck-recordings');
+// Path to the nexbit-recordings folder in Downloads
+const RECORDINGS_DIR = path.join(os.homedir(), 'Downloads', 'nexbit-recordings');
 
 export async function POST(request: NextRequest) {
     try {
@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
         // Generate filename if not provided
         const filename = demoData.filename || demoData.id || file.name;
         const sanitizedFilename = path.basename(filename);
-        
+
         // Ensure .json extension
-        const finalFilename = sanitizedFilename.endsWith('.json') 
-            ? sanitizedFilename 
+        const finalFilename = sanitizedFilename.endsWith('.json')
+            ? sanitizedFilename
             : `${sanitizedFilename}.json`;
 
         const filePath = path.join(RECORDINGS_DIR, finalFilename);
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
             const newFilename = `${nameWithoutExt}-${timestamp}.json`;
             const newFilePath = path.join(RECORDINGS_DIR, newFilename);
             await fs.writeFile(newFilePath, JSON.stringify(demoData, null, 2), 'utf-8');
-            
+
             return NextResponse.json({
                 success: true,
                 id: newFilename,
@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
         } catch {
             // File doesn't exist, proceed with import
             await fs.writeFile(filePath, JSON.stringify(demoData, null, 2), 'utf-8');
-            
+
             console.log(`[API] Imported demo: ${finalFilename}`);
-            
+
             return NextResponse.json({
                 success: true,
                 id: finalFilename,
@@ -82,14 +82,14 @@ export async function POST(request: NextRequest) {
         }
     } catch (error) {
         console.error('Error importing demo:', error);
-        
+
         if (error instanceof SyntaxError) {
             return NextResponse.json(
                 { error: 'Invalid JSON file format' },
                 { status: 400 }
             );
         }
-        
+
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to import demo' },
             { status: 500 }

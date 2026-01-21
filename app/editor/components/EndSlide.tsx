@@ -138,7 +138,7 @@ export function EndSlide({
 
                     {viewOnly && (
                         <p className="text-sm text-white/30 font-medium">
-                            Guided demo by Holodeck
+                            Guided demo by Nexbit
                         </p>
                     )}
                 </div>

@@ -6,6 +6,7 @@ import { useStytchMember } from "@stytch/nextjs/b2b";
 interface User {
     userId: string;
     email: string | null;
+    name: string | null;
     organizationId: string | null;
     organizationName: string | null;
 }
@@ -54,8 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 function AuthProviderInner({ children }: { children: React.ReactNode }) {
     // useStytchMember hook is safe to call here because this component
     // is only rendered when inside StytchB2BProvider (via StytchProvider)
-    const { member, session, isInitialized } = useStytchMember();
-    
+    const { member, isInitialized } = useStytchMember();
+
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
@@ -75,25 +76,37 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         if (member) {
             // Extract organization ID from Stytch B2B member
             // B2B members belong to organizations
-            const organizationId = 
-                member.organization?.organization_id || 
-                process.env.NEXT_PUBLIC_STYTCH_ORG_ID || 
+            const organizationId =
+                member.organization_id ||
+                process.env.NEXT_PUBLIC_STYTCH_ORG_ID ||
                 null;
-            
-            const organizationName = 
-                member.organization?.organization_name || 
-                null;
+
+            const name = member.name || null;
+            const organizationName = null;
 
             setUser({
                 userId: member.member_id,
                 email: member.email_address || null,
+                name,
                 organizationId,
                 organizationName,
             });
+
+            // Store name in localStorage for extension sync
+            if (typeof window !== "undefined") {
+                if (name) {
+                    localStorage.setItem("nexbit_user_name", name);
+                } else {
+                    localStorage.removeItem("nexbit_user_name");
+                }
+            }
             setIsLoading(false);
         } else {
             // Clear user only if member is null/undefined
             setUser(null);
+            if (typeof window !== "undefined") {
+                localStorage.removeItem("nexbit_user_name");
+            }
             setIsLoading(false);
         }
     }, [member, isInitialized]);

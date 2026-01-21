@@ -3,8 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 
-// Path to the holodeck-recordings folder in Downloads
-const RECORDINGS_DIR = path.join(os.homedir(), 'Downloads', 'holodeck-recordings');
+// Path to the nexbit-recordings folder in Downloads
+const RECORDINGS_DIR = path.join(os.homedir(), 'Downloads', 'nexbit-recordings');
 
 export async function DELETE(
     request: NextRequest,
@@ -37,15 +37,15 @@ export async function DELETE(
         // Sanitize the filename to prevent directory traversal
         // The ID should be the filename, so we use it directly
         let sanitizedId = path.basename(id);
-        
+
         // Remove any query parameters or fragments that might have been added
         sanitizedId = sanitizedId.split('?')[0].split('#')[0];
-        
+
         // Ensure it ends with .json
         if (!sanitizedId.endsWith('.json')) {
             sanitizedId = `${sanitizedId}.json`;
         }
-        
+
         const filePath = path.join(RECORDINGS_DIR, sanitizedId);
 
         console.log(`[API] Looking for file at: ${filePath}`);
@@ -67,18 +67,18 @@ export async function DELETE(
                 const files = await fs.readdir(RECORDINGS_DIR);
                 console.log(`[API] Available files in directory:`, files);
                 console.log(`[API] Looking for: ${sanitizedId} (from ID: ${id})`);
-                
+
                 // Try exact match first, then case-insensitive match
                 let matchingFile = files.find(f => f === sanitizedId || f === id);
-                
+
                 if (!matchingFile) {
                     // Try case-insensitive match
-                    matchingFile = files.find(f => 
-                        f.toLowerCase() === sanitizedId.toLowerCase() || 
+                    matchingFile = files.find(f =>
+                        f.toLowerCase() === sanitizedId.toLowerCase() ||
                         f.toLowerCase() === id.toLowerCase()
                     );
                 }
-                
+
                 if (matchingFile) {
                     const actualFilePath = path.join(RECORDINGS_DIR, matchingFile);
                     await fs.unlink(actualFilePath);
@@ -91,9 +91,9 @@ export async function DELETE(
             } catch (listErr) {
                 console.error('[API] Error listing files:', listErr);
             }
-            
+
             return NextResponse.json(
-                { 
+                {
                     error: 'Demo not found',
                     details: `File "${sanitizedId}" not found in recordings directory. Received ID: "${id}"`
                 },

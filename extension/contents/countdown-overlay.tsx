@@ -195,7 +195,7 @@ function CountdownOverlay() {
                         setIsVisible(false)
 
                         // Dispatch custom event that recorder.ts listens for
-                        window.dispatchEvent(new CustomEvent("holodeck-countdown-complete"))
+                        window.dispatchEvent(new CustomEvent("nexbit-countdown-complete"))
 
                         return 0
                     }
@@ -211,7 +211,7 @@ function CountdownOverlay() {
     const handleCancel = () => {
         setIsVisible(false)
         // Dispatch custom event for cancellation
-        window.dispatchEvent(new CustomEvent("holodeck-countdown-cancelled"))
+        window.dispatchEvent(new CustomEvent("nexbit-countdown-cancelled"))
     }
 
     if (!isVisible) return null

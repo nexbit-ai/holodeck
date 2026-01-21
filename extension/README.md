@@ -1,6 +1,6 @@
-# Holodeck Builder - Chrome Extension
+# Nexbit Demo Builder - Chrome Extension
 
-A Chrome extension that records DOM interactions using rrweb for playback in Holodeck.
+A Chrome extension that records DOM interactions using rrweb for playback in Nexbit.
 
 ## Development
 
@@ -28,7 +28,7 @@ This will build the extension and start watching for changes.
 ## Usage
 
 1. Navigate to any website you want to record
-2. Click the Holodeck Builder extension icon
+2. Click the Nexbit Demo Builder extension icon
 3. Click **Start Recording**
 4. Interact with the page (click, scroll, type, etc.)
 5. Click **Stop & Save**
