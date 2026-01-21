@@ -21,7 +21,8 @@ import {
     Linkedin,
     MessageSquare,
     Globe,
-    AlertCircle
+    AlertCircle,
+    Code
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ChatInterface } from "../components/ChatInterface";
@@ -53,6 +54,7 @@ export default function ShowcasePage() {
     const [showShareModal, setShowShareModal] = useState(false);
     const [selectedShareShowcase, setSelectedShareShowcase] = useState<Showcase | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [copiedIframe, setCopiedIframe] = useState(false);
     const [showcases, setShowcases] = useState<Showcase[]>([]);
     const [isLoadingShowcases, setIsLoadingShowcases] = useState(false);
     const [isCreatingShowcase, setIsCreatingShowcase] = useState(false);
@@ -168,6 +170,19 @@ export default function ShowcasePage() {
             return showcase.showcaseShareLink;
         }
         return `${window.location.origin}/showcase/${showcase.id}`;
+    };
+
+    // Helper function to get iframe snippet
+    const getIframeSnippet = (showcase: Showcase) => {
+        const url = getShareUrl(showcase);
+        return `<iframe src="${url}" width="100%" height="700" frameborder="0" allowfullscreen></iframe>`;
+    };
+
+    const handleCopyIframe = (showcase: Showcase) => {
+        const snippet = getIframeSnippet(showcase);
+        navigator.clipboard.writeText(snippet);
+        setCopiedIframe(true);
+        setTimeout(() => setCopiedIframe(false), 2000);
     };
 
     const handleCopyLink = () => {
@@ -290,7 +305,7 @@ export default function ShowcasePage() {
                             className={`pb-4 text-sm font-medium transition-all relative ${activeTab === "performance" ? "text-primary" : "text-foreground/60 hover:text-foreground"
                                 }`}
                         >
-                            Recent Shares & Performance
+                            Performance
                             {activeTab === "performance" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
                         </button>
                     </div>
@@ -893,6 +908,44 @@ export default function ShowcasePage() {
                                             </div>
                                             <span className="text-xs font-semibold">Slack</span>
                                         </button>
+                                    </div>
+                                </div>
+
+                                {/* Iframe Integration Section */}
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 px-1 flex items-center gap-2">
+                                        <Code className="w-3 h-3" />
+                                        Embed Integration
+                                    </label>
+                                    <div className="bg-background/50 border border-primary/10 rounded-xl p-4">
+                                        <div className="flex items-start justify-between gap-2 mb-3">
+                                            <p className="text-xs text-foreground/60 flex-1">
+                                                Copy this code to embed the showcase on your website
+                                            </p>
+                                            <button
+                                                onClick={() => selectedShareShowcase && handleCopyIframe(selectedShareShowcase)}
+                                                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 flex-shrink-0 ${
+                                                    copiedIframe 
+                                                        ? 'bg-green-500 text-white' 
+                                                        : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                                }`}
+                                            >
+                                                {copiedIframe ? (
+                                                    <>
+                                                        <Check className="w-3 h-3" />
+                                                        Copied
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy className="w-3 h-3" />
+                                                        Copy
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                        <pre className="text-xs text-foreground/80 bg-background/30 p-3 rounded-lg overflow-x-auto font-mono">
+                                            <code>{selectedShareShowcase ? getIframeSnippet(selectedShareShowcase) : ''}</code>
+                                        </pre>
                                     </div>
                                 </div>
                             </div>

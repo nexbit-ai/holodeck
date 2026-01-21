@@ -26,15 +26,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { Sidebar } from "../components/Sidebar";
+import { ProtectedRoute } from "../components/ProtectedRoute";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState("Home");
   const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <Sidebar />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background flex">
+        <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
@@ -42,7 +46,7 @@ export default function DashboardPage() {
         <div className="px-8 py-8 space-y-12">
           {/* Header Section */}
           <div className="flex items-center justify-between pt-4">
-            <h2 className="text-2xl font-bold text-foreground">Welcome, Krishna</h2>
+            <h2 className="text-2xl font-bold text-foreground">Welcome, {user?.email?.split("@")[0] || "User"}</h2>
             <button className="flex items-center gap-2 bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm">
               <Video className="w-4 h-4" />
               + Create demo
@@ -178,5 +182,6 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+    </ProtectedRoute>
   );
 }

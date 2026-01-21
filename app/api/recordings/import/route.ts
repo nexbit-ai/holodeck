@@ -27,12 +27,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Parse demo data if provided, otherwise parse the file
-        let demoData: any;
+        let demoData: Record<string, unknown> & { id?: string; filename?: string };
         if (demoDataStr) {
-            demoData = JSON.parse(demoDataStr);
+            demoData = JSON.parse(demoDataStr) as Record<string, unknown> & { id?: string; filename?: string };
         } else {
             const fileContent = await file.text();
-            demoData = JSON.parse(fileContent);
+            demoData = JSON.parse(fileContent) as Record<string, unknown> & { id?: string; filename?: string };
         }
 
         // Validate demo data structure

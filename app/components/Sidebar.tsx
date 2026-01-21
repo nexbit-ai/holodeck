@@ -9,17 +9,36 @@ import {
     ChevronDown,
     Link as LinkIcon,
     User,
-    Sparkles
+    Sparkles,
+    LogOut
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useStytchMember } from "@stytch/nextjs/b2b";
+import { useAuth } from "../contexts/AuthContext";
 
 export function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
+    // useStytchMember hook is safe to call here because Sidebar is rendered
+    // inside StytchB2BProvider (via StytchProvider in layout.tsx)
+    const { session } = useStytchMember();
+    const { user } = useAuth();
     const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
     const [showUserProfileDropdown, setShowUserProfileDropdown] = useState(false);
+
+    const handleLogout = async () => {
+        if (session) {
+            try {
+                await session.revoke();
+            } catch (error) {
+                console.error("Logout error:", error);
+            }
+        }
+        router.push("/login");
+    };
 
     const isActive = (path: string) => pathname === path;
 
@@ -119,8 +138,8 @@ export function Sidebar() {
                         <User className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1 text-left">
-                        <p className="text-sm font-medium text-foreground">Krishna</p>
-                        <p className="text-xs text-foreground/60">Free Plan</p>
+                        <p className="text-sm font-medium text-foreground">{user?.email || "User"}</p>
+                        <p className="text-xs text-foreground/60">{user?.organizationName || "Organization"}</p>
                     </div>
                     <ChevronDown className={`w-4 h-4 text-foreground/60 transition-transform ${showUserProfileDropdown ? 'rotate-180' : ''}`} />
                 </button>
@@ -148,6 +167,16 @@ export function Sidebar() {
                                 >
                                     Setting
                                 </Link>
+                                <button
+                                    onClick={() => {
+                                        setShowUserProfileDropdown(false);
+                                        handleLogout();
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    Logout
+                                </button>
                             </div>
                         </div>
                     </>
