@@ -7,6 +7,7 @@ import { useEditorStore } from '../store'
 import { ClickSlideDeck } from '../components/ClickSlideDeck'
 import { SlideSidebar } from '../components/SlideSidebar'
 import { isClickRecording } from '../types/recording'
+import { EditorToolbar } from '../components/EditorToolbar'
 import Link from 'next/link'
 
 export default function EditorWithIdPage() {
@@ -26,6 +27,14 @@ export default function EditorWithIdPage() {
     const setSelectedSlide = useEditorStore((state) => state.setSelectedSlide)
     const isSaving = useEditorStore((state) => state.isSaving)
     const lastSaved = useEditorStore((state) => state.lastSaved)
+    const isZoomMode = useEditorStore((state) => state.isZoomMode)
+    const setZoomMode = useEditorStore((state) => state.setZoomMode)
+    const isHotspotMode = useEditorStore((state) => state.isHotspotMode)
+    const setHotspotMode = useEditorStore((state) => state.setHotspotMode)
+    const isBlurMode = useEditorStore((state) => state.isBlurMode)
+    const setBlurMode = useEditorStore((state) => state.setBlurMode)
+    const isCropMode = useEditorStore((state) => state.isCropMode)
+    const setCropMode = useEditorStore((state) => state.setCropMode)
 
     // Get counts
     const snapshotCount = clickRecording?.snapshots.length || 0
@@ -39,6 +48,34 @@ export default function EditorWithIdPage() {
         clearProject()
         router.push('/demos')
     }, [clearProject, router])
+
+    const handleZoomClick = () => {
+        setZoomMode(true)
+        setHotspotMode(false)
+        setBlurMode(false)
+        setCropMode(false)
+    }
+
+    const handleHotspotClick = () => {
+        setHotspotMode(!isHotspotMode)
+        setZoomMode(false)
+        setBlurMode(false)
+        setCropMode(false)
+    }
+
+    const handleBlurClick = () => {
+        setBlurMode(!isBlurMode)
+        setCropMode(false)
+        setZoomMode(false)
+        setHotspotMode(false)
+    }
+
+    const handleCropClick = () => {
+        setCropMode(!isCropMode)
+        setBlurMode(false)
+        setZoomMode(false)
+        setHotspotMode(false)
+    }
 
     // Load the recording from API
     useEffect(() => {
@@ -189,6 +226,19 @@ export default function EditorWithIdPage() {
                 </div>
             </header>
 
+            <EditorToolbar
+                isZoomActive={isZoomMode}
+                onZoomClick={handleZoomClick}
+                canZoom={clickRecording.snapshots[selectedSlideIndex]?.type === 'click'}
+                isHotspotActive={isHotspotMode}
+                onHotspotClick={handleHotspotClick}
+                canAddHotspot={true}
+                isBlurActive={isBlurMode}
+                onBlurClick={handleBlurClick}
+                isCropActive={isCropMode}
+                onCropClick={handleCropClick}
+            />
+
             {/* Main content with flexbox layout - Left sidebar + Center preview */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Sidebar - Slide Thumbnails */}
@@ -197,7 +247,7 @@ export default function EditorWithIdPage() {
                 </div>
 
                 {/* Center Panel - Main Slide Preview */}
-                <div className="flex-1 h-full p-6 overflow-auto flex items-center justify-center bg-background">
+                <div className="flex-1 h-full p-6 overflow-auto flex items-center justify-center bg-playground">
                     <ClickSlideDeck
                         recording={clickRecording}
                         currentSlideIndex={selectedSlideIndex}

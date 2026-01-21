@@ -97,7 +97,7 @@ export default function EditorPage() {
                 </div>
 
                 {/* Center Panel - Main Slide Preview */}
-                <div className="flex-1 h-full p-6 overflow-auto flex items-center justify-center bg-background">
+                <div className="flex-1 h-full p-6 overflow-auto flex items-center justify-center bg-playground">
                     <ClickSlideDeck
                         recording={clickRecording}
                         currentSlideIndex={selectedSlideIndex}

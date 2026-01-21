@@ -5,9 +5,19 @@ export const config: PlasmoCSConfig = {
     run_at: "document_idle"
 }
 
+export enum EventType {
+    START = 0,
+    CLICK = 1,
+    RESIZE = 2,
+    SCROLL = 3,
+    META = 4,
+    COVER = 5,
+    END = 6,
+}
+
 // Click snapshot data structure
 export interface ClickSnapshot {
-    type: "start" | "click"
+    type: EventType | "start" | "click"
     timestamp: number
     html: string
     clickX?: number
@@ -129,6 +139,14 @@ function captureDOM(): string {
     const scripts = docClone.querySelectorAll('script')
     scripts.forEach(script => script.remove())
 
+    // Remove preloads and other head noise that causes 404s
+    const removals = docClone.querySelectorAll('link[rel="preload"], link[rel="prefetch"], link[rel="modulepreload"], link[rel="next-head"]')
+    removals.forEach(el => el.remove())
+
+    // Remove iframes to prevent nested fetches
+    const iframes = docClone.querySelectorAll('iframe')
+    iframes.forEach(iframe => iframe.remove())
+
     // Remove existing link stylesheets (we'll inline them)
     const links = docClone.querySelectorAll('link[rel="stylesheet"]')
     links.forEach(link => link.remove())
@@ -138,10 +156,15 @@ function captureDOM(): string {
     const styleElement = document.createElement('style')
     styleElement.textContent = allCSS
 
-    // Add the captured styles to head
+    // Add base tag to resolve relative assets (fonts, etc)
+    const baseElement = document.createElement('base')
+    baseElement.href = window.location.href
+
+    // Add the captured styles and base to head
     const head = docClone.querySelector('head')
     if (head) {
         head.insertBefore(styleElement, head.firstChild)
+        head.insertBefore(baseElement, head.firstChild)
     }
 
     // Get the HTML with doctype
@@ -154,7 +177,7 @@ function captureDOM(): string {
 }
 
 // Create a snapshot
-function createSnapshot(type: "start" | "click", clickX?: number, clickY?: number): ClickSnapshot {
+function createSnapshot(type: EventType, clickX?: number, clickY?: number): ClickSnapshot {
     return {
         type,
         timestamp: Date.now(),
@@ -173,7 +196,7 @@ function createSnapshot(type: "start" | "click", clickX?: number, clickY?: numbe
 function handleClick(event: MouseEvent) {
     if (!isRecording || !recording) return
 
-    const snapshot = createSnapshot("click", event.clientX, event.clientY)
+    const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY)
     recording.snapshots.push(snapshot)
 
     // Notify background to update badge with click count
@@ -199,7 +222,7 @@ function startRecording(): { success: boolean; startTime?: number; error?: strin
         recording = {
             version: "2.0",
             startTime: recordingStartTime,
-            snapshots: [createSnapshot("start")]
+            snapshots: [createSnapshot(EventType.START)]
         }
 
         // Add click listener

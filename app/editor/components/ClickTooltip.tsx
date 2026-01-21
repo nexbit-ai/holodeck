@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageCircle, X, Check, ChevronLeft, ChevronRight, ZoomIn, Trash2 } from 'lucide-react'
+import { MessageCircle, X, Check, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 
 interface ClickTooltipProps {
     x: number
@@ -21,8 +21,7 @@ interface ClickTooltipProps {
     primaryColor?: string
     secondaryColor?: string
     accentColor?: string
-    hasZoom?: boolean
-    onZoomClick?: () => void
+    onDelete?: () => void
 }
 
 export function ClickTooltip({
@@ -40,11 +39,10 @@ export function ClickTooltip({
     canGoPrevious = false,
     canGoNext = false,
     isTransitioning = false,
-    primaryColor = '#6366F1',
-    secondaryColor = '#10B981',
-    accentColor = '#F59E0B',
-    hasZoom = false,
-    onZoomClick,
+    primaryColor = '#b05a36',
+    secondaryColor = '#b05a36',
+    accentColor = '#b05a36',
+    onDelete,
 }: ClickTooltipProps) {
     const [localText, setLocalText] = useState(text)
 
@@ -96,9 +94,10 @@ export function ClickTooltip({
                 top: tooltipY,
                 width: tooltipWidth,
             }}
+            onClick={(e) => e.stopPropagation()}
         >
             {/* Tooltip card */}
-            <div className="bg-surface border-2 rounded-xl shadow-xl overflow-hidden" style={{ borderColor: primaryColor }}>
+            <div className="bg-background border-2 rounded-xl shadow-xl overflow-hidden" style={{ borderColor: primaryColor }}>
                 {/* Header */}
                 <div className="px-3 py-2 border-b flex items-center justify-between" style={{ backgroundColor: primaryColor + '10', borderColor: primaryColor + '30' }}>
                     <div className="flex items-center gap-2">
@@ -114,13 +113,27 @@ export function ClickTooltip({
                             <Check className="w-4 h-4" />
                         </button>
                     ) : (
-                        <button
-                            onClick={onStartEdit}
-                            className="text-xs hover:text-primary transition-colors"
-                            style={{ color: primaryColor + 'B0' }}
-                        >
-                            Edit
-                        </button>
+                        <div className="flex items-center gap-1">
+                            {onDelete && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onDelete()
+                                    }}
+                                    className="p-1 rounded hover:bg-red-500/10 text-red-500/60 hover:text-red-500 transition-colors"
+                                    title="Delete hotspot"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                            <button
+                                onClick={onStartEdit}
+                                className="text-xs hover:text-primary transition-colors"
+                                style={{ color: primaryColor + 'B0' }}
+                            >
+                                Edit
+                            </button>
+                        </div>
                     )}
                 </div>
 
@@ -171,7 +184,7 @@ export function ClickTooltip({
                                 transition-all duration-200
                                 ${!canGoPrevious || isTransitioning || isEditing
                                     ? 'bg-foreground/5 text-foreground/30 cursor-not-allowed'
-                                    : 'bg-surface border text-foreground hover:bg-primary/5'
+                                    : 'bg-transparent border text-foreground hover:bg-primary/5'
                                 }
                             `}
                             style={!canGoPrevious && !isTransitioning && !isEditing ? {} : { borderColor: secondaryColor + '40' }}
@@ -180,31 +193,6 @@ export function ClickTooltip({
                             Previous
                         </button>
 
-                        {/* Zoom Preview button */}
-                        {onZoomClick && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!isTransitioning && !isEditing) {
-                                        onZoomClick();
-                                    }
-                                }}
-                                disabled={isTransitioning || isEditing}
-                                className={`
-                                    flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium
-                                    transition-all duration-200
-                                    ${hasZoom
-                                        ? 'bg-primary/20 text-primary border border-primary/30'
-                                        : 'bg-surface border border-foreground/10 text-foreground/70 hover:bg-primary/5 hover:border-primary/30 hover:text-primary'
-                                    }
-                                    ${isTransitioning || isEditing ? 'opacity-50 cursor-not-allowed' : ''}
-                                `}
-                                title={hasZoom ? "Edit zoom area" : "Add zoom effect"}
-                            >
-                                <ZoomIn className="w-3 h-3" />
-                                {hasZoom ? 'Zoom' : 'Zoom'}
-                            </button>
-                        )}
 
                         <button
                             onClick={(e) => {

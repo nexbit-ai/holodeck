@@ -2,6 +2,7 @@
 
 import { MousePointerClick, Clock, Play, Save, Check, Trash2 } from 'lucide-react'
 import { useEditorStore, type AnnotatedSnapshot } from '../store'
+import { EventType } from '../types/recording'
 
 // Format timestamp
 function formatTimestamp(ms: number, baseTime: number): string {
@@ -56,7 +57,7 @@ export function Timeline() {
         )
     }
 
-    const clickCount = snapshots.filter(s => s.type === 'click').length
+    const clickCount = snapshots.filter(s => s.type === 'click' || s.type === EventType.CLICK).length
 
     return (
         <div className="p-4">
@@ -88,14 +89,15 @@ export function Timeline() {
                 {snapshots.map((snapshot, index) => {
                     const isSelected = selectedSlideIndex === index
                     const hasAnnotation = snapshot.annotation?.script
-                    const isStart = snapshot.type === 'start'
+                    const isStart = snapshot.type === 'start' || snapshot.type === EventType.START
                     const canDelete = snapshots.length > 1  // Keep at least one
 
                     // Count clicks up to this point
                     let clickNumber = 0
                     if (!isStart) {
                         for (let i = 0; i <= index; i++) {
-                            if (snapshots[i].type === 'click') clickNumber++
+                            const type = snapshots[i].type
+                            if (type === 'click' || type === EventType.CLICK) clickNumber++
                         }
                     }
 

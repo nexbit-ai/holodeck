@@ -13,15 +13,6 @@ export function SlideSidebar() {
 
     const snapshots = (clickRecording?.snapshots || []) as AnnotatedSnapshot[]
 
-    // Get click number for a given slide index
-    const getClickNumber = (index: number): number => {
-        let count = 0
-        for (let i = 0; i <= index; i++) {
-            if (snapshots[i]?.type === 'click') count++
-        }
-        return count
-    }
-
     // Get slide label
     const getSlideLabel = (index: number): string => {
         const snapshot = snapshots[index]
@@ -32,8 +23,16 @@ export function SlideSidebar() {
             return snapshot.annotation.label
         }
 
-        if (snapshot.type === 'start') return 'Start'
-        return `Step ${getClickNumber(index)}`
+        if (snapshot.type === 'cover') return 'Cover Screen'
+        if (snapshot.type === 'start') return 'Start Recording'
+        if (snapshot.type === 'end') return 'End Screen'
+
+        // Find which click number this is
+        let clickCount = 0
+        for (let i = 0; i <= index; i++) {
+            if (snapshots[i].type === 'click') clickCount++
+        }
+        return `Click ${clickCount}`
     }
 
     // Get the last URL for "record more" functionality
@@ -91,7 +90,7 @@ export function SlideSidebar() {
                         {/* Slide Thumbnail */}
                         <SlideThumbnail
                             snapshot={snapshot}
-                            index={snapshot.type === 'start' ? 0 : getClickNumber(index)}
+                            index={index + 1}
                             isSelected={selectedSlideIndex === index}
                             slideLabel={getSlideLabel(index)}
                             onClick={() => handleSlideClick(index)}
