@@ -82,18 +82,43 @@ function notifyExtensionOfSession() {
 // Notify on page load
 notifyExtensionOfSession()
 
-// Also watch for cookie changes (for when user logs in)
-// Poll periodically as there's no native cookie change event
+// Also watch for auth state changes (for when user logs in or out)
+// We use MutationObserver and events instead of polling to save CPU/battery
 let lastSessionJwt = getCookie(STYTCH_JWT_COOKIE)
-setInterval(() => {
-    const currentJwt = getCookie(STYTCH_JWT_COOKIE)
-    const currentName = localStorage.getItem("nexbit_user_name")
 
-    // Notify if either JWT or Name changes (e.g. login or logout)
-    if (currentJwt !== lastSessionJwt || currentName !== localStorage.getItem("last_notified_name")) {
-        console.log("[Nexbit Auth] Auth state changed in web app, notifying extension")
+function syncIfChanged() {
+    const currentJwt = getCookie(STYTCH_JWT_COOKIE)
+
+    if (currentJwt !== lastSessionJwt) {
+        console.log("[Nexbit Auth] Auth state changed, notifying extension")
         lastSessionJwt = currentJwt
-        localStorage.setItem("last_notified_name", currentName || "")
         notifyExtensionOfSession()
     }
-}, 1000) // Check every second for better responsiveness
+}
+
+// 1. Watch for localStorage changes from other tabs
+window.addEventListener("storage", (event) => {
+    if (event.key === "nexbit_user_name") {
+        syncIfChanged()
+    }
+})
+
+// 2. Watch for DOM changes which typically accompany login/logout in SPAs
+// Use a small debounce to avoid redundant checks during heavy DOM updates
+let mutationTimeout: ReturnType<typeof setTimeout>
+const observer = new MutationObserver(() => {
+    clearTimeout(mutationTimeout)
+    mutationTimeout = setTimeout(syncIfChanged, 500)
+})
+
+observer.observe(document.body || document.documentElement, {
+    childList: true,
+    subtree: true
+})
+
+// 3. Check when user returns to the tab to ensure state is fresh
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        syncIfChanged()
+    }
+})
