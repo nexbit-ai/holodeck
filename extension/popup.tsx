@@ -6,7 +6,6 @@ import {
     openLoginPage,
     openEditorPage,
     uploadRecording,
-    removeAuthToken,
     type RecordingPayload,
 } from "./api"
 
@@ -113,10 +112,6 @@ function IndexPopup() {
         window.close()
     }
 
-    const handleLogout = async () => {
-        await removeAuthToken()
-        setAuthState("logged_out")
-    }
 
     const startRecording = async () => {
         setError(null)
@@ -335,26 +330,13 @@ function IndexPopup() {
 
     return (
         <div className="bg-cream p-4 font-sans">
-            {/* Header with logout */}
+            {/* Header */}
             <div className="text-center mb-3 relative">
                 <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
                 <p className="text-xs text-gray-600">
                     {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
                 </p>
-                <button
-                    onClick={handleLogout}
-                    className="absolute top-0 right-0 text-xs text-gray-400 hover:text-gray-600"
-                    title="Log out"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                        />
-                    </svg>
-                </button>
+
             </div>
 
             {/* Card */}
