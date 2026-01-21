@@ -51,41 +51,46 @@ function getComputedStylesCSS(element: Element): string {
     return cssText
 }
 
-// Inline all styles for the document
-function inlineAllStyles(doc: HTMLElement): void {
-    // Get all elements
-    const allElements = doc.querySelectorAll('*')
+// Inline all styles for the document by mapping cloned elements to live elements
+function inlineAllStyles(liveRoot: Element, clonedRoot: Element): void {
+    const liveElements = liveRoot.querySelectorAll('*')
+    const clonedElements = clonedRoot.querySelectorAll('*')
 
-    allElements.forEach((element) => {
-        const el = element as HTMLElement
-        if (el.style) {
-            // Get computed styles from the live DOM element
-            const liveElement = document.querySelector(getElementSelector(el))
-            if (liveElement) {
-                const computedStyles = window.getComputedStyle(liveElement)
+    // Ensure we have the same number of elements
+    const count = Math.min(liveElements.length, clonedElements.length)
 
-                // Apply key visual styles
-                const stylesToCopy = [
-                    'display', 'position', 'top', 'left', 'right', 'bottom',
-                    'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-                    'margin', 'padding', 'border', 'border-radius',
-                    'background', 'background-color', 'background-image',
-                    'color', 'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
-                    'flex', 'flex-direction', 'justify-content', 'align-items', 'gap',
-                    'grid', 'grid-template-columns', 'grid-template-rows',
-                    'box-shadow', 'opacity', 'visibility', 'z-index', 'overflow',
-                    'transform', 'transition'
-                ]
+    for (let i = 0; i < count; i++) {
+        const liveEl = liveElements[i] as HTMLElement
+        const clonedEl = clonedElements[i] as HTMLElement
 
-                stylesToCopy.forEach(prop => {
-                    const value = computedStyles.getPropertyValue(prop)
-                    if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto') {
-                        el.style.setProperty(prop, value)
-                    }
-                })
+        // Skip if elements don't match tags (sanity check)
+        if (liveEl.tagName !== clonedEl.tagName) continue
+
+        const computedStyles = window.getComputedStyle(liveEl)
+
+        // Capture styles that are critical for layout and appearance, especially for icons
+        // We include specific dimensions and SVG properties
+        const stylesToCopy = [
+            'display', 'position', 'top', 'left', 'right', 'bottom',
+            'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+            'margin', 'padding', 'border', 'border-radius',
+            'background', 'background-color', 'background-image',
+            'color', 'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
+            'flex', 'flex-direction', 'justify-content', 'align-items', 'gap',
+            'grid', 'grid-template-columns', 'grid-template-rows',
+            'box-shadow', 'opacity', 'visibility', 'z-index', 'overflow',
+            'transform', 'transition',
+            // critical for SVG icons
+            'fill', 'stroke', 'stroke-width', 'vertical-align'
+        ]
+
+        stylesToCopy.forEach(prop => {
+            const value = computedStyles.getPropertyValue(prop)
+            if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto') {
+                clonedEl.style.setProperty(prop, value)
             }
-        }
-    })
+        })
+    }
 }
 
 // Generate a simple selector for an element
@@ -111,6 +116,8 @@ function getElementSelector(el: Element): string {
 // Capture all stylesheets as inline styles
 function captureStylesheets(): string {
     let allCSS = ''
+    let accessedCount = 0
+    let skippedCount = 0
 
     // Capture all stylesheet rules
     for (let i = 0; i < document.styleSheets.length; i++) {
@@ -120,11 +127,16 @@ function captureStylesheets(): string {
                 for (let j = 0; j < sheet.cssRules.length; j++) {
                     allCSS += sheet.cssRules[j].cssText + '\n'
                 }
+                accessedCount++
             }
         } catch (e) {
             // Cross-origin stylesheets can't be accessed
-            console.log('[Holodeck] Could not access stylesheet:', e)
+            skippedCount++
         }
+    }
+
+    if (skippedCount > 0) {
+        console.log(`[Holodeck] Stylesheet capture: ${accessedCount} accessed, ${skippedCount} skipped (likely cross-origin). Inlining computed styles for critical elements...`)
     }
 
     return allCSS
@@ -134,6 +146,10 @@ function captureStylesheets(): string {
 function captureDOM(): string {
     // Clone the document to avoid modifying the live DOM
     const docClone = document.documentElement.cloneNode(true) as HTMLElement
+
+    // Inline computed styles for all elements to handle cross-origin CSS issues (like icons)
+    // We do this BEFORE removing any elements from the clone to ensure index-based matching works perfectly
+    inlineAllStyles(document.documentElement, docClone)
 
     // Remove any scripts to prevent execution issues
     const scripts = docClone.querySelectorAll('script')
