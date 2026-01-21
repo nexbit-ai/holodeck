@@ -36,20 +36,12 @@ export interface ClickRecording {
 }
 
 // State
-let recording: ClickRecording | null = null
 let isRecording = false
-let recordingStartTime: number | null = null
+let cachedCSS: string | null = null
+let lastStylesheetCount = 0
 
 // Capture all computed styles for an element
-function getComputedStylesCSS(element: Element): string {
-    const computedStyle = window.getComputedStyle(element)
-    let cssText = ''
-    for (let i = 0; i < computedStyle.length; i++) {
-        const prop = computedStyle[i]
-        cssText += `${prop}:${computedStyle.getPropertyValue(prop)};`
-    }
-    return cssText
-}
+// ... removed unused getComputedStylesCSS ...
 
 // Inline all styles for the document by mapping cloned elements to live elements
 function inlineAllStyles(liveRoot: Element, clonedRoot: Element): void {
@@ -59,6 +51,20 @@ function inlineAllStyles(liveRoot: Element, clonedRoot: Element): void {
     // Ensure we have the same number of elements
     const count = Math.min(liveElements.length, clonedElements.length)
 
+    // Critical styles to copy for layout and appearance
+    const stylesToCopy = [
+        'display', 'position', 'top', 'left', 'right', 'bottom',
+        'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+        'margin', 'padding', 'border', 'border-radius',
+        'background', 'background-color', 'background-image',
+        'color', 'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
+        'flex', 'flex-direction', 'justify-content', 'align-items', 'gap',
+        'grid', 'grid-template-columns', 'grid-template-rows',
+        'box-shadow', 'opacity', 'visibility', 'z-index', 'overflow',
+        'transform', 'transition',
+        'fill', 'stroke', 'stroke-width', 'vertical-align'
+    ]
+
     for (let i = 0; i < count; i++) {
         const liveEl = liveElements[i] as HTMLElement
         const clonedEl = clonedElements[i] as HTMLElement
@@ -66,30 +72,19 @@ function inlineAllStyles(liveRoot: Element, clonedRoot: Element): void {
         // Skip if elements don't match tags (sanity check)
         if (liveEl.tagName !== clonedEl.tagName) continue
 
+        // Performance: Skip hidden elements
+        const rect = liveEl.getBoundingClientRect()
+        if (rect.width === 0 && rect.height === 0) continue
+
         const computedStyles = window.getComputedStyle(liveEl)
 
-        // Capture styles that are critical for layout and appearance, especially for icons
-        // We include specific dimensions and SVG properties
-        const stylesToCopy = [
-            'display', 'position', 'top', 'left', 'right', 'bottom',
-            'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-            'margin', 'padding', 'border', 'border-radius',
-            'background', 'background-color', 'background-image',
-            'color', 'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
-            'flex', 'flex-direction', 'justify-content', 'align-items', 'gap',
-            'grid', 'grid-template-columns', 'grid-template-rows',
-            'box-shadow', 'opacity', 'visibility', 'z-index', 'overflow',
-            'transform', 'transition',
-            // critical for SVG icons
-            'fill', 'stroke', 'stroke-width', 'vertical-align'
-        ]
-
-        stylesToCopy.forEach(prop => {
+        for (let j = 0; j < stylesToCopy.length; j++) {
+            const prop = stylesToCopy[j]
             const value = computedStyles.getPropertyValue(prop)
-            if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto') {
+            if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'rgba(0, 0, 0, 0)') {
                 clonedEl.style.setProperty(prop, value)
             }
-        })
+        }
     }
 }
 
@@ -113,8 +108,13 @@ function getElementSelector(el: Element): string {
     return path.join(' > ')
 }
 
-// Capture all stylesheets as inline styles
+// Capture all stylesheets as inline styles with caching
 function captureStylesheets(): string {
+    const currentCount = document.styleSheets.length
+    if (cachedCSS && currentCount === lastStylesheetCount) {
+        return cachedCSS
+    }
+
     let allCSS = ''
     let accessedCount = 0
     let skippedCount = 0
@@ -123,9 +123,10 @@ function captureStylesheets(): string {
     for (let i = 0; i < document.styleSheets.length; i++) {
         try {
             const sheet = document.styleSheets[i]
-            if (sheet.cssRules) {
-                for (let j = 0; j < sheet.cssRules.length; j++) {
-                    allCSS += sheet.cssRules[j].cssText + '\n'
+            const rules = sheet.cssRules || sheet.rules
+            if (rules) {
+                for (let j = 0; j < rules.length; j++) {
+                    allCSS += rules[j].cssText + '\n'
                 }
                 accessedCount++
             }
@@ -136,9 +137,11 @@ function captureStylesheets(): string {
     }
 
     if (skippedCount > 0) {
-        console.log(`[Holodeck] Stylesheet capture: ${accessedCount} accessed, ${skippedCount} skipped (likely cross-origin). Inlining computed styles for critical elements...`)
+        console.log(`[Nexbit] Stylesheet capture: ${accessedCount} accessed, ${skippedCount} skipped (likely cross-origin). Inlining computed styles for critical elements...`)
     }
 
+    cachedCSS = allCSS
+    lastStylesheetCount = currentCount
     return allCSS
 }
 
@@ -210,139 +213,89 @@ function createSnapshot(type: EventType, clickX?: number, clickY?: number): Clic
 
 // Click handler
 function handleClick(event: MouseEvent) {
-    if (!isRecording || !recording) return
+    if (!isRecording) return
 
     const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY)
-    recording.snapshots.push(snapshot)
 
-    // Notify background to update badge with click count
+    // Send to background to store
     chrome.runtime.sendMessage({
-        type: "CLICK_RECORDED",
-        snapshotCount: recording.snapshots.length
+        type: "ADD_SNAPSHOT",
+        snapshot
     })
 
-    console.log(`[Holodeck] Click captured at (${event.clientX}, ${event.clientY}). Total: ${recording.snapshots.length} snapshots`)
+    console.log(`[Nexbit] Click captured at (${event.clientX}, ${event.clientY}). Snapshot sent to background.`)
 }
 
-// Start recording
-function startRecording(): { success: boolean; startTime?: number; error?: string } {
-    if (isRecording) {
-        return { success: false, error: "Already recording" }
-    }
-
-    try {
-        recordingStartTime = Date.now()
-        isRecording = true
-
-        // Initialize recording with start snapshot
-        recording = {
-            version: "2.0",
-            startTime: recordingStartTime,
-            snapshots: [createSnapshot(EventType.START)]
-        }
-
-        // Add click listener
-        document.addEventListener("click", handleClick, true)
-
-        // Notify background to change icon
-        chrome.runtime.sendMessage({ type: "RECORDING_STARTED" })
-
-        console.log("[Holodeck] Click-only recording started")
-        return { success: true, startTime: recordingStartTime }
-    } catch (error) {
-        isRecording = false
-        recordingStartTime = null
-        recording = null
-        return { success: false, error: String(error) }
-    }
+// Start recording (called after countdown or from background state)
+function startRecordingListeners() {
+    if (isRecording) return
+    isRecording = true
+    document.addEventListener("click", handleClick, true)
+    console.log("[Nexbit] Listeners attached for recording")
 }
 
-// Stop recording
-function stopRecording(): { success: boolean; recording?: ClickRecording; error?: string } {
-    if (!isRecording || !recording) {
-        return { success: false, error: "Not recording" }
-    }
-
-    try {
-        // Remove click listener
-        document.removeEventListener("click", handleClick, true)
-
-        isRecording = false
-        const capturedRecording = { ...recording }
-
-        console.log(`[Holodeck] Recording stopped. Captured ${capturedRecording.snapshots.length} snapshots.`)
-
-        // Notify background to change icon
-        chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
-
-        // Clear state
-        recording = null
-        recordingStartTime = null
-
-        return { success: true, recording: capturedRecording }
-    } catch (error) {
-        return { success: false, error: String(error) }
-    }
+// Stop recording listeners
+function stopRecordingListeners() {
+    isRecording = false
+    document.removeEventListener("click", handleClick, true)
+    console.log("[Nexbit] Listeners removed for recording")
 }
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "START_RECORDING") {
-        const result = startRecording()
-        sendResponse(result)
+        // This is now just a trigger for the listeners, but we officially start in background
+        const firstSnapshot = createSnapshot(EventType.START)
+        chrome.runtime.sendMessage({
+            type: "START_RECORDING_SESSION",
+            startTime: Date.now(),
+            firstSnapshot
+        }, (response) => {
+            if (response?.success) {
+                startRecordingListeners()
+            }
+            sendResponse(response)
+        })
         return true
     }
 
     if (message.type === "STOP_RECORDING") {
-        const result = stopRecording()
-        if (result.success && result.recording) {
-            // Return recording data for popup to save
-            sendResponse({
-                success: true,
-                recording: result.recording,
-                snapshotCount: result.recording.snapshots.length
-            })
-        } else {
-            sendResponse(result)
-        }
+        chrome.runtime.sendMessage({ type: "STOP_RECORDING_SESSION" }, (response) => {
+            if (response?.success) {
+                stopRecordingListeners()
+            }
+            sendResponse(response)
+        })
         return true
     }
 
     if (message.type === "CANCEL_RECORDING") {
-        // Cancel recording without saving - just discard the data
-        if (!isRecording) {
-            sendResponse({ success: false, error: "Not recording" })
-            return true
-        }
-
-        try {
-            // Remove click listener
-            document.removeEventListener("click", handleClick, true)
-
-            isRecording = false
-            const snapshotCount = recording?.snapshots.length || 0
-
-            // Clear state without returning data
-            recording = null
-            recordingStartTime = null
-
-            console.log(`[Holodeck] Recording cancelled. Discarded ${snapshotCount} snapshots.`)
-
-            // Notify background to reset icon
-            chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
-
-            sendResponse({ success: true })
-        } catch (error) {
-            sendResponse({ success: false, error: String(error) })
-        }
+        chrome.runtime.sendMessage({ type: "CANCEL_RECORDING_SESSION" }, (response) => {
+            if (response?.success) {
+                stopRecordingListeners()
+            }
+            sendResponse(response)
+        })
         return true
     }
 
     if (message.type === "GET_STATUS") {
-        sendResponse({
-            isRecording,
-            snapshotCount: recording?.snapshots.length || 0,
-            startTime: recordingStartTime
+        chrome.runtime.sendMessage({ type: "GET_RECORDING_STATE" }, (response) => {
+            // Check if this tab is the one being recorded (optional refinement later)
+            const active = response?.isRecording || false
+
+            // Sync local state with background
+            if (active && !isRecording) {
+                startRecordingListeners()
+            } else if (!active && isRecording) {
+                stopRecordingListeners()
+            }
+
+            sendResponse({
+                isRecording: active,
+                snapshotCount: response?.snapshots?.length || 0,
+                startTime: response?.startTime
+            })
         })
         return true
     }
@@ -351,26 +304,26 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 })
 
 // Listen for countdown completion from countdown-overlay.tsx
-window.addEventListener("holodeck-countdown-complete", () => {
-    console.log("[Holodeck] Countdown complete, starting recording...")
-    const result = startRecording()
-    if (result.success) {
-        console.log("[Holodeck] Recording started successfully after countdown")
-    } else {
-        console.error("[Holodeck] Failed to start recording:", result.error)
+window.addEventListener("nexbit-countdown-complete", () => {
+    console.log("[Nexbit] Countdown complete, notifying background...")
+    const firstSnapshot = createSnapshot(EventType.START)
+    chrome.runtime.sendMessage({
+        type: "START_RECORDING_SESSION",
+        startTime: Date.now(),
+        firstSnapshot
+    }, (response) => {
+        if (response?.success) {
+            startRecordingListeners()
+        }
+    })
+})
+
+// Check status on script load to re-attach listeners if recording
+chrome.runtime.sendMessage({ type: "GET_RECORDING_STATE" }, (response) => {
+    if (response?.isRecording) {
+        console.log("[Nexbit] Active recording found on script load, re-attaching listeners")
+        startRecordingListeners()
     }
 })
 
-// Listen for countdown cancellation
-window.addEventListener("holodeck-countdown-cancelled", () => {
-    console.log("[Holodeck] Countdown cancelled by user")
-})
-
-// Notify background to reset icon if page is closed during recording
-window.addEventListener("beforeunload", () => {
-    if (isRecording) {
-        chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
-    }
-})
-
-console.log("[Holodeck] Click-only recorder loaded and ready")
+console.log("[Nexbit] Stateless recorder loaded and synchronized")

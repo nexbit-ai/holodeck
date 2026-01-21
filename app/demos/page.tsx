@@ -467,7 +467,7 @@ export default function DemosPage() {
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">No recordings yet</h3>
               <p className="text-foreground/60 text-sm text-center max-w-md mb-4">
-                Use the Holodeck Builder extension to record your first demo.
+                Use the Nexbit Demo Builder extension to record your first demo.
                 Recordings will automatically appear here.
               </p>
               <button

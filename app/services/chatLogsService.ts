@@ -1,3 +1,4 @@
+import { getAuthHeaders } from "../utils/apiAuth";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
 
@@ -20,7 +21,9 @@ export interface ChatMessage {
 
 export const chatLogsService = {
     async getConversations(organizationId: string, limit: number = 50): Promise<Conversation[]> {
-        const response = await fetch(`${API_BASE_URL}/conversations?organization_id=${organizationId}&limit=${limit}`);
+        const response = await fetch(`${API_BASE_URL}/conversations?organization_id=${organizationId}&limit=${limit}`, {
+            headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
             throw new Error(`Failed to fetch conversations: ${response.statusText}`);
@@ -30,7 +33,9 @@ export const chatLogsService = {
     },
 
     async getMessages(conversationId: string, organizationId: string): Promise<ChatMessage[]> {
-        const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages?organization_id=${organizationId}`);
+        const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages?organization_id=${organizationId}`, {
+            headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
             if (response.status === 404) {
@@ -45,6 +50,7 @@ export const chatLogsService = {
     async deleteConversation(conversationId: string, organizationId: string): Promise<void> {
         const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}?organization_id=${organizationId}`, {
             method: "DELETE",
+            headers: getAuthHeaders(),
         });
 
         if (!response.ok) {

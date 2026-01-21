@@ -3,8 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 
-// Path to the holodeck-recordings folder in Downloads
-const RECORDINGS_DIR = path.join(os.homedir(), 'Downloads', 'holodeck-recordings');
+// Path to the nexbit-recordings folder in Downloads
+const RECORDINGS_DIR = path.join(os.homedir(), 'Downloads', 'nexbit-recordings');
 
 export async function POST(request: NextRequest) {
     try {

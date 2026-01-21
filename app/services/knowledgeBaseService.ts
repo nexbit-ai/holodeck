@@ -1,3 +1,4 @@
+import { getAuthHeaders } from "../utils/apiAuth";
 
 const API_BASE_URL = "http://localhost:8000/api/v1/knowledge-base";
 
@@ -37,7 +38,9 @@ export interface UploadUrlData {
 
 export const knowledgeBaseService = {
     async getDocuments(organizationId: string): Promise<KBDocument[]> {
-        const response = await fetch(`${API_BASE_URL}/documents?organization_id=${organizationId}`);
+        const response = await fetch(`${API_BASE_URL}/documents?organization_id=${organizationId}`, {
+            headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
             throw new Error(`Failed to fetch documents: ${response.statusText}`);
@@ -49,9 +52,7 @@ export const knowledgeBaseService = {
     async uploadDocument(data: UploadDocumentData): Promise<KBDocument> {
         const response = await fetch(`${API_BASE_URL}/documents`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
 
@@ -66,6 +67,7 @@ export const knowledgeBaseService = {
     async deleteDocument(documentId: string, organizationId: string): Promise<void> {
         const response = await fetch(`${API_BASE_URL}/documents/${documentId}?organization_id=${organizationId}`, {
             method: "DELETE",
+            headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
@@ -77,9 +79,7 @@ export const knowledgeBaseService = {
     async uploadUrl(data: UploadUrlData): Promise<KBDocument> {
         const response = await fetch(`${API_BASE_URL}/urls`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
 
@@ -94,9 +94,7 @@ export const knowledgeBaseService = {
     async search(organizationId: string, query: string, limit: number = 5): Promise<{ results: SearchResult[] }> {
         const response = await fetch(`${API_BASE_URL}/search`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 organization_id: organizationId,
                 query,

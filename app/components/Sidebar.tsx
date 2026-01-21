@@ -16,28 +16,55 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useStytchMember } from "@stytch/nextjs/b2b";
+import { useStytchMember, useStytchB2BClient } from "@stytch/nextjs/b2b";
 import { useAuth } from "../contexts/AuthContext";
 
 export function Sidebar() {
+    const publicToken = process.env.NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN;
+    const isStytchConfigured = !!publicToken;
+
+    if (!isStytchConfigured) {
+        return <SidebarContent />;
+    }
+
+    return <SidebarInner />;
+}
+
+function SidebarInner() {
+    const router = useRouter();
+    const stytch = useStytchB2BClient();
+
+    const handleLogout = async () => {
+        try {
+            await stytch.session.revoke();
+            localStorage.removeItem("nexbit_user_name");
+        } catch (error) {
+            console.error("Logout error:", error);
+            localStorage.removeItem("nexbit_user_name"); // Ensure it's removed even on error
+        }
+        router.push("/login");
+    };
+
+    return <SidebarContent onLogout={handleLogout} />;
+}
+
+interface SidebarContentProps {
+    onLogout?: () => void;
+}
+
+function SidebarContent({ onLogout }: SidebarContentProps) {
     const pathname = usePathname();
     const router = useRouter();
-    // useStytchMember hook is safe to call here because Sidebar is rendered
-    // inside StytchB2BProvider (via StytchProvider in layout.tsx)
-    const { session } = useStytchMember();
     const { user } = useAuth();
     const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
     const [showUserProfileDropdown, setShowUserProfileDropdown] = useState(false);
 
-    const handleLogout = async () => {
-        if (session) {
-            try {
-                await session.revoke();
-            } catch (error) {
-                console.error("Logout error:", error);
-            }
+    const handleLogoutClick = () => {
+        if (onLogout) {
+            onLogout();
+        } else {
+            router.push("/login");
         }
-        router.push("/login");
     };
 
     const isActive = (path: string) => pathname === path;
@@ -72,8 +99,8 @@ export function Sidebar() {
                         key={item.href}
                         href={item.href}
                         className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${isActive(item.href)
-                                ? "bg-primary text-white"
-                                : "text-foreground hover:bg-primary/5"
+                            ? "bg-primary text-white"
+                            : "text-foreground hover:bg-primary/5"
                             }`}
                     >
                         <item.icon className="w-4 h-4" />
@@ -108,8 +135,8 @@ export function Sidebar() {
                 <Link
                     href="/insights"
                     className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${isActive("/insights")
-                            ? "bg-primary text-white"
-                            : "text-foreground hover:bg-primary/5"
+                        ? "bg-primary text-white"
+                        : "text-foreground hover:bg-primary/5"
                         }`}
                 >
                     <BarChart3 className="w-4 h-4" />
@@ -119,8 +146,8 @@ export function Sidebar() {
                 <Link
                     href="/integrations"
                     className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${isActive("/integrations")
-                            ? "bg-primary text-white"
-                            : "text-foreground hover:bg-primary/5"
+                        ? "bg-primary text-white"
+                        : "text-foreground hover:bg-primary/5"
                         }`}
                 >
                     <LinkIcon className="w-4 h-4" />
@@ -170,7 +197,7 @@ export function Sidebar() {
                                 <button
                                     onClick={() => {
                                         setShowUserProfileDropdown(false);
-                                        handleLogout();
+                                        handleLogoutClick();
                                     }}
                                     className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
                                 >

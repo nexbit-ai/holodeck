@@ -1,3 +1,4 @@
+import { getAuthHeaders } from "../utils/apiAuth";
 
 const API_BASE_URL = "http://localhost:8000/api/v1/config/tone";
 
@@ -19,7 +20,9 @@ export interface UpdateToneData {
 
 export const toneService = {
     async getTone(organizationId: string): Promise<ToneSettings | null> {
-        const response = await fetch(`${API_BASE_URL}?organization_id=${organizationId}`);
+        const response = await fetch(`${API_BASE_URL}?organization_id=${organizationId}`, {
+            headers: getAuthHeaders(),
+        });
 
         if (response.status === 404) {
             return null;
@@ -35,9 +38,7 @@ export const toneService = {
     async updateTone(data: UpdateToneData): Promise<ToneSettings> {
         const response = await fetch(API_BASE_URL, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
 

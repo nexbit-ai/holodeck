@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "../utils/apiAuth";
+
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 export interface ChatMessage {
@@ -27,9 +29,7 @@ export const chatService = {
     async sendMessage(message: string, organizationId: string, conversationId?: string | null): Promise<ChatResponse> {
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 message,
                 organization_id: organizationId,
@@ -46,7 +46,9 @@ export const chatService = {
     },
 
     async getConversations(organizationId: string, limit: number = 50): Promise<Conversation[]> {
-        const response = await fetch(`${API_BASE_URL}/conversations?organization_id=${organizationId}&limit=${limit}`);
+        const response = await fetch(`${API_BASE_URL}/conversations?organization_id=${organizationId}&limit=${limit}`, {
+            headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -57,7 +59,9 @@ export const chatService = {
     },
 
     async getConversationMessages(conversationId: string, organizationId: string): Promise<ChatMessage[]> {
-        const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages?organization_id=${organizationId}`);
+        const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages?organization_id=${organizationId}`, {
+            headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -70,6 +74,7 @@ export const chatService = {
     async deleteConversation(conversationId: string, organizationId: string): Promise<void> {
         const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}?organization_id=${organizationId}`, {
             method: 'DELETE',
+            headers: getAuthHeaders(),
         });
 
         if (!response.ok) {

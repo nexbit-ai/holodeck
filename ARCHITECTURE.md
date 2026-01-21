@@ -1,7 +1,7 @@
-# Holodeck Architecture (Frontend MVP Phase)
+# Nexbit Architecture (Frontend MVP Phase)
 
 ## 1. Goal
-Build a visual prototype of the Holodeck platform to demonstrate the workflow to investors/customers. No real backend functionality is required yet; use mock data and local state.
+Build a visual prototype of the Nexbit platform to demonstrate the workflow to investors/customers. No real backend functionality is required yet; use mock data and local state.
 
 ## 2. Scope of Views
 1.  **The Builder (Mock Extension):**

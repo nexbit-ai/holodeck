@@ -1,4 +1,4 @@
-# Holodeck Design System
+# Nexbit Design System
 
 ## 1. Color Palette
 - **Primary (Brand):** `#b05a36` (Terracotta/Rust). Used for primary buttons, active states, and key headlines.

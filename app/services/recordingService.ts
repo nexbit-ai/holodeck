@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "../utils/apiAuth";
+
 const API_BASE_URL = "http://localhost:8000/api/v1";
 const DEFAULT_ORGANIZATION_ID = "demo-org";
 
@@ -66,7 +68,10 @@ export const recordingService = {
      */
     async getRecordings(organizationId: string = DEFAULT_ORGANIZATION_ID, limit: number = 100): Promise<Recording[]> {
         const response = await fetch(
-            `${API_BASE_URL}/recordings?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`
+            `${API_BASE_URL}/recordings?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`,
+            {
+                headers: getAuthHeaders(),
+            }
         );
 
         if (!response.ok) {
@@ -85,7 +90,10 @@ export const recordingService = {
      */
     async getRecording(recordingId: string, organizationId: string = DEFAULT_ORGANIZATION_ID): Promise<any> {
         const response = await fetch(
-            `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`
+            `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`,
+            {
+                headers: getAuthHeaders(),
+            }
         );
 
         if (!response.ok) {

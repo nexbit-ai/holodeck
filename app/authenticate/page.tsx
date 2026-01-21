@@ -7,6 +7,24 @@ import { AuthFlowType, B2BProducts } from "@stytch/vanilla-js/b2b";
 import { useStytchMember } from "@stytch/nextjs/b2b";
 
 export default function AuthenticatePage() {
+    const publicToken = process.env.NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN;
+    const isStytchConfigured = !!publicToken;
+
+    if (!isStytchConfigured) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background p-4 text-foreground">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold mb-2">Auth Not Configured</h1>
+                    <p className="opacity-60">Authentication is required for this page.</p>
+                </div>
+            </div>
+        );
+    }
+
+    return <AuthenticatePageInner />;
+}
+
+function AuthenticatePageInner() {
     const { member, isInitialized } = useStytchMember();
     const router = useRouter();
     const hasRedirected = useRef(false);

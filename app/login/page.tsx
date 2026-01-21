@@ -9,6 +9,29 @@ import { useAuth } from "../contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+    const publicToken = process.env.NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN;
+    const isStytchConfigured = !!publicToken;
+
+    if (!isStytchConfigured) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+                <div className="w-full max-w-md bg-surface border border-yellow-500/30 rounded-2xl shadow-xl p-8 text-center text-foreground">
+                    <h1 className="text-2xl font-bold mb-4">Auth Not Configured</h1>
+                    <p className="mb-6 opacity-70">
+                        Please set <code>NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN</code> in your environment variables to enable authentication.
+                    </p>
+                    <div className="p-4 bg-yellow-500/10 rounded-lg text-sm text-yellow-600 dark:text-yellow-400">
+                        Authentication is currently disabled for local development.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return <LoginPageInner />;
+}
+
+function LoginPageInner() {
     const router = useRouter();
     const pathname = usePathname();
     const { member, isInitialized } = useStytchMember();

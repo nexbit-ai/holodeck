@@ -26,14 +26,37 @@ function IndexPopup() {
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null)
+    const [userName, setUserName] = useState<string | null>(null)
 
-    // Check auth status on mount
+    // Check auth status on mount and listen for changes
     useEffect(() => {
         const checkAuth = async () => {
             const authenticated = await isAuthenticated()
             setAuthState(authenticated ? "logged_in" : "logged_out")
+
+            // Get user name from storage
+            if (authenticated) {
+                chrome.storage.local.get(["nexbit_user_name"], (result) => {
+                    setUserName(result.nexbit_user_name || null)
+                })
+            } else {
+                setUserName(null)
+            }
         }
+
         checkAuth()
+
+        // Listen for storage changes (e.g., from background script sync)
+        const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+            if (changes["nexbit_stytch_session_jwt"] || changes["nexbit_user_name"]) {
+                checkAuth()
+            }
+        }
+        chrome.storage.onChanged.addListener(handleStorageChange)
+
+        return () => {
+            chrome.storage.onChanged.removeListener(handleStorageChange)
+        }
     }, [])
 
     // Check recording status on mount
@@ -42,22 +65,14 @@ function IndexPopup() {
 
         const checkStatus = async () => {
             try {
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-                if (!tab?.id) {
-                    setState("idle")
-                    return
-                }
-
-                chrome.tabs.sendMessage(tab.id, { type: "GET_STATUS" }, (response) => {
+                chrome.runtime.sendMessage({ type: "GET_RECORDING_STATE" }, (response) => {
                     if (chrome.runtime.lastError) {
-                        // Content script not loaded yet
                         setState("idle")
                         return
                     }
 
                     if (response?.isRecording) {
                         setState("recording")
-                        // Calculate elapsed time from stored start time
                         if (response.startTime) {
                             const elapsed = Math.floor((Date.now() - response.startTime) / 1000)
                             setElapsedTime(elapsed)
@@ -138,10 +153,7 @@ function IndexPopup() {
 
     const stopRecording = async () => {
         try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-            if (!tab?.id) return
-
-            chrome.tabs.sendMessage(tab.id, { type: "STOP_RECORDING" }, async (response) => {
+            chrome.runtime.sendMessage({ type: "STOP_RECORDING_SESSION" }, async (response) => {
                 if (chrome.runtime.lastError) {
                     setError("Failed to stop recording")
                     console.error(chrome.runtime.lastError)
@@ -149,9 +161,6 @@ function IndexPopup() {
                 }
 
                 if (response?.success && response?.recording) {
-                    // Notify background to stop pulsing and clear badge
-                    chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
-
                     // Upload to backend instead of downloading
                     setState("uploading")
                     setError(null)
@@ -159,45 +168,34 @@ function IndexPopup() {
                     try {
                         const payload: RecordingPayload = {
                             name: `Recording ${new Date().toISOString()}`,
-                            sourceUrl: tab.url || "unknown",
+                            sourceUrl: response.recording.snapshots?.[0]?.url || "unknown",
                             duration: elapsedTime,
                             eventCount: response.recording.snapshots?.length || 0,
-                            events: response.recording.snapshots, // New backend expects an array of events/snapshots
+                            events: response.recording.snapshots,
                             metadata: {
                                 extensionVersion: chrome.runtime.getManifest().version,
                                 browserName: "Chrome",
                                 screenWidth: window.screen.width,
                                 screenHeight: window.screen.height,
-                                // Include original recording metadata
                                 recordingVersion: response.recording.version,
                                 recordingStartTime: response.recording.startTime,
                             },
                         }
 
                         const result = await uploadRecording(payload)
-
-                        // Open editor for the new recording
                         openEditorPage(result.id)
-
-                        // Close popup after opening editor
                         window.close()
                     } catch (uploadError: any) {
                         console.error("Upload failed:", uploadError)
                         setError(uploadError.message || "Failed to upload recording")
-
-                        // If auth error, update auth state
                         if (uploadError.message?.includes("log in")) {
                             setAuthState("logged_out")
                         }
-
                         setState("idle")
                     }
                 } else {
-                    // Even if stopping failed in content script, we might want to try stopping the icon
-                    if (response?.error?.includes("Not recording")) {
-                        chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
-                    }
                     setError(response?.error || "Failed to stop recording")
+                    setState("idle")
                 }
             })
         } catch (err) {
@@ -208,10 +206,7 @@ function IndexPopup() {
 
     const cancelRecording = async () => {
         try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-            if (!tab?.id) return
-
-            chrome.tabs.sendMessage(tab.id, { type: "CANCEL_RECORDING" }, (response) => {
+            chrome.runtime.sendMessage({ type: "CANCEL_RECORDING_SESSION" }, (response) => {
                 if (chrome.runtime.lastError) {
                     setError("Failed to cancel recording")
                     console.error(chrome.runtime.lastError)
@@ -219,9 +214,6 @@ function IndexPopup() {
                 }
 
                 if (response?.success) {
-                    // Notify background to stop pulsing and clear badge
-                    chrome.runtime.sendMessage({ type: "RECORDING_STOPPED" })
-
                     setState("idle")
                     setElapsedTime(0)
                     setRecordingStartTime(null)
@@ -241,7 +233,9 @@ function IndexPopup() {
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
                     <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
-                    <p className="text-xs text-gray-600">Record your product interactions</p>
+                    <p className="text-xs text-gray-600">
+                        {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
+                    </p>
                 </div>
                 <div className="bg-surface rounded-xl shadow-lg p-4">
                     <div className="text-center">
@@ -259,7 +253,9 @@ function IndexPopup() {
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
                     <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
-                    <p className="text-xs text-gray-600">Record your product interactions</p>
+                    <p className="text-xs text-gray-600">
+                        {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
+                    </p>
                 </div>
                 <div className="bg-surface rounded-xl shadow-lg p-4">
                     <div className="text-center">
@@ -300,7 +296,9 @@ function IndexPopup() {
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
                     <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
-                    <p className="text-xs text-gray-600">Record your product interactions</p>
+                    <p className="text-xs text-gray-600">
+                        {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
+                    </p>
                 </div>
                 <div className="bg-surface rounded-xl shadow-lg p-4">
                     <div className="text-center">
@@ -318,7 +316,9 @@ function IndexPopup() {
             <div className="bg-cream p-4 font-sans">
                 <div className="text-center mb-3">
                     <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
-                    <p className="text-xs text-gray-600">Record your product interactions</p>
+                    <p className="text-xs text-gray-600">
+                        {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
+                    </p>
                 </div>
                 <div className="bg-surface rounded-xl shadow-lg p-4">
                     <div className="text-center">
@@ -338,7 +338,9 @@ function IndexPopup() {
             {/* Header with logout */}
             <div className="text-center mb-3 relative">
                 <img src="assets/logo.jpg" alt="Nexbit" className="h-6 mx-auto mb-1" />
-                <p className="text-xs text-gray-600">Record your product interactions</p>
+                <p className="text-xs text-gray-600">
+                    {userName ? `Welcome back, ${userName}` : "Record your product interactions"}
+                </p>
                 <button
                     onClick={handleLogout}
                     className="absolute top-0 right-0 text-xs text-gray-400 hover:text-gray-600"
