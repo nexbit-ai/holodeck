@@ -25,7 +25,8 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
-  Trash2
+  Trash2,
+  Pencil
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -58,6 +59,12 @@ export default function DemosPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [demoToDelete, setDemoToDelete] = useState<Recording | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Rename state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [demoToRename, setDemoToRename] = useState<Recording | null>(null);
+  const [newName, setNewName] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
 
 
   const fetchRecordings = useCallback(async () => {
@@ -95,6 +102,35 @@ export default function DemosPage() {
     setDemoToDelete(recording);
     setShowDeleteConfirm(true);
     setOpenMenuId(null);
+  };
+
+  const handleRenameClick = (recording: Recording, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDemoToRename(recording);
+    setNewName(recording.title);
+    setShowRenameModal(true);
+    setOpenMenuId(null);
+  };
+
+  const handleConfirmRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!demoToRename || !newName.trim()) return;
+
+    setIsRenaming(true);
+    try {
+      await recordingService.updateRecording(demoToRename.id, {
+        name: newName.trim()
+      });
+      await fetchRecordings();
+      setShowRenameModal(false);
+      setDemoToRename(null);
+    } catch (err) {
+      console.error('Error renaming demo:', err);
+      alert(err instanceof Error ? err.message : 'Failed to rename demo');
+    } finally {
+      setIsRenaming(false);
+    }
   };
 
 
@@ -442,6 +478,13 @@ export default function DemosPage() {
                       </button>
                       {openMenuId === recording.id && (
                         <div className="absolute right-0 mt-1 w-40 bg-surface border border-primary/10 rounded-lg shadow-lg z-20">
+                          <button
+                            onClick={(e) => handleRenameClick(recording, e)}
+                            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors flex items-center gap-2"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Rename
+                          </button>
 
                           <button
                             onClick={(e) => handleDeleteClick(recording, e)}
@@ -505,6 +548,13 @@ export default function DemosPage() {
                     </button>
                     {openMenuId === recording.id && (
                       <div className="absolute right-0 top-full mt-1 w-40 bg-surface border border-primary/10 rounded-lg shadow-lg z-20">
+                        <button
+                          onClick={(e) => handleRenameClick(recording, e)}
+                          className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors flex items-center gap-2"
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Rename
+                        </button>
 
                         <button
                           onClick={(e) => handleDeleteClick(recording, e)}
@@ -670,6 +720,68 @@ export default function DemosPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Modal */}
+      {showRenameModal && demoToRename && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRenameModal(false)}>
+          <div
+            className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-foreground">Rename Demo</h3>
+              <button
+                onClick={() => setShowRenameModal(false)}
+                className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-foreground/60" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmRename}>
+              <div className="mb-6">
+                <label htmlFor="demo-name" className="block text-sm font-medium text-foreground/70 mb-2">
+                  Name
+                </label>
+                <input
+                  id="demo-name"
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-4 py-2 bg-background border border-primary/10 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+                  placeholder="Enter demo name"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowRenameModal(false)}
+                  className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
+                  disabled={isRenaming}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRenaming || !newName.trim()}
+                  className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isRenaming ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

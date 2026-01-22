@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { X, FileJson, Loader2, ArrowLeft, Download } from 'lucide-react'
+import { X, FileJson, Loader2, ArrowLeft, Download, Play } from 'lucide-react'
 import { useEditorStore } from '../store'
 import { ClickSlideDeck } from '../components/ClickSlideDeck'
 import { SlideSidebar } from '../components/SlideSidebar'
@@ -28,6 +28,8 @@ export default function EditorWithIdPage() {
     const setSelectedSlide = useEditorStore((state) => state.setSelectedSlide)
     const isSaving = useEditorStore((state) => state.isSaving)
     const lastSaved = useEditorStore((state) => state.lastSaved)
+    const isPreviewMode = useEditorStore((state) => state.isPreviewMode)
+    const setIsPreviewMode = useEditorStore((state) => state.setIsPreviewMode)
     const isZoomMode = useEditorStore((state) => state.isZoomMode)
     const setZoomMode = useEditorStore((state) => state.setZoomMode)
     const isHotspotMode = useEditorStore((state) => state.isHotspotMode)
@@ -202,51 +204,62 @@ export default function EditorWithIdPage() {
 
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={() => exportProject()}
-                                className="px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
-                            >
-                                <Download className="w-4 h-4" />
-                                Export
-                            </button>
-                            <button
                                 onClick={handleClear}
                                 className="px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
                             >
                                 <X className="w-4 h-4" />
                                 Close
                             </button>
+                            <button
+                                onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition-all flex items-center gap-2 ${isPreviewMode
+                                    ? 'bg-foreground text-background hover:bg-foreground/90'
+                                    : 'bg-primary text-white hover:bg-primary/90'
+                                    }`}
+                            >
+                                <Play className={`w-4 h-4 ${isPreviewMode ? 'fill-current' : ''}`} />
+                                {isPreviewMode ? 'Editor' : 'Preview'}
+                            </button>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <EditorToolbar
-                isZoomActive={isZoomMode}
-                onZoomClick={handleZoomClick}
-                canZoom={clickRecording.snapshots[selectedSlideIndex]?.type === 'click'}
-                isHotspotActive={isHotspotMode}
-                onHotspotClick={handleHotspotClick}
-                canAddHotspot={true}
-                isBlurActive={isBlurMode}
-                onBlurClick={handleBlurClick}
-                isCropActive={isCropMode}
-                onCropClick={handleCropClick}
-            />
-
             {/* Main content with flexbox layout - Left sidebar + Center preview */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Sidebar - Slide Thumbnails */}
-                <div className="w-80 min-w-[280px] max-w-[400px] flex-shrink-0 overflow-hidden">
-                    <SlideSidebar />
-                </div>
+                {!isPreviewMode && (
+                    <div className="w-80 min-w-[280px] max-w-[400px] flex-shrink-0 overflow-hidden">
+                        <SlideSidebar />
+                    </div>
+                )}
 
                 {/* Center Panel - Main Slide Preview */}
-                <div className="flex-1 h-full p-6 overflow-auto flex items-center justify-center bg-playground">
-                    <ClickSlideDeck
-                        recording={clickRecording}
-                        currentSlideIndex={selectedSlideIndex}
-                        onSlideChange={handleSlideChange}
-                    />
+                <div className="flex-1 h-full flex flex-col overflow-hidden bg-playground">
+                    {!isPreviewMode && (
+                        <div className="shrink-0">
+                            <EditorToolbar
+                                isZoomActive={isZoomMode}
+                                onZoomClick={handleZoomClick}
+                                canZoom={clickRecording.snapshots[selectedSlideIndex]?.type === 'click' || clickRecording.snapshots[selectedSlideIndex]?.type === 1}
+                                isHotspotActive={isHotspotMode}
+                                onHotspotClick={handleHotspotClick}
+                                canAddHotspot={true}
+                                isBlurActive={isBlurMode}
+                                onBlurClick={handleBlurClick}
+                                isCropActive={isCropMode}
+                                onCropClick={handleCropClick}
+                            />
+                        </div>
+                    )}
+                    <div className={`flex-1 overflow-auto flex items-center justify-center ${isPreviewMode ? 'p-0' : 'p-6'}`}>
+                        <ClickSlideDeck
+                            recording={clickRecording}
+                            currentSlideIndex={selectedSlideIndex}
+                            onSlideChange={handleSlideChange}
+                            viewOnly={isPreviewMode}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
