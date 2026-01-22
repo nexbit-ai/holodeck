@@ -30,7 +30,7 @@ export default function Home() {
       // Add a small delay to prevent rapid redirects
       redirectTimeoutRef.current = setTimeout(() => {
         if (isAuthenticated) {
-          router.replace("/dashboard");
+          router.replace("/demos");
         } else {
           router.replace("/login");
         }

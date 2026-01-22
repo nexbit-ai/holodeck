@@ -1,6 +1,6 @@
 import { getAuthHeaders } from "../utils/apiAuth";
+import { API_BASE_URL } from "../utils/config";
 
-const API_BASE_URL = "http://localhost:8000/api/v1";
 
 export interface HubSpotIntegration {
     id: string;

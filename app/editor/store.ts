@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import type { ClickRecording, ClickSnapshot, ZoomPan } from './types/recording'
 import { EventType } from './types/recording'
 
+// Debounce timer for auto-save to prevent excessive API calls
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
+const SAVE_DEBOUNCE_MS = 1500 // Wait 1.5 seconds after last change before saving
 export interface Hotspot {
     id: string
     x: number
@@ -57,6 +60,8 @@ interface EditorState {
     isHotspotMode: boolean
     isBlurMode: boolean
     isCropMode: boolean
+    isAnalyzing: boolean
+    isPreviewMode: boolean
 
     // Actions
     loadRecording: (recording: ClickRecording | AnnotatedRecording, id?: string) => void
@@ -68,6 +73,8 @@ interface EditorState {
     deleteSnapshot: (snapshotIndex: number) => void
     deleteSnapshots: (indices: number[]) => void
     saveRecording: () => Promise<void>
+    analyzeDemo: () => Promise<void>
+    generateAiScript: (snapshotIndex: number) => Promise<void>
     setZoomMode: (active: boolean) => void
     setHotspotMode: (active: boolean) => void
     setBlurMode: (active: boolean) => void
@@ -78,6 +85,7 @@ interface EditorState {
     addBlurRegion: (snapshotIndex: number, region: BlurRegion) => void
     deleteBlurRegion: (snapshotIndex: number, regionId: string) => void
     updateCrop: (snapshotIndex: number, crop: CropData | undefined) => void
+    setIsPreviewMode: (active: boolean) => void
     clearProject: () => void
     exportProject: () => void
 }
@@ -94,6 +102,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     isHotspotMode: false,
     isBlurMode: false,
     isCropMode: false,
+    isAnalyzing: false,
+    isPreviewMode: false,
 
     // Actions
     loadRecording: (recording, id) => {
@@ -318,31 +328,52 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     saveRecording: async () => {
         const { clickRecording, recordingId, isSaving } = get()
-        if (!clickRecording || !recordingId || isSaving) return
+        if (!clickRecording || !recordingId) return
 
-        set({ isSaving: true })
-
-        try {
-            const response = await fetch('/api/recordings', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: recordingId,
-                    content: clickRecording,
-                }),
-            })
-
-            if (response.ok) {
-                set({ lastSaved: new Date() })
-                console.log('[Store] Recording saved successfully')
-            } else {
-                console.error('[Store] Failed to save recording')
-            }
-        } catch (error) {
-            console.error('[Store] Error saving recording:', error)
-        } finally {
-            set({ isSaving: false })
+        // Clear any existing debounce timer
+        if (saveDebounceTimer) {
+            clearTimeout(saveDebounceTimer)
         }
+
+        // Debounce: wait for user to stop making changes before saving
+        saveDebounceTimer = setTimeout(async () => {
+            // Check again in case state changed during debounce
+            const currentState = get()
+            if (!currentState.clickRecording || !currentState.recordingId || currentState.isSaving) return
+
+            set({ isSaving: true })
+
+            try {
+                // Import recordingService dynamically to avoid circular dependencies
+                const { recordingService } = await import('../services/recordingService')
+
+                // Calculate duration from snapshots
+                const snapshots = currentState.clickRecording.snapshots
+                let duration = 0
+                if (snapshots.length > 1) {
+                    duration = Math.round((snapshots[snapshots.length - 1].timestamp - snapshots[0].timestamp) / 1000)
+                }
+
+                // Prepare the update payload
+                await recordingService.updateRecording(currentState.recordingId, {
+                    events: snapshots, // Snapshots contain all annotations (blur, hotspots, zoomPan, etc.)
+                    eventCount: snapshots.length,
+                    duration: duration,
+                    metadata: {
+                        browserName: 'Chrome',
+                        screenWidth: snapshots[0]?.viewportWidth || 1920,
+                        screenHeight: snapshots[0]?.viewportHeight || 1080,
+                    },
+                })
+
+                set({ lastSaved: new Date() })
+                console.log('[Store] Recording saved to backend successfully')
+            } catch (error) {
+                console.error('[Store] Error saving recording to backend:', error)
+            } finally {
+                set({ isSaving: false })
+            }
+        }, SAVE_DEBOUNCE_MS)
     },
 
     setZoomMode: (active) => {
@@ -522,6 +553,140 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         })
 
         if (recordingId) get().saveRecording()
+    },
+
+    analyzeDemo: async () => {
+        const { clickRecording, recordingId, isAnalyzing } = get()
+        if (!clickRecording || isAnalyzing) return
+
+        set({ isAnalyzing: true })
+
+        try {
+            const { recordingService } = await import('../services/recordingService')
+            const snapshots = [...clickRecording.snapshots]
+
+            // 1. Analyze first screen for demo title/description
+            const firstSnapshot = snapshots.find(s => s.type === EventType.CLICK || s.type === 'click')
+            if (firstSnapshot) {
+                try {
+                    const demoInfo = await recordingService.analyze({
+                        html: firstSnapshot.html,
+                        type: 'demo_info'
+                    })
+
+                    // Update cover slide if it exists
+                    const coverIndex = snapshots.findIndex(s => s.type === EventType.COVER || s.type === 'cover')
+                    if (coverIndex !== -1) {
+                        snapshots[coverIndex] = {
+                            ...snapshots[coverIndex],
+                            title: demoInfo.title || snapshots[coverIndex].title,
+                            description: demoInfo.description || snapshots[coverIndex].description
+                        }
+                    }
+                } catch (e) {
+                    console.error('[Store] Failed to analyze demo info:', e)
+                }
+            }
+
+            // 2. Analyze each click for labels and scripts
+            // We'll do this in parallel but with a small limit if there are many slides
+            const analysisPromises = snapshots.map(async (snapshot, index) => {
+                if (snapshot.type !== EventType.CLICK && snapshot.type !== 'click') return
+
+                try {
+                    const stepInfo = await recordingService.analyze({
+                        html: snapshot.html,
+                        context: {
+                            clickX: snapshot.clickX,
+                            clickY: snapshot.clickY,
+                            viewportWidth: snapshot.viewportWidth,
+                            viewportHeight: snapshot.viewportHeight,
+                            url: snapshot.url
+                        },
+                        type: 'step_info'
+                    })
+
+                    const currentAnnotation = snapshots[index].annotation || { label: '', script: '' }
+                    snapshots[index] = {
+                        ...snapshots[index],
+                        annotation: {
+                            ...currentAnnotation,
+                            label: stepInfo.label || currentAnnotation.label,
+                            script: stepInfo.script || currentAnnotation.script
+                        }
+                    }
+                } catch (e) {
+                    console.error(`[Store] Failed to analyze step ${index}:`, e)
+                }
+            })
+
+            await Promise.all(analysisPromises)
+
+            set({
+                clickRecording: {
+                    ...clickRecording,
+                    snapshots
+                }
+            })
+
+            if (recordingId) {
+                get().saveRecording()
+            }
+        } catch (error) {
+            console.error('[Store] Error during AI analysis:', error)
+        } finally {
+            set({ isAnalyzing: false })
+        }
+    },
+
+    generateAiScript: async (snapshotIndex: number) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const snapshot = clickRecording.snapshots[snapshotIndex]
+        if (!snapshot || (snapshot.type !== 'click' && snapshot.type !== EventType.CLICK)) return
+
+        try {
+            const { recordingService } = await import('../services/recordingService')
+            const stepInfo = await recordingService.analyze({
+                html: snapshot.html,
+                context: {
+                    clickX: snapshot.clickX,
+                    clickY: snapshot.clickY,
+                    viewportWidth: snapshot.viewportWidth,
+                    viewportHeight: snapshot.viewportHeight,
+                    url: snapshot.url
+                },
+                type: 'step_info'
+            })
+
+            const currentAnnotation = snapshot.annotation || { label: '', script: '' }
+            const updatedSnapshots = [...clickRecording.snapshots]
+            updatedSnapshots[snapshotIndex] = {
+                ...updatedSnapshots[snapshotIndex],
+                annotation: {
+                    ...currentAnnotation,
+                    label: stepInfo.label || currentAnnotation.label,
+                    script: stepInfo.script || currentAnnotation.script
+                }
+            }
+
+            set({
+                clickRecording: {
+                    ...clickRecording,
+                    snapshots: updatedSnapshots
+                }
+            })
+
+            if (recordingId) {
+                get().saveRecording()
+            }
+        } catch (error) {
+            console.error('[Store] AI Script generation failed:', error)
+        }
+    },
+    setIsPreviewMode: (active) => {
+        set({ isPreviewMode: active })
     },
 
     clearProject: () => {

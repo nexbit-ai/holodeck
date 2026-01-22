@@ -4,6 +4,7 @@ import { SlideThumbnail } from './SlideThumbnail'
 import { AddStepMenu } from './AddStepMenu'
 import { useEditorStore, type AnnotatedSnapshot } from '../store'
 import { MousePointerClick } from 'lucide-react'
+import { EventType } from '../types/recording'
 
 export function SlideSidebar() {
     const clickRecording = useEditorStore((state) => state.clickRecording)
@@ -13,27 +14,6 @@ export function SlideSidebar() {
 
     const snapshots = (clickRecording?.snapshots || []) as AnnotatedSnapshot[]
 
-    // Get slide label
-    const getSlideLabel = (index: number): string => {
-        const snapshot = snapshots[index]
-        if (!snapshot) return ''
-
-        // Use annotation label if available
-        if (snapshot.annotation?.label) {
-            return snapshot.annotation.label
-        }
-
-        if (snapshot.type === 'cover') return 'Cover Screen'
-        if (snapshot.type === 'start') return 'Start Recording'
-        if (snapshot.type === 'end') return 'End Screen'
-
-        // Find which click number this is
-        let clickCount = 0
-        for (let i = 0; i <= index; i++) {
-            if (snapshots[i].type === 'click') clickCount++
-        }
-        return `Click ${clickCount}`
-    }
 
     // Get the last URL for "record more" functionality
     const getLastUrl = (): string => {
@@ -58,7 +38,7 @@ export function SlideSidebar() {
         deleteSnapshot(index)
     }
 
-    const clickCount = snapshots.filter(s => s.type === 'click').length
+    const clickCount = snapshots.filter(s => s.type === 'click' || s.type === EventType.CLICK).length
 
     if (snapshots.length === 0) {
         return (
@@ -92,7 +72,6 @@ export function SlideSidebar() {
                             snapshot={snapshot}
                             index={index + 1}
                             isSelected={selectedSlideIndex === index}
-                            slideLabel={getSlideLabel(index)}
                             onClick={() => handleSlideClick(index)}
                             onDelete={() => handleSlideDelete(index)}
                             canDelete={snapshots.length > 1}

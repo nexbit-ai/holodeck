@@ -5,14 +5,13 @@ import {
     MousePointer2,
     Square,
     PlayCircle,
-    BookOpen,
-    Palette,
-    Upload,
-    Settings,
     ChevronDown,
     ZoomIn,
-    Sparkles
+    Sparkles,
+    Wand2,
+    Loader2
 } from 'lucide-react'
+import { useEditorStore } from '../store'
 
 interface EditorToolbarProps {
     onZoomClick: () => void
@@ -35,14 +34,15 @@ export function EditorToolbar({
 }: EditorToolbarProps) {
     const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
+    // Store actions
+    const isAnalyzing = useEditorStore((state) => state.isAnalyzing)
+    const analyzeDemo = useEditorStore((state) => state.analyzeDemo)
+
     const menuItems = [
+        { id: 'ai', label: 'AI Generate', icon: Wand2, action: analyzeDemo, primary: true },
         { id: 'hotspot', label: 'Hotspot', icon: MousePointer2 },
         { id: 'blur', label: 'Blur and Crop', icon: Square, hasDropdown: true },
         { id: 'animation', label: 'Animation', icon: PlayCircle, hasDropdown: true },
-        { id: 'chapter', label: 'Chapter', icon: BookOpen },
-        { id: 'personalize', label: 'Personalize', icon: Palette },
-        { id: 'upload', label: 'Upload', icon: Upload },
-        { id: 'settings', label: 'Settings', icon: Settings },
     ]
 
     return (
@@ -52,7 +52,8 @@ export function EditorToolbar({
                 const isHovered = hoveredItem === item.id
                 const isActive = (item.id === 'animation' && isZoomActive) ||
                     (item.id === 'hotspot' && isHotspotActive) ||
-                    (item.id === 'blur' && (isBlurActive || isCropActive))
+                    (item.id === 'blur' && (isBlurActive || isCropActive)) ||
+                    (item.id === 'ai' && isAnalyzing)
 
                 return (
                     <div
@@ -63,24 +64,31 @@ export function EditorToolbar({
                     >
                         <button
                             onClick={() => {
-                                if (item.id === 'hotspot' && canAddHotspot) {
+                                if (item.id === 'ai') {
+                                    analyzeDemo()
+                                } else if (item.id === 'hotspot' && canAddHotspot) {
                                     onHotspotClick()
                                 }
                             }}
-                            disabled={item.id === 'hotspot' && !canAddHotspot}
+                            disabled={(item.id === 'hotspot' && !canAddHotspot) || (item.id === 'ai' && isAnalyzing)}
                             className={`
                                 flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200
+                                ${item.primary && !isActive && !isHovered ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90' : ''}
                                 ${isActive
                                     ? 'bg-primary/10 text-primary'
                                     : isHovered
-                                        ? 'bg-foreground/5 text-foreground'
-                                        : 'text-foreground/60'
+                                        ? item.primary ? 'bg-primary/90 text-white shadow-xl' : 'bg-foreground/5 text-foreground'
+                                        : item.primary ? '' : 'text-foreground/60'
                                 }
-                                ${item.id === 'hotspot' && !canAddHotspot ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}
+                                ${((item.id === 'hotspot' && !canAddHotspot) || (item.id === 'ai' && isAnalyzing)) ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}
                             `}
                         >
-                            <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : (isHovered ? 'text-foreground' : 'text-foreground/40')}`} />
-                            {item.label}
+                            {item.id === 'ai' && isAnalyzing ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Icon className={`w-4 h-4 ${isActive || item.primary ? '' : (isHovered ? 'text-foreground' : 'text-foreground/40')}`} />
+                            )}
+                            {item.id === 'ai' && isAnalyzing ? 'Analyzing...' : item.label}
                             {item.hasDropdown && (
                                 <ChevronDown
                                     className={`w-3.5 h-3.5 opacity-40 transition-transform duration-200 ${isHovered ? 'rotate-180 opacity-100' : ''}`}

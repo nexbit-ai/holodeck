@@ -27,12 +27,7 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
-  Trash2,
-  Share2,
-  Copy,
-  Mail,
-  MessageSquare,
-  Check
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -67,10 +62,6 @@ export default function DemosPage() {
   const [demoToDelete, setDemoToDelete] = useState<Recording | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Share state
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [demoToShare, setDemoToShare] = useState<Recording | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   const fetchRecordings = useCallback(async () => {
     setIsLoading(true);
@@ -109,46 +100,6 @@ export default function DemosPage() {
     setOpenMenuId(null);
   };
 
-  const handleShareClick = (recording: Recording, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDemoToShare(recording);
-    setShowShareModal(true);
-    setOpenMenuId(null);
-    setLinkCopied(false);
-  };
-
-  const getShareLink = (recording: Recording) => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}/editor/${encodeURIComponent(recording.id)}`;
-  };
-
-  const handleCopyLink = async () => {
-    if (!demoToShare) return;
-    const link = getShareLink(demoToShare);
-    try {
-      await navigator.clipboard.writeText(link);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy link:', err);
-    }
-  };
-
-  const handleShareEmail = () => {
-    if (!demoToShare) return;
-    const link = getShareLink(demoToShare);
-    const subject = encodeURIComponent(`Check out this demo: ${demoToShare.title}`);
-    const body = encodeURIComponent(`I wanted to share this demo with you:\n\n${demoToShare.title}\n\nView it here: ${link}`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  };
-
-  const handleShareSlack = () => {
-    if (!demoToShare) return;
-    const link = getShareLink(demoToShare);
-    const text = encodeURIComponent(`Check out this demo: ${demoToShare.title}`);
-    window.open(`https://slack.com/share?url=${encodeURIComponent(link)}&text=${text}`, '_blank');
-  };
 
   const handleConfirmDelete = async () => {
     if (!demoToDelete) return;
@@ -156,16 +107,7 @@ export default function DemosPage() {
     setIsDeleting(true);
     try {
       console.log('Deleting demo with ID:', demoToDelete.id);
-      const encodedId = encodeURIComponent(demoToDelete.id);
-      console.log('Encoded ID:', encodedId);
-      const response = await fetch(`/api/recordings/${encodedId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete demo');
-      }
+      await recordingService.deleteRecording(demoToDelete.id);
 
       // Refresh the recordings list
       await fetchRecordings();
@@ -503,13 +445,7 @@ export default function DemosPage() {
                       </button>
                       {openMenuId === recording.id && (
                         <div className="absolute right-0 mt-1 w-40 bg-surface border border-primary/10 rounded-lg shadow-lg z-20">
-                          <button
-                            onClick={(e) => handleShareClick(recording, e)}
-                            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors flex items-center gap-2"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            Share
-                          </button>
+
                           <button
                             onClick={(e) => handleDeleteClick(recording, e)}
                             className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-500/10 transition-colors flex items-center gap-2"
@@ -572,13 +508,7 @@ export default function DemosPage() {
                     </button>
                     {openMenuId === recording.id && (
                       <div className="absolute right-0 top-full mt-1 w-40 bg-surface border border-primary/10 rounded-lg shadow-lg z-20">
-                        <button
-                          onClick={(e) => handleShareClick(recording, e)}
-                          className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors flex items-center gap-2"
-                        >
-                          <Share2 className="w-4 h-4" />
-                          Share
-                        </button>
+
                         <button
                           onClick={(e) => handleDeleteClick(recording, e)}
                           className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-500/10 transition-colors flex items-center gap-2"
@@ -748,84 +678,6 @@ export default function DemosPage() {
       )}
 
       {/* Share Modal */}
-      {showShareModal && demoToShare && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowShareModal(false)}>
-          <div
-            className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-foreground">Share Demo</h3>
-              <button
-                onClick={() => {
-                  setShowShareModal(false);
-                  setDemoToShare(null);
-                  setLinkCopied(false);
-                }}
-                className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-foreground/60" />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm text-foreground/70 mb-2">Share "{demoToShare.title}"</p>
-              <div className="bg-background border border-primary/10 rounded-lg p-3 flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={getShareLink(demoToShare)}
-                  className="flex-1 bg-transparent text-sm text-foreground focus:outline-none"
-                />
-                <button
-                  onClick={handleCopyLink}
-                  className="p-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2"
-                >
-                  {linkCopied ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span className="text-xs">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span className="text-xs">Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                onClick={handleShareEmail}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-background border border-primary/10 rounded-lg hover:bg-primary/5 transition-colors text-left"
-              >
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Share via Email</p>
-                  <p className="text-xs text-foreground/60">Send a link via email</p>
-                </div>
-              </button>
-
-              <button
-                onClick={handleShareSlack}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-background border border-primary/10 rounded-lg hover:bg-primary/5 transition-colors text-left"
-              >
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Share on Slack</p>
-                  <p className="text-xs text-foreground/60">Share in a Slack channel</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

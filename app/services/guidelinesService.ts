@@ -13,8 +13,10 @@ export interface UpdateGuidelinesData {
 }
 
 import { getAuthHeaders } from "../utils/apiAuth";
+import { API_BASE_URL as BASE_URL } from "../utils/config";
 
-const API_BASE_URL = "http://localhost:8000/api/v1/config/guidelines";
+const API_BASE_URL = `${BASE_URL}/config/guidelines`;
+
 
 export const guidelinesService = {
     /**

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { FileText } from 'lucide-react'
 
 interface DemoThumbnailProps {
@@ -10,7 +10,10 @@ interface DemoThumbnailProps {
     viewportHeight?: number
 }
 
-// Simple RRWeb node to HTML converter
+/**
+ * Optimized RRWeb node to HTML converter with memoization potential
+ * This function remains recursive but we'll use useMemo in the component.
+ */
 function rrwebNodeToHtml(node: any): string {
     if (!node) return ''
 
@@ -26,7 +29,6 @@ function rrwebNodeToHtml(node: any): string {
         const attrString = Object.entries(attributes)
             .map(([key, value]) => {
                 if (key === 'src' || key === 'href') {
-                    // Prepend proxy or absolute URL if needed, but for thumbnail we keep it simple
                     return `${key}="${value}"`
                 }
                 if (typeof value === 'string') {
@@ -89,59 +91,63 @@ export function DemoThumbnail({
         return () => resizeObserver.disconnect()
     }, [])
 
-    // Calculate scale to fill container (cover, not contain)
+    // Memoize the HTML content generation
+    const memoizedContent = useMemo(() => {
+        if (html) return html
+        if (snapshot && snapshot.data && snapshot.data.node) {
+            return rrwebNodeToHtml(snapshot.data.node)
+        }
+        return ''
+    }, [html, snapshot])
+
+    // Calculate scale to fill container
     const scale = containerSize.width > 0
         ? containerSize.width / viewportWidth
         : 0.1
 
     useEffect(() => {
-        if (!iframeRef.current) return
-
-        let content = html || ''
-        if (!content && snapshot && snapshot.data && snapshot.data.node) {
-            content = rrwebNodeToHtml(snapshot.data.node)
-        }
-
-        if (!content) return
+        if (!iframeRef.current || !memoizedContent) return
 
         const iframe = iframeRef.current
         const doc = iframe.contentDocument || iframe.contentWindow?.document
 
         if (doc) {
             doc.open()
-            // Inject basic styles to ensure thumbnail looks okay
+            // Inject basic styles
             const styledContent = `
                 <style>
-                    body { margin: 0; padding: 0; overflow: hidden; }
+                    body { margin: 0; padding: 0; overflow: hidden; background: white; }
                     img { max-width: 100%; height: auto; }
                 </style>
-                ${content}
+                ${memoizedContent}
             `
             doc.write(styledContent)
             doc.close()
             setIsLoaded(true)
         }
-    }, [html, snapshot])
+    }, [memoizedContent])
 
     return (
         <div
             ref={containerRef}
-            className="w-full h-full overflow-hidden bg-gray-100"
+            className="w-full h-full overflow-hidden bg-gray-50 relative"
         >
             {/* Loading placeholder */}
             {!isLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
+                <div className="absolute inset-0 flex items-center justify-center bg-primary/5 z-10">
                     <FileText className="w-12 h-12 text-primary/40 animate-pulse" />
                 </div>
             )}
 
-            {/* Scaled iframe - scales to fill width */}
+            {/* Scaled iframe */}
             <div
                 style={{
                     width: viewportWidth,
                     height: viewportHeight,
                     transform: `scale(${scale})`,
                     transformOrigin: 'top left',
+                    opacity: isLoaded ? 1 : 0,
+                    transition: 'opacity 0.2s ease-in-out'
                 }}
             >
                 <iframe
@@ -159,12 +165,36 @@ export function DemoThumbnail({
     )
 }
 
-// Wrapper component that shows fallback icon when no thumbnail is available
+// Wrapper component with Intersection Observer for lazy loading
 interface DemoThumbnailWrapperProps {
     thumbnail?: any
 }
 
 export function DemoThumbnailWrapper({ thumbnail }: DemoThumbnailWrapperProps) {
+    const [isVisible, setIsVisible] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true)
+                    observer.disconnect()
+                }
+            },
+            {
+                rootMargin: '200px', // Start loading before it's actually in view
+                threshold: 0.01
+            }
+        )
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current)
+        }
+
+        return () => observer.disconnect()
+    }, [])
+
     if (!thumbnail) {
         return (
             <div className="w-full aspect-video bg-primary/5 rounded-lg flex items-center justify-center">
@@ -173,36 +203,40 @@ export function DemoThumbnailWrapper({ thumbnail }: DemoThumbnailWrapperProps) {
         )
     }
 
-    // Handle old format
-    if (thumbnail.html) {
-        return (
-            <div className="w-full aspect-video rounded-lg overflow-hidden">
-                <DemoThumbnail
-                    html={thumbnail.html}
-                    viewportWidth={thumbnail.viewportWidth || 1920}
-                    viewportHeight={thumbnail.viewportHeight || 1080}
-                />
-            </div>
-        )
-    }
-
-    // Handle new backend format
-    if (thumbnail.data && thumbnail.data.snapshot) {
-        return (
-            <div className="w-full aspect-video rounded-lg overflow-hidden">
-                <DemoThumbnail
-                    snapshot={thumbnail.data.snapshot}
-                    viewportWidth={1920} // Default for thumbnails
-                    viewportHeight={1080}
-                />
-            </div>
-        )
-    }
-
-    // Fallback
     return (
-        <div className="w-full aspect-video bg-primary/5 rounded-lg flex items-center justify-center">
-            <FileText className="w-16 h-16 text-primary/40" />
+        <div ref={containerRef} className="w-full aspect-video rounded-lg overflow-hidden bg-gray-50">
+            {isVisible ? (
+                <>
+                    {/* Handle old format */}
+                    {thumbnail.html && (
+                        <DemoThumbnail
+                            html={thumbnail.html}
+                            viewportWidth={thumbnail.viewportWidth || 1920}
+                            viewportHeight={thumbnail.viewportHeight || 1080}
+                        />
+                    )}
+
+                    {/* Handle new backend format */}
+                    {thumbnail.data && thumbnail.data.snapshot && (
+                        <DemoThumbnail
+                            snapshot={thumbnail.data.snapshot}
+                            viewportWidth={1920}
+                            viewportHeight={1080}
+                        />
+                    )}
+
+                    {/* Fallback when thumbnail exists but format unknown */}
+                    {!thumbnail.html && !(thumbnail.data && thumbnail.data.snapshot) && (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <FileText className="w-16 h-16 text-primary/40" />
+                        </div>
+                    )}
+                </>
+            ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                    <FileText className="w-12 h-12 text-primary/20 animate-pulse" />
+                </div>
+            )}
         </div>
     )
 }

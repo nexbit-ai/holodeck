@@ -60,7 +60,7 @@ function LoginPageInner() {
         if (pathname === "/login" && (member || isAuthenticated)) {
             // Add a small delay to prevent rapid redirects
             redirectTimeoutRef.current = setTimeout(() => {
-                router.replace("/dashboard");
+                router.replace("/demos");
             }, 100);
         }
 
@@ -99,7 +99,7 @@ function LoginPageInner() {
             discoveryRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/authenticate`,
         },
         passwordOptions: {
-            loginRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard`,
+            loginRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/demos`,
             resetPasswordRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/authenticate`,
         },
     };

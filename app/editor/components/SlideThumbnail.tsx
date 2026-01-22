@@ -9,7 +9,6 @@ interface SlideThumbnailProps {
     snapshot: AnnotatedSnapshot
     index: number
     isSelected: boolean
-    slideLabel: string
     onClick: () => void
     onDelete?: () => void
     canDelete: boolean
@@ -19,7 +18,6 @@ export function SlideThumbnail({
     snapshot,
     index,
     isSelected,
-    slideLabel,
     onClick,
     onDelete,
     canDelete,
@@ -136,7 +134,7 @@ export function SlideThumbnail({
             {/* Annotated badge */}
             {hasAnnotation && (
                 <div className={`
-                    absolute bottom-8 left-2 z-10 px-2 py-0.5 rounded text-xs font-medium
+                    absolute bottom-2 left-2 z-10 px-2 py-0.5 rounded text-xs font-medium
                     ${isSelected ? 'bg-primary/80 text-white' : 'bg-green-500/20 text-green-600'}
                 `}>
                     ✓
@@ -147,7 +145,7 @@ export function SlideThumbnail({
             {canDelete && onDelete && (
                 <button
                     onClick={handleDelete}
-                    className="absolute bottom-8 right-2 z-10 p-1.5 rounded bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white text-foreground/50"
+                    className="absolute bottom-2 right-2 z-10 p-1.5 rounded bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white text-foreground/50"
                     title="Delete slide"
                 >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -183,13 +181,6 @@ export function SlideThumbnail({
                 </div>
             </div>
 
-            {/* Slide label */}
-            <div className={`
-                px-3 py-2 text-sm font-medium truncate
-                ${isSelected ? 'bg-primary text-white' : 'bg-surface text-foreground/70'}
-            `}>
-                {slideLabel}
-            </div>
         </div>
     )
 }

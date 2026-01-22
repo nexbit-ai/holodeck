@@ -1,21 +1,27 @@
 'use client'
 
 import { useCallback } from 'react'
-import { Trash2, FileJson, Download } from 'lucide-react'
+import { Trash2, FileJson, Play } from 'lucide-react'
 import { useEditorStore } from './store'
 import { DropZone } from './components/DropZone'
 import { ClickSlideDeck } from './components/ClickSlideDeck'
 import { SlideSidebar } from './components/SlideSidebar'
+import { EditorToolbar } from './components/EditorToolbar'
+import { EventType } from './types/recording'
 
 export default function EditorPage() {
     const isLoaded = useEditorStore((state) => state.isLoaded)
     const clickRecording = useEditorStore((state) => state.clickRecording)
-    const exportProject = useEditorStore((state) => state.exportProject)
     const clearProject = useEditorStore((state) => state.clearProject)
+    const [isPreviewMode, setIsPreviewMode] = useEditorStore((state) => [state.isPreviewMode, state.setIsPreviewMode])
     const selectedSlideIndex = useEditorStore((state) => state.selectedSlideIndex)
     const setSelectedSlide = useEditorStore((state) => state.setSelectedSlide)
     const isSaving = useEditorStore((state) => state.isSaving)
     const lastSaved = useEditorStore((state) => state.lastSaved)
+    const [isZoomMode, setZoomMode] = useEditorStore((state) => [state.isZoomMode, state.setZoomMode])
+    const [isHotspotMode, setHotspotMode] = useEditorStore((state) => [state.isHotspotMode, state.setHotspotMode])
+    const [isBlurMode, setBlurMode] = useEditorStore((state) => [state.isBlurMode, state.setBlurMode])
+    const [isCropMode, setCropMode] = useEditorStore((state) => [state.isCropMode, state.setCropMode])
 
     // Get counts
     const snapshotCount = clickRecording?.snapshots.length || 0
@@ -61,11 +67,13 @@ export default function EditorPage() {
                             </div>
                             <div>
                                 <h1 className="text-lg font-bold text-foreground">Demo Editor</h1>
-                                <p className="text-xs text-foreground/50">
-                                    {snapshotCount} snapshots • {clickCount} clicks
-                                    {isSaving && <span className="ml-2 text-primary">Saving...</span>}
-                                    {!isSaving && lastSaved && <span className="ml-2 text-green-500">✓ Saved</span>}
-                                </p>
+                                {!isPreviewMode && (
+                                    <p className="text-xs text-foreground/50">
+                                        {snapshotCount} snapshots • {clickCount} clicks
+                                        {isSaving && <span className="ml-2 text-primary">Saving...</span>}
+                                        {!isSaving && lastSaved && <span className="ml-2 text-green-500">✓ Saved</span>}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -78,11 +86,14 @@ export default function EditorPage() {
                                 Clear
                             </button>
                             <button
-                                onClick={exportProject}
-                                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+                                onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition-all flex items-center gap-2 ${isPreviewMode
+                                    ? 'bg-foreground text-background hover:bg-foreground/90'
+                                    : 'bg-primary text-white hover:bg-primary/90'
+                                    }`}
                             >
-                                <Download className="w-4 h-4" />
-                                Export
+                                <Play className={`w-4 h-4 ${isPreviewMode ? 'fill-current' : ''}`} />
+                                {isPreviewMode ? 'Editor' : 'Preview'}
                             </button>
                         </div>
                     </div>
@@ -92,17 +103,38 @@ export default function EditorPage() {
             {/* Main content with flexbox layout - Left sidebar + Center preview */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Sidebar - Slide Thumbnails */}
-                <div className="w-80 min-w-[280px] max-w-[400px] flex-shrink-0 overflow-hidden">
-                    <SlideSidebar />
-                </div>
+                {!isPreviewMode && (
+                    <div className="w-80 min-w-[280px] max-w-[400px] flex-shrink-0 overflow-hidden">
+                        <SlideSidebar />
+                    </div>
+                )}
 
                 {/* Center Panel - Main Slide Preview */}
-                <div className="flex-1 h-full p-6 overflow-auto flex items-center justify-center bg-playground">
-                    <ClickSlideDeck
-                        recording={clickRecording}
-                        currentSlideIndex={selectedSlideIndex}
-                        onSlideChange={handleSlideChange}
-                    />
+                <div className="flex-1 h-full flex flex-col overflow-hidden bg-playground">
+                    {!isPreviewMode && (
+                        <div className="shrink-0">
+                            <EditorToolbar
+                                onZoomClick={() => setZoomMode(!isZoomMode)}
+                                isZoomActive={isZoomMode}
+                                canZoom={clickRecording.snapshots[selectedSlideIndex]?.type === 'click' || clickRecording.snapshots[selectedSlideIndex]?.type === EventType.CLICK}
+                                onHotspotClick={() => setHotspotMode(!isHotspotMode)}
+                                isHotspotActive={isHotspotMode}
+                                canAddHotspot={true}
+                                onBlurClick={() => setBlurMode(!isBlurMode)}
+                                isBlurActive={isBlurMode}
+                                onCropClick={() => setCropMode(!isCropMode)}
+                                isCropActive={isCropMode}
+                            />
+                        </div>
+                    )}
+                    <div className={`flex-1 overflow-auto flex items-center justify-center ${isPreviewMode ? 'p-0' : 'p-6'}`}>
+                        <ClickSlideDeck
+                            recording={clickRecording}
+                            currentSlideIndex={selectedSlideIndex}
+                            onSlideChange={handleSlideChange}
+                            viewOnly={isPreviewMode}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

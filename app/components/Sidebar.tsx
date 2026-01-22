@@ -70,7 +70,6 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
     const isActive = (path: string) => pathname === path;
 
     const navItems = [
-        { name: "Home", href: "/dashboard", icon: Home },
         { name: "Demos", href: "/demos", icon: LayoutGrid },
         { name: "Chats", href: "/chats", icon: MessageCircle },
         { name: "Agentic Showcase", href: "/showcase", icon: Sparkles },
@@ -80,7 +79,7 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
         <aside className="w-64 bg-surface border-r border-primary/10 flex flex-col h-screen sticky top-0">
             {/* Logo */}
             <div className="p-6 border-b border-primary/10">
-                <Link href="/dashboard" className="flex items-center gap-2">
+                <Link href="/demos" className="flex items-center gap-2">
                     <Image
                         src="/assets/logo.jpg"
                         alt="Nexbit Logo"

@@ -1,6 +1,8 @@
 import { getAuthHeaders } from "../utils/apiAuth";
+import { API_BASE_URL as BASE_URL } from "../utils/config";
 
-const API_BASE_URL = "http://localhost:8000/api/v1/config/tone";
+const API_BASE_URL = `${BASE_URL}/config/tone`;
+
 
 export interface ToneSettings {
     id: string;

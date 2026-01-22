@@ -1,7 +1,6 @@
 import { getAuthHeaders } from "../utils/apiAuth";
+import { API_BASE_URL, DEFAULT_ORGANIZATION_ID } from "../utils/config";
 
-const API_BASE_URL = "http://localhost:8000/api/v1";
-const DEFAULT_ORGANIZATION_ID = "demo-org";
 
 export interface BackendRecording {
     id: string;
@@ -99,6 +98,89 @@ export const recordingService = {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.detail || `Failed to fetch recording: ${response.statusText}`);
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Update a recording (save annotations, blur regions, hotspots, zoom/pan, etc.)
+     * @param recordingId - The demo ID to update
+     * @param recording - The recording data with annotations
+     * @param organizationId - Organization identifier
+     */
+    async updateRecording(
+        recordingId: string,
+        recording: {
+            name?: string;
+            sourceUrl?: string;
+            duration?: number;
+            eventCount?: number;
+            events?: any[];
+            metadata?: any;
+            createdBy?: string;
+        },
+        organizationId: string = DEFAULT_ORGANIZATION_ID
+    ): Promise<BackendRecording> {
+        const response = await fetch(
+            `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`,
+            {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    name: recording.name,
+                    sourceUrl: recording.sourceUrl,
+                    duration: recording.duration,
+                    eventCount: recording.eventCount,
+                    events: recording.events,
+                    metadata: recording.metadata,
+                    createdBy: recording.createdBy,
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to update recording: ${response.statusText}`);
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Delete a recording by ID
+     */
+    async deleteRecording(recordingId: string, organizationId: string = DEFAULT_ORGANIZATION_ID): Promise<void> {
+        const response = await fetch(
+            `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`,
+            {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to delete recording: ${response.statusText}`);
+        }
+    },
+
+    /**
+     * Analyze HTML content with AI to generate metadata
+     */
+    async analyze(payload: { html: string, context?: any, type: 'demo_info' | 'step_info' }): Promise<any> {
+        // Use relative path for internal API
+        const response = await fetch('/api/v1/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `AI Analysis failed: ${response.statusText}`);
         }
 
         return await response.json();

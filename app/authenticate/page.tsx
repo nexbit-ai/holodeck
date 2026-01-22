@@ -37,7 +37,7 @@ function AuthenticatePageInner() {
 
         if (member) {
             hasRedirected.current = true;
-            router.replace("/dashboard");
+            router.replace("/demos");
         }
     }, [member, isInitialized, router]);
 
@@ -50,7 +50,7 @@ function AuthenticatePageInner() {
             discoveryRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/authenticate`,
         },
         passwordOptions: {
-            loginRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard`,
+            loginRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/demos`,
             resetPasswordRedirectURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/authenticate`,
         },
     };
