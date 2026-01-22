@@ -6,10 +6,8 @@ import {
   MessageCircle,
   Users,
   BarChart3,
-  Settings,
   ChevronDown,
   Link as LinkIcon,
-  User,
   Bell,
   Filter,
   ArrowUpDown,
@@ -41,7 +39,6 @@ export default function DemosPage() {
   const [activeNav, setActiveNav] = useState("Demos");
   const [activeTab, setActiveTab] = useState("Shared with Team");
   const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
-  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 

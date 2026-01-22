@@ -8,7 +8,6 @@ import {
     BarChart3,
     ChevronDown,
     Link as LinkIcon,
-    User,
     Sparkles,
     LogOut
 } from "lucide-react";
@@ -57,7 +56,6 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
     const router = useRouter();
     const { user } = useAuth();
     const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
-    const [showUserProfileDropdown, setShowUserProfileDropdown] = useState(false);
 
     const handleLogoutClick = () => {
         if (onLogout) {
@@ -154,59 +152,20 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
                 </Link>
             </nav>
 
-            {/* User Profile */}
-            <div className="p-4 border-t border-primary/10 relative">
+            {/* Logout Option */}
+            <div className="p-4 border-t border-primary/10">
                 <button
-                    onClick={() => setShowUserProfileDropdown(!showUserProfileDropdown)}
-                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-primary/5 rounded-lg cursor-pointer transition-colors"
+                    onClick={handleLogoutClick}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors group"
                 >
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
+                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors">
+                        <LogOut className="w-4 h-4" />
                     </div>
-                    <div className="flex-1 text-left">
-                        <p className="text-sm font-medium text-foreground">{user?.email || "User"}</p>
-                        <p className="text-xs text-foreground/60">{user?.organizationName || "Organization"}</p>
+                    <div className="flex-1 text-left overflow-hidden">
+                        <p className="text-sm font-medium">Logout</p>
+                        <p className="text-xs text-red-600/60 truncate">{user?.email}</p>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-foreground/60 transition-transform ${showUserProfileDropdown ? 'rotate-180' : ''}`} />
                 </button>
-                {showUserProfileDropdown && (
-                    <>
-                        {/* Backdrop */}
-                        <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setShowUserProfileDropdown(false)}
-                        />
-                        {/* Popup */}
-                        <div className="absolute bottom-full left-4 mb-2 w-56 bg-surface border border-primary/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                            <div className="py-2">
-                                <Link
-                                    href="#"
-                                    onClick={() => setShowUserProfileDropdown(false)}
-                                    className="block px-4 py-2.5 text-sm text-foreground hover:bg-primary/5 transition-colors"
-                                >
-                                    Profile
-                                </Link>
-                                <Link
-                                    href="#"
-                                    onClick={() => setShowUserProfileDropdown(false)}
-                                    className="block px-4 py-2.5 text-sm text-foreground hover:bg-primary/5 transition-colors"
-                                >
-                                    Setting
-                                </Link>
-                                <button
-                                    onClick={() => {
-                                        setShowUserProfileDropdown(false);
-                                        handleLogoutClick();
-                                    }}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-                                >
-                                    <LogOut className="w-4 h-4" />
-                                    Logout
-                                </button>
-                            </div>
-                        </div>
-                    </>
-                )}
             </div>
         </aside>
     );

@@ -129,8 +129,20 @@ export default function AudiencePage() {
       <main className="flex-1 overflow-y-auto relative">
         {/* Header */}
         <div className="px-8 py-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Leads</h1>
-          <p className="text-foreground/70">List of all the leads that interacted with your content.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-bold text-foreground">Leads</h1>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+              <span className="text-[10px] font-bold text-primary uppercase tracking-tight">Work in Progress</span>
+            </div>
+          </div>
+          <p className="text-foreground/70 flex items-center gap-2">
+            List of all the leads that interacted with your content.
+            <span className="text-xs text-foreground/40 italic flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-foreground/20"></span>
+              Dummy data for preview
+            </span>
+          </p>
         </div>
 
         {/* Search and Filters */}
