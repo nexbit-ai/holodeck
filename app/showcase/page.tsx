@@ -162,14 +162,8 @@ export default function ShowcasePage() {
 
     // Helper function to get full share URL
     const getShareUrl = (showcase: Showcase) => {
-        if (showcase.showcaseShareLink) {
-            // If it's a relative path, prepend the base URL
-            if (showcase.showcaseShareLink.startsWith('/')) {
-                return `${window.location.origin}${showcase.showcaseShareLink}`;
-            }
-            return showcase.showcaseShareLink;
-        }
-        return `${window.location.origin}/showcase/${showcase.id}`;
+        // Always use the /view/showcases/{id} format for public shareable links
+        return `${window.location.origin}/view/showcases/${showcase.id}`;
     };
 
     // Helper function to get iframe snippet

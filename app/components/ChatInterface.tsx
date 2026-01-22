@@ -48,6 +48,8 @@ export function ChatInterface({
     const [conversationId, setConversationId] = useState<string | null>(initialConversationId);
     // Add a loading state for the initial welcome message to prevent flash
     const [isInitializing, setIsInitializing] = useState(true);
+    // Track if component is mounted to prevent hydration mismatches
+    const [isMounted, setIsMounted] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -61,6 +63,11 @@ export function ChatInterface({
             });
         }
     };
+
+    // Set mounted flag on client side only
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useEffect(() => {
         scrollToBottom();
@@ -219,8 +226,8 @@ export function ChatInterface({
                                     </button>
                                 </div>
                             )}
-                            <span className="text-xs opacity-70 mt-1 block">
-                                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <span className="text-xs opacity-70 mt-1 block" suppressHydrationWarning>
+                                {isMounted ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                             </span>
                         </div>
                     </div>
