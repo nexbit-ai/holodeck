@@ -53,8 +53,7 @@ export default function IntegrationsPage() {
           <path d="M15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E" />
         </svg>
       ),
-      color: "#4A154B",
-      category: "Communication"
+      color: "#4A154B"
     },
     {
       name: "Zapier",
@@ -67,8 +66,7 @@ export default function IntegrationsPage() {
           <path d="M8 16l4-4 4 4" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ),
-      color: "#FF4A00",
-      category: "Automation"
+      color: "#FF4A00"
     },
     {
       name: "Google Analytics",
@@ -82,8 +80,7 @@ export default function IntegrationsPage() {
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
         </svg>
       ),
-      color: "#F4B400",
-      category: "Analytics"
+      color: "#F4B400"
     },
     {
       name: "Google Tag Manager",
@@ -96,8 +93,7 @@ export default function IntegrationsPage() {
           <circle cx="12" cy="12" r="2" fill="#34A853" />
         </svg>
       ),
-      color: "#4285F4",
-      category: "Analytics"
+      color: "#4285F4"
     },
     {
       name: "Webhook",
@@ -111,8 +107,7 @@ export default function IntegrationsPage() {
           <circle cx="12" cy="12" r="1.5" fill="#EF4444" />
         </svg>
       ),
-      color: "#EF4444",
-      category: "Automation"
+      color: "#EF4444"
     }
   ];
 
