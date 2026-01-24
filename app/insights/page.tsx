@@ -30,7 +30,7 @@ import { ChatLogsSection } from "../components/ChatLogsSection";
 
 export default function InsightsPage() {
   const [activeNav, setActiveNav] = useState("Insights");
-  const [activeTab, setActiveTab] = useState("Agent Analytics");
+  const [activeTab, setActiveTab] = useState("AI Demos");
   const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
@@ -83,81 +83,6 @@ export default function InsightsPage() {
   };
 
   const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
-
-  // Agent Analytics Data
-  const agentChartData = [
-    { views: 45, viewers: 38 },
-    { views: 52, viewers: 45 },
-    { views: 48, viewers: 42 },
-    { views: 61, viewers: 55 },
-    { views: 55, viewers: 48 },
-    { views: 72, viewers: 65 },
-    { views: 68, viewers: 62 },
-    { views: 85, viewers: 78 },
-    { views: 92, viewers: 85 },
-    { views: 88, viewers: 82 },
-    { views: 105, viewers: 98 },
-    { views: 125, viewers: 115 },
-    { views: 145, viewers: 135 },
-    { views: 165, viewers: 155 },
-    { views: 180, viewers: 170 },
-    { views: 195, viewers: 185 },
-  ];
-
-  const agentMostViewed = [
-    {
-      showcase: "SaaS Platform Feature Tour",
-      person: "Emma Thompson",
-      views: 338,
-      viewsChange: "+19%",
-      uniqueViewers: 292,
-      viewersChange: "+19%",
-      completionRate: "1.39%"
-    },
-    {
-      showcase: "Marketing Automation Workflow",
-      person: "David Rodriguez",
-      views: 336,
-      viewsChange: "+71%",
-      uniqueViewers: 258,
-      viewersChange: "+73%",
-      completionRate: "5%"
-    },
-    {
-      showcase: "Customer Support Portal",
-      person: "Priya Singh",
-      views: 261,
-      viewsChange: "+129%",
-      uniqueViewers: 239,
-      viewersChange: "+132%",
-      completionRate: "0.4%"
-    },
-    {
-      showcase: "Project Management Tools",
-      person: "Liam O'Connor",
-      views: 120,
-      viewsChange: "+15%",
-      uniqueViewers: 104,
-      viewersChange: "+18%",
-      completionRate: "0%"
-    }
-  ];
-
-  const agentOsData = [
-    { name: "Windows", views: 17600, percentage: 44 },
-    { name: "Mac", views: 16400, percentage: 41 },
-    { name: "Android", views: 3200, percentage: 8 },
-    { name: "iOS", views: 2800, percentage: 6 },
-    { name: "Linux", views: 1200, percentage: 1 }
-  ];
-
-  const agentBrowserData = [
-    { name: "Chrome", views: 30400, percentage: 76 },
-    { name: "Edge", views: 3600, percentage: 9 },
-    { name: "Mobile Chrome", views: 3200, percentage: 8 },
-    { name: "Mobile Safari", views: 2400, percentage: 6 },
-    { name: "Safari", views: 2000, percentage: 1 }
-  ];
 
   // AI Demos Data
   const aiDemosChartData = [
@@ -285,21 +210,21 @@ export default function InsightsPage() {
   const metricChartDates = ["Jan 10", "Jan 12", "Jan 14"];
 
   // Get current tab data
-  const chartData = activeTab === "AI Demos" ? aiDemosChartData : agentChartData;
-  const mostViewed = activeTab === "AI Demos" ? aiDemosMostViewed : agentMostViewed;
-  const osData = activeTab === "AI Demos" ? aiDemosOsData : agentOsData;
-  const browserData = activeTab === "AI Demos" ? aiDemosBrowserData : agentBrowserData;
+  const chartData = aiDemosChartData;
+  const mostViewed = aiDemosMostViewed;
+  const osData = aiDemosOsData;
+  const browserData = aiDemosBrowserData;
 
   const maxValue = 200;
   const chartHeight = 200;
-  const maxOsViews = activeTab === "AI Demos" ? 25000 : 20000;
-  const maxBrowserViews = activeTab === "AI Demos" ? 30000 : 40000;
+  const maxOsViews = 25000;
+  const maxBrowserViews = 30000;
 
-  const totalViews = activeTab === "AI Demos" ? "2.8K" : "1.4K";
-  const totalViewers = activeTab === "AI Demos" ? "2.5K" : "1.2K";
-  const viewsChange = activeTab === "AI Demos" ? "32.15%" : "18.59%";
-  const viewersChange = activeTab === "AI Demos" ? "35.20%" : "27.40%";
-  const sectionTitle = activeTab === "AI Demos" ? "AI Demo Views" : "Showcase Views";
+  const totalViews = "2.8K";
+  const totalViewers = "2.5K";
+  const viewsChange = "32.15%";
+  const viewersChange = "35.20%";
+  const sectionTitle = "AI Demo Views";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -318,15 +243,6 @@ export default function InsightsPage() {
                 }`}
             >
               AI Demos
-            </button>
-            <button
-              onClick={() => setActiveTab("Agent Analytics")}
-              className={`pb-2 px-1 text-sm font-medium transition-colors ${activeTab === "Agent Analytics"
-                ? "text-foreground border-b-2 border-primary"
-                : "text-foreground/60 hover:text-foreground"
-                }`}
-            >
-              Agent Analytics
             </button>
             <button
               onClick={() => setActiveTab("Logs")}

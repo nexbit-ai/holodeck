@@ -699,6 +699,20 @@ export default function ShowcasePage() {
                         </div>
                     ) : (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Calculate aggregated stats from showcases */}
+                            {(() => {
+                                const totalViews = showcases.reduce((sum, sh) => sum + (sh.viewCount || 0), 0);
+                                const totalClicks = showcases.reduce((sum, sh) => sum + (sh.clickCount || 0), 0);
+                                const avgCompletion = totalViews > 0 ? Math.round((totalClicks / totalViews) * 100) : 0;
+                                const thisWeekShares = showcases.filter(sh => {
+                                    if (!sh.lastOpenedAt) return false;
+                                    const lastOpened = new Date(sh.lastOpenedAt);
+                                    const weekAgo = new Date();
+                                    weekAgo.setDate(weekAgo.getDate() - 7);
+                                    return lastOpened >= weekAgo;
+                                }).length;
+
+                                return (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                                 <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
                                     <div className="flex items-center gap-4 mb-4">
@@ -707,11 +721,11 @@ export default function ShowcasePage() {
                                         </div>
                                         <div>
                                             <p className="text-xs text-foreground/50">Total Views</p>
-                                            <p className="text-2xl font-bold">2,090</p>
+                                                    <p className="text-2xl font-bold">{totalViews.toLocaleString()}</p>
                                         </div>
                                     </div>
                                     <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500 w-[70%]" />
+                                                <div className="h-full bg-blue-500" style={{ width: `${Math.min((totalViews / 100) * 100, 100)}%` }} />
                                     </div>
                                 </div>
                                 <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
@@ -720,12 +734,12 @@ export default function ShowcasePage() {
                                             <BarChart3 className="w-5 h-5 text-green-500" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-foreground/50">Avg. Completion</p>
-                                            <p className="text-2xl font-bold">56%</p>
+                                                    <p className="text-xs text-foreground/50">Total Clicks</p>
+                                                    <p className="text-2xl font-bold">{totalClicks.toLocaleString()}</p>
                                         </div>
                                     </div>
                                     <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-green-500 w-[56%]" />
+                                                <div className="h-full bg-green-500" style={{ width: `${Math.min((totalClicks / Math.max(totalViews, 1)) * 100, 100)}%` }} />
                                     </div>
                                 </div>
                                 <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
@@ -734,15 +748,17 @@ export default function ShowcasePage() {
                                             <Share2 className="w-5 h-5 text-purple-500" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-foreground/50">Shares this week</p>
-                                            <p className="text-2xl font-bold">+12</p>
+                                                    <p className="text-xs text-foreground/50">Active This Week</p>
+                                                    <p className="text-2xl font-bold">{thisWeekShares}</p>
                                         </div>
                                     </div>
                                     <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-purple-500 w-[40%]" />
+                                                <div className="h-full bg-purple-500" style={{ width: `${Math.min((thisWeekShares / Math.max(showcases.length, 1)) * 100, 100)}%` }} />
                                     </div>
                                 </div>
                             </div>
+                                );
+                            })()}
 
                             <div className="bg-surface rounded-2xl border border-primary/10 shadow-sm overflow-hidden">
                                 <table className="w-full text-left">
@@ -750,8 +766,8 @@ export default function ShowcasePage() {
                                         <tr className="bg-primary/5">
                                             <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Showcase Title</th>
                                             <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Views</th>
-                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Completion</th>
-                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Last Shared</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Clicks</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Last Opened</th>
                                             <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60 text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -779,16 +795,16 @@ export default function ShowcasePage() {
                                                             <span className="font-semibold text-foreground text-sm">{sh.title}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-foreground/70">-</td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-medium">{sh.live ? "Live" : "Draft"}</span>
-                                                        </div>
+                                                    <td className="px-6 py-4 text-sm text-foreground/70">
+                                                        <span className="font-semibold">{sh.viewCount || 0}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-foreground/70">
+                                                        <span className="font-semibold">{sh.clickCount || 0}</span>
                                                     </td>
                                                     <td className="px-6 py-4 text-sm text-foreground/70">
                                                         <div className="flex items-center gap-1.5">
                                                             <Clock className="w-3.5 h-3.5" />
-                                                            {formatDate(sh.updatedAt)}
+                                                            {sh.lastOpenedAt ? formatDate(sh.lastOpenedAt) : "Never"}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">

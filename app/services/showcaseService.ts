@@ -13,6 +13,9 @@ export interface Showcase {
     accentColor: string | null;
     showcaseShareLink: string | null;
     live: boolean;
+    viewCount: number;
+    clickCount: number;
+    lastOpenedAt: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -51,6 +54,9 @@ function transformShowcaseResponse(data: any): Showcase {
         accentColor: data.accent_color || data.accentColor || null,
         showcaseShareLink: data.showcase_share_link || data.showcaseShareLink || null,
         live: data.live ?? false,
+        viewCount: data.viewCount || data.view_count || 0,
+        clickCount: data.clickCount || data.click_count || 0,
+        lastOpenedAt: data.lastOpenedAt || data.last_opened_at || null,
         createdAt: data.created_at || data.createdAt,
         updatedAt: data.updated_at || data.updatedAt
     };
@@ -148,5 +154,23 @@ export const showcaseService = {
 
         const responseData = await response.json();
         return transformShowcaseResponse(responseData);
+    },
+
+    /**
+     * Track an analytics event for a showcase
+     */
+    async trackEvent(showcaseId: string, eventType: "view" | "click" | "interaction"): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/showcases/${showcaseId}/track`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ event_type: eventType }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Failed to track event: ${response.statusText}`);
+        }
     }
 };

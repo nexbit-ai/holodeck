@@ -53,7 +53,8 @@ export const hubspotService = {
     },
 
     async getIntegrationStatus(organizationId: string): Promise<HubSpotIntegration> {
-        const response = await fetch(`${API_BASE_URL}/hubspot/integration?organization_id=${organizationId}`, {
+        // Note: organization_id is not needed as query param - backend gets it from authenticated session
+        const response = await fetch(`${API_BASE_URL}/hubspot/integration`, {
             headers: getAuthHeaders(),
         });
 
@@ -68,7 +69,8 @@ export const hubspotService = {
     },
 
     async disconnectIntegration(organizationId: string): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/hubspot/integration?organization_id=${organizationId}`, {
+        // Note: organization_id is not needed as query param - backend gets it from authenticated session
+        const response = await fetch(`${API_BASE_URL}/hubspot/integration`, {
             method: "DELETE",
             headers: getAuthHeaders(),
         });
