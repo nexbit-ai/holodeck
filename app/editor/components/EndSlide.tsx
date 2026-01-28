@@ -36,7 +36,7 @@ export function EndSlide({
     useEffect(() => {
         setTitle(snapshot.title || 'Enjoyed the guided demo?')
         setDescription(snapshot.description || 'See more features on our website')
-        setCtaLink(snapshot.ctaLink || 'https://nexbit.ai')
+        setCtaLink(snapshot.ctaLink || 'https://adopt.ai')
     }, [snapshot])
 
     const handleBlur = () => {

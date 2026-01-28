@@ -138,7 +138,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                 type: EventType.END,
                 title: 'Enjoyed the guided demo?',
                 description: 'See more features on our website',
-                ctaLink: 'https://nexbit.ai',
+                ctaLink: 'https://www.adopt.ai/',
                 timestamp: lastSnapshot.timestamp + 10000,
             }
             annotatedRecording = {
