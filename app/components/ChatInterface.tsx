@@ -53,6 +53,8 @@ export function ChatInterface({
     const [isMounted, setIsMounted] = useState(false);
     // Track whether we've attempted to load existing history from the backend
     const [historyChecked, setHistoryChecked] = useState(false);
+    // Track clear-chat action
+    const [isClearing, setIsClearing] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -209,6 +211,34 @@ export function ChatInterface({
         }
     };
 
+    const handleClearChat = async () => {
+        if (isClearing) return;
+
+        // Nothing to clear
+        if (!conversationId && messages.length === 0) {
+            return;
+        }
+
+        if (!window.confirm("Clear this chat? This will delete the conversation history.")) {
+            return;
+        }
+
+        setIsClearing(true);
+        try {
+            if (conversationId) {
+                await chatService.deleteConversation(conversationId, organizationId);
+            }
+        } catch (error) {
+            console.error("Failed to clear chat conversation:", error);
+        } finally {
+            // Reset local state; welcome message hook will reinitialize
+            setConversationId(null);
+            setMessages([]);
+            setIsInitializing(true);
+            setIsClearing(false);
+        }
+    };
+
     return (
         <div className={`flex flex-col h-full bg-surface overflow-hidden ${className}`}>
             {/* Chat Header */}
@@ -223,10 +253,19 @@ export function ChatInterface({
                             <p className="text-xs text-foreground/60">Always here to help</p>
                         </div>
                     </div>
-                    <button className="px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-primary/10 transition-colors flex items-center gap-1" style={{ backgroundColor: primaryColor + '10', color: primaryColor }}>
-                        Book Full Demo
-                        <ArrowRight className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleClearChat}
+                            disabled={isClearing}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-primary/20 text-foreground/70 hover:bg-primary/5 transition-colors disabled:opacity-50"
+                        >
+                            Clear chat
+                        </button>
+                        <button className="px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-primary/10 transition-colors flex items-center gap-1" style={{ backgroundColor: primaryColor + '10', color: primaryColor }}>
+                            Book Full Demo
+                            <ArrowRight className="w-3 h-3" />
+                        </button>
+                    </div>
                 </div>
             )}
 
