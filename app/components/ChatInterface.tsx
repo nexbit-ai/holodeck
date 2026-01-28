@@ -9,6 +9,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { chatService } from "../services/chatService";
 import { welcomeService } from "../services/welcomeService";
+import { chatLogsService, ChatMessage, Conversation } from "../services/chatLogsService";
 
 const DEFAULT_ORGANIZATION_ID = "demo-org";
 
@@ -50,6 +51,8 @@ export function ChatInterface({
     const [isInitializing, setIsInitializing] = useState(true);
     // Track if component is mounted to prevent hydration mismatches
     const [isMounted, setIsMounted] = useState(false);
+    // Track whether we've attempted to load existing history from the backend
+    const [historyChecked, setHistoryChecked] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -73,6 +76,39 @@ export function ChatInterface({
         scrollToBottom();
     }, [messages]);
 
+    // On mount, try to hydrate the chat from the latest existing conversation
+    useEffect(() => {
+        const loadLatestConversation = async () => {
+            try {
+                const conversations: Conversation[] = await chatLogsService.getConversations(organizationId);
+                if (conversations && conversations.length > 0) {
+                    const latest = conversations[0]; // backend returns most recent first
+                    setConversationId(latest.id);
+                    if (onConversationIdChange) {
+                        onConversationIdChange(latest.id);
+                    }
+
+                    const msgs: ChatMessage[] = await chatLogsService.getMessages(latest.id, organizationId);
+                    if (msgs && msgs.length > 0) {
+                        const mappedMessages: Message[] = msgs.map((m) => ({
+                            id: m.id,
+                            text: m.content,
+                            sender: m.role === "user" ? "user" : "nex",
+                            timestamp: new Date(m.created_at),
+                        }));
+                        setMessages(mappedMessages);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load existing chat history for playground:", error);
+            } finally {
+                setHistoryChecked(true);
+            }
+        };
+
+        loadLatestConversation();
+    }, [organizationId]);
+
     // Sync conversationId when prop changes
     useEffect(() => {
         if (initialConversationId !== null && initialConversationId !== conversationId) {
@@ -80,8 +116,11 @@ export function ChatInterface({
         }
     }, [initialConversationId]);
 
-    // Fetch welcome message on mount
+    // Fetch welcome message on mount (only if no existing history)
     useEffect(() => {
+        // Wait until we've checked for existing history so we don't overwrite it
+        if (!historyChecked) return;
+
         const initChat = async () => {
             try {
                 const welcomeMsg = await welcomeService.getDefaultWelcomeMessage(organizationId);
@@ -114,7 +153,7 @@ export function ChatInterface({
         } else {
             setIsInitializing(false);
         }
-    }, [organizationId]);
+    }, [organizationId, historyChecked]);
 
     const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
