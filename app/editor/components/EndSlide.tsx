@@ -26,7 +26,8 @@ export function EndSlide({
     const [title, setTitle] = useState(snapshot.title || 'Enjoyed the guided demo?')
     const [description, setDescription] = useState(snapshot.description || 'See more features on our website')
     const [ctaLink, setCtaLink] = useState(snapshot.ctaLink || 'https://nexbit.ai')
-    const [logo, setLogo] = useState(snapshot.logo || '')
+    // Use a consistent static logo for all demos
+    const logoSrc = "/assets/adoptai_logo.png"
 
     // Use a fixed reference size for scaling
     const originalWidth = 1440
@@ -36,7 +37,6 @@ export function EndSlide({
         setTitle(snapshot.title || 'Enjoyed the guided demo?')
         setDescription(snapshot.description || 'See more features on our website')
         setCtaLink(snapshot.ctaLink || 'https://nexbit.ai')
-        setLogo(snapshot.logo || '')
     }, [snapshot])
 
     const handleBlur = () => {

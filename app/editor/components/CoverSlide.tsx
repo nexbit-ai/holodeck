@@ -29,7 +29,8 @@ export function CoverSlide({
 }: CoverSlideProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null)
     const [title, setTitle] = useState(snapshot.title || 'Welcome to the Demo')
-    const [logo, setLogo] = useState(snapshot.logo || '')
+    // Use a consistent static logo for all demos
+    const logoSrc = "/assets/adoptai_logo.png"
 
     // Use a fixed reference size for scaling
     const originalWidth = 1440
@@ -38,7 +39,6 @@ export function CoverSlide({
     // Update local state when snapshot changes
     useEffect(() => {
         setTitle(snapshot.title || 'Welcome to the Demo')
-        setLogo(snapshot.logo || '')
     }, [snapshot])
 
     // Load glimpse HTML into iframe
