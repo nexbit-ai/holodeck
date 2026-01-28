@@ -13,6 +13,7 @@ interface PlayerTooltipProps {
     canGoPrevious?: boolean
     canGoNext?: boolean
     isTransitioning?: boolean
+    scale?: number
 }
 
 export function PlayerTooltip({
@@ -26,6 +27,7 @@ export function PlayerTooltip({
     canGoPrevious = false,
     canGoNext = false,
     isTransitioning = false,
+    scale = 1,
 }: PlayerTooltipProps) {
     // Position the tooltip - try to keep it in bounds
     const tooltipWidth = 260
@@ -60,6 +62,8 @@ export function PlayerTooltip({
                 left: tooltipX,
                 top: tooltipY,
                 width: tooltipWidth,
+                transform: `scale(${Math.max(0.7, scale)})`,
+                transformOrigin: 'top left',
             }}
         >
             {/* Simple tooltip card with rustic theme */}

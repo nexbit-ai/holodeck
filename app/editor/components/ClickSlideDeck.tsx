@@ -356,6 +356,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                                 primaryColor={primaryColor}
                                 secondaryColor={secondaryColor}
                                 accentColor={accentColor}
+                                scale={scale}
                             />
                         </div>
                     ) : (currentSnapshot?.type === 'end' || currentSnapshot?.type === EventType.END) ? (
@@ -367,6 +368,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                                 primaryColor={primaryColor}
                                 secondaryColor={secondaryColor}
                                 accentColor={accentColor}
+                                scale={scale}
                             />
                         </div>
                     ) : (
@@ -427,6 +429,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                                         canGoPrevious={currentSlideIndex > 0}
                                         canGoNext={currentSlideIndex < totalSlides - 1}
                                         isTransitioning={isTransitioning}
+                                        scale={scale}
                                     />
                                 ) : (
                                     <ClickTooltip
@@ -448,6 +451,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                                         secondaryColor={secondaryColor}
                                         accentColor={accentColor}
                                         onDelete={() => deletePrimaryClick(currentSlideIndex)}
+                                        scale={scale}
                                     />
                                 )
                             )}
@@ -471,6 +475,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                             secondaryColor={secondaryColor}
                             accentColor={accentColor}
                             onDelete={() => deleteHotspot(currentSlideIndex, hotspot.id)}
+                            scale={scale}
                         />
                     ))}
 

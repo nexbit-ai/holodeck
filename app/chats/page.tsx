@@ -104,15 +104,7 @@ export default function ChatsPage() {
               {/* Knowledge Base Section */}
               <KnowledgeBaseSection />
 
-              {/* Save Button */}
-              <div className="flex justify-end gap-3 pb-8">
-                <button className="px-6 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors">
-                  Reset to Defaults
-                </button>
-                <button className="px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors">
-                  Save All Changes
-                </button>
-              </div>
+
             </>
           ) : (
             <div className="h-[calc(100vh-200px)] border border-primary/10 rounded-lg overflow-hidden shadow-sm">

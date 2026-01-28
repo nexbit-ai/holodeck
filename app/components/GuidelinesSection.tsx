@@ -97,9 +97,7 @@ export function GuidelinesSection() {
                 <h2 className="text-lg font-semibold text-foreground">
                     Fine tune your agent
                 </h2>
-                <button className="px-4 py-2 border border-primary/20 bg-primary/5 text-primary rounded-lg text-sm font-medium hover:bg-primary/10 transition-colors">
-                    Learn more
-                </button>
+
             </div>
 
             {loading ? (

@@ -321,61 +321,70 @@ export default function InsightsPage() {
               </div>
 
               {/* Line Chart */}
-              <div className="relative h-[200px]">
-                <svg className="w-full h-full" viewBox="0 0 800 200" preserveAspectRatio="none">
-                  {/* Y-axis grid lines */}
-                  {[0, 50, 100, 150, 200].map((value) => (
-                    <g key={value}>
+              <div className="relative h-[300px] mt-8 flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between py-2 pr-4 text-[10px] text-foreground/40 font-medium h-[250px]">
+                  <span>200</span>
+                  <span>150</span>
+                  <span>100</span>
+                  <span>50</span>
+                  <span>0</span>
+                </div>
+
+                <div className="flex-1 relative h-[250px]">
+                  <svg className="w-full h-full" viewBox="0 0 800 200" preserveAspectRatio="none">
+                    {/* Y-axis grid lines */}
+                    {[0, 50, 100, 150, 200].map((value) => (
                       <line
+                        key={value}
                         x1="0"
                         y1={200 - (value / maxValue) * chartHeight}
                         x2="800"
                         y2={200 - (value / maxValue) * chartHeight}
-                        stroke="#e5e5e5"
+                        stroke="currentColor"
+                        className="text-primary/10"
                         strokeWidth="1"
                       />
-                      <text
-                        x="0"
-                        y={200 - (value / maxValue) * chartHeight + 4}
-                        fill="#666"
-                        fontSize="10"
-                        textAnchor="start"
-                      >
-                        {value}
-                      </text>
-                    </g>
-                  ))}
+                    ))}
 
-                  {/* Views line */}
-                  <polyline
-                    points={chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.views / maxValue) * chartHeight}`).join(' ')}
-                    fill="none"
-                    stroke="#b05a36"
-                    strokeWidth="2"
-                  />
+                    {/* Views line */}
+                    <polyline
+                      points={chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.views / maxValue) * chartHeight}`).join(' ')}
+                      fill="none"
+                      stroke="#b05a36"
+                      strokeWidth="2"
+                    />
 
-                  {/* Viewers line */}
-                  <polyline
-                    points={chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.viewers / maxValue) * chartHeight}`).join(' ')}
-                    fill="none"
-                    stroke="#22c55e"
-                    strokeWidth="2"
-                  />
+                    {/* Viewers line */}
+                    <polyline
+                      points={chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.viewers / maxValue) * chartHeight}`).join(' ')}
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="2"
+                    />
 
-                  {/* Views area fill */}
-                  <polygon
-                    points={`0,200 ${chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.views / maxValue) * chartHeight}`).join(' ')} 800,200`}
-                    fill="#b05a36"
-                    fillOpacity="0.1"
-                  />
+                    {/* Views area fill */}
+                    <polygon
+                      points={`0,200 ${chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.views / maxValue) * chartHeight}`).join(' ')} 800,200`}
+                      fill="#b05a36"
+                      fillOpacity="0.1"
+                    />
 
-                  {/* Viewers area fill */}
-                  <polygon
-                    points={`0,200 ${chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.viewers / maxValue) * chartHeight}`).join(' ')} 800,200`}
-                    fill="#22c55e"
-                    fillOpacity="0.1"
-                  />
-                </svg>
+                    {/* Viewers area fill */}
+                    <polygon
+                      points={`0,200 ${chartData.map((d, i) => `${(i / (chartData.length - 1)) * 800},${200 - (d.viewers / maxValue) * chartHeight}`).join(' ')} 800,200`}
+                      fill="#22c55e"
+                      fillOpacity="0.1"
+                    />
+                  </svg>
+
+                  {/* X-axis labels for main chart */}
+                  <div className="flex justify-between mt-4">
+                    {["Jan 1", "Jan 5", "Jan 10", "Jan 15", "Jan 20", "Jan 25", "Jan 30"].map((date, i) => (
+                      <span key={i} className="text-[10px] text-foreground/40 font-medium">{date}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -401,56 +410,55 @@ export default function InsightsPage() {
                   </div>
 
                   {/* Mini Line Chart */}
-                  <div className="relative h-12 mt-3">
-                    <svg className="w-full h-full" viewBox="0 0 200 48" preserveAspectRatio="none">
-                      {/* X-axis labels */}
-                      {metricChartDates.map((date, i) => {
-                        const xPos = metricChartDates.length === 1
-                          ? 100
-                          : (i / Math.max(1, metricChartDates.length - 1)) * 200;
-                        return (
-                          <text
-                            key={i}
-                            x={xPos}
-                            y="46"
-                            fill="#999"
-                            fontSize="8"
-                            textAnchor="middle"
-                          >
-                            {date}
-                          </text>
-                        );
-                      })}
+                  <div className="mt-4">
+                    <div className="relative h-16">
+                      <svg className="w-full h-full" viewBox="0 0 200 64" preserveAspectRatio="none">
+                        {/* Chart line */}
+                        <polyline
+                          points={metric.chartData.map((d, i) => {
+                            const xPos = metric.chartData.length === 1
+                              ? 100
+                              : (i / Math.max(1, metric.chartData.length - 1)) * 200;
 
-                      {/* Chart line */}
-                      <polyline
-                        points={metric.chartData.map((d, i) => {
-                          const xPos = metric.chartData.length === 1
-                            ? 100
-                            : (i / Math.max(1, metric.chartData.length - 1)) * 200;
-                          const yPos = 48 - (d * 48);
-                          return `${xPos},${yPos}`;
-                        }).join(' ')}
-                        fill="none"
-                        stroke="#3b82f6"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                            // Scale the data to show the trend better instead of being flat at the bottom
+                            const minVal = Math.min(...metric.chartData);
+                            const maxVal = Math.max(...metric.chartData);
+                            const range = maxVal - minVal || 0.1;
 
-                      {/* Area fill */}
-                      <polygon
-                        points={`0,48 ${metric.chartData.map((d, i) => {
-                          const xPos = metric.chartData.length === 1
-                            ? 100
-                            : (i / Math.max(1, metric.chartData.length - 1)) * 200;
-                          const yPos = 48 - (d * 48);
-                          return `${xPos},${yPos}`;
-                        }).join(' ')} 200,48`}
-                        fill="#3b82f6"
-                        fillOpacity="0.1"
-                      />
-                    </svg>
+                            // Map to a range within the 64px height, with some padding
+                            const yPos = 56 - ((d - minVal) / range) * 48;
+                            return `${xPos},${yPos}`;
+                          }).join(' ')}
+                          fill="none"
+                          stroke="#3b82f6"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+
+                        {/* Area fill */}
+                        <polygon
+                          points={`0,64 ${metric.chartData.map((d, i) => {
+                            const xPos = metric.chartData.length === 1
+                              ? 100
+                              : (i / Math.max(1, metric.chartData.length - 1)) * 200;
+                            const minVal = Math.min(...metric.chartData);
+                            const maxVal = Math.max(...metric.chartData);
+                            const range = maxVal - minVal || 0.1;
+                            const yPos = 56 - ((d - minVal) / range) * 48;
+                            return `${xPos},${yPos}`;
+                          }).join(' ')} 200,64`}
+                          fill="#3b82f6"
+                          fillOpacity="0.1"
+                        />
+                      </svg>
+                    </div>
+                    {/* X-axis labels moved out of SVG to prevent font squishing */}
+                    <div className="flex justify-between mt-2">
+                      {metricChartDates.map((date, i) => (
+                        <span key={i} className="text-[10px] text-foreground/40 font-medium">{date}</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}

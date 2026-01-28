@@ -22,6 +22,7 @@ interface ClickTooltipProps {
     secondaryColor?: string
     accentColor?: string
     onDelete?: () => void
+    scale?: number
 }
 
 export function ClickTooltip({
@@ -43,6 +44,7 @@ export function ClickTooltip({
     secondaryColor = '#b05a36',
     accentColor = '#b05a36',
     onDelete,
+    scale = 1
 }: ClickTooltipProps) {
     const [localText, setLocalText] = useState(text)
 
@@ -93,6 +95,8 @@ export function ClickTooltip({
                 left: tooltipX,
                 top: tooltipY,
                 width: tooltipWidth,
+                transform: `scale(${Math.max(0.7, scale)})`,
+                transformOrigin: 'top left',
             }}
             onClick={(e) => e.stopPropagation()}
         >
