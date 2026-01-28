@@ -79,7 +79,7 @@ export function PlayerTooltip({
                     <p
                         className="text-sm leading-relaxed"
                         style={{
-                            color: '#f5eedc', // Off-white/Cream color
+                            color: '#ffffff', // Pure white for better contrast
                         }}
                     >
                         {displayText}
@@ -108,11 +108,11 @@ export function PlayerTooltip({
                             `}
                             style={{
                                 backgroundColor: !canGoPrevious || isTransitioning
-                                    ? 'rgba(255, 255, 255, 0.1)'
-                                    : 'rgba(255, 255, 255, 0.2)',
+                                    ? 'rgba(255, 255, 255, 0.05)'
+                                    : 'rgba(255, 255, 255, 0.15)',
                                 color: !canGoPrevious || isTransitioning
-                                    ? 'rgba(245, 238, 220, 0.4)'
-                                    : '#f5eedc',
+                                    ? 'rgba(255, 255, 255, 0.3)'
+                                    : '#ffffff',
                                 cursor: !canGoPrevious || isTransitioning ? 'not-allowed' : 'pointer',
                             }}
                         >
@@ -134,10 +134,10 @@ export function PlayerTooltip({
                             `}
                             style={{
                                 backgroundColor: !canGoNext || isTransitioning
-                                    ? 'rgba(255, 255, 255, 0.1)'
-                                    : '#f5eedc',
+                                    ? 'rgba(255, 255, 255, 0.05)'
+                                    : '#ffffff',
                                 color: !canGoNext || isTransitioning
-                                    ? 'rgba(245, 238, 220, 0.4)'
+                                    ? 'rgba(255, 255, 255, 0.3)'
                                     : '#b05a36',
                                 cursor: !canGoNext || isTransitioning ? 'not-allowed' : 'pointer',
                             }}

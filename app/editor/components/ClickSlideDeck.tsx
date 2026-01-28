@@ -460,23 +460,40 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
 
                     {/* Additional Hotspots (rendered for all slide types) */}
                     {currentHotspots.map((hotspot) => (
-                        <ClickTooltip
-                            key={hotspot.id}
-                            x={hotspot.x * scale}
-                            y={hotspot.y * scale}
-                            text={hotspot.text}
-                            isEditing={isEditingTooltip === hotspot.id}
-                            onTextChange={(text) => updateHotspot(currentSlideIndex, hotspot.id, text)}
-                            onStartEdit={() => setIsEditingTooltip(hotspot.id)}
-                            onFinishEdit={() => setIsEditingTooltip(false)}
-                            containerWidth={containerSize.width}
-                            containerHeight={containerSize.height}
-                            primaryColor={primaryColor}
-                            secondaryColor={secondaryColor}
-                            accentColor={accentColor}
-                            onDelete={() => deleteHotspot(currentSlideIndex, hotspot.id)}
-                            scale={scale}
-                        />
+                        viewOnly ? (
+                            <PlayerTooltip
+                                key={hotspot.id}
+                                x={hotspot.x * scale}
+                                y={hotspot.y * scale}
+                                text={hotspot.text}
+                                containerWidth={containerSize.width}
+                                containerHeight={containerSize.height}
+                                onPrevious={() => goToSlide(currentSlideIndex - 1)}
+                                onNext={() => goToSlide(currentSlideIndex + 1)}
+                                canGoPrevious={currentSlideIndex > 0}
+                                canGoNext={currentSlideIndex < totalSlides - 1}
+                                isTransitioning={isTransitioning}
+                                scale={scale}
+                            />
+                        ) : (
+                            <ClickTooltip
+                                key={hotspot.id}
+                                x={hotspot.x * scale}
+                                y={hotspot.y * scale}
+                                text={hotspot.text}
+                                isEditing={isEditingTooltip === hotspot.id}
+                                onTextChange={(text) => updateHotspot(currentSlideIndex, hotspot.id, text)}
+                                onStartEdit={() => setIsEditingTooltip(hotspot.id)}
+                                onFinishEdit={() => setIsEditingTooltip(false)}
+                                containerWidth={containerSize.width}
+                                containerHeight={containerSize.height}
+                                primaryColor={primaryColor}
+                                secondaryColor={secondaryColor}
+                                accentColor={accentColor}
+                                onDelete={() => deleteHotspot(currentSlideIndex, hotspot.id)}
+                                scale={scale}
+                            />
+                        )
                     ))}
 
                     {/* Blur Regions */}

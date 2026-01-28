@@ -193,13 +193,6 @@ export function WelcomeMessagesSection() {
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => handleEdit(msg)}
-                                        className="p-2 text-foreground/60 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                        title="Edit"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button
                                         onClick={() => handleDelete(msg.id)}
                                         className="p-2 text-foreground/60 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Delete"

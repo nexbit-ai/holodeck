@@ -38,7 +38,7 @@ import { recordingService, Recording } from "../services/recordingService";
 
 
 export default function DemosPage() {
-  const [activeNav, setActiveNav] = useState("Demos");
+
   const [activeTab, setActiveTab] = useState("Shared with Team");
   const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
@@ -340,14 +340,7 @@ export default function DemosPage() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1 bg-primary/5 rounded-lg p-1">
-                <button className="px-3 py-1.5 text-sm font-medium text-primary bg-surface rounded-md">
-                  Demos
-                </button>
-                <button className="px-3 py-1.5 text-sm font-medium text-foreground/60 hover:text-foreground transition-colors">
-                  Screenshots
-                </button>
-              </div>
+
             </div>
           </div>
         </div>

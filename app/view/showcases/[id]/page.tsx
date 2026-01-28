@@ -40,7 +40,7 @@ export default function PublicShowcasePage() {
   const [isLoadingShowcase, setIsLoadingShowcase] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  
+
   // Demo player state
   const [demoContent, setDemoContent] = useState<ClickRecording | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -70,7 +70,7 @@ export default function PublicShowcasePage() {
 
       try {
         const response = await fetch(`/api/view/showcases/${showcaseId}`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             setError("Showcase not found");
@@ -249,6 +249,7 @@ export default function PublicShowcasePage() {
                     primaryColor={primaryColor}
                     secondaryColor={secondaryColor}
                     accentColor={accentColor}
+                    viewOnly={true}
                   />
                 </div>
               )}

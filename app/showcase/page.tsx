@@ -540,6 +540,7 @@ export default function ShowcasePage() {
                                                                     primaryColor={primaryColor}
                                                                     secondaryColor={secondaryColor}
                                                                     accentColor={accentColor}
+                                                                    viewOnly={true}
                                                                 />
                                                             </div>
                                                         )}
@@ -713,50 +714,50 @@ export default function ShowcasePage() {
                                 }).length;
 
                                 return (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                                            <Users className="w-5 h-5 text-blue-500" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-foreground/50">Total Views</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                        <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                                                    <Users className="w-5 h-5 text-blue-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-foreground/50">Total Views</p>
                                                     <p className="text-2xl font-bold">{totalViews.toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                    <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
+                                                </div>
+                                            </div>
+                                            <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
                                                 <div className="h-full bg-blue-500" style={{ width: `${Math.min((totalViews / 100) * 100, 100)}%` }} />
-                                    </div>
-                                </div>
-                                <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-                                            <BarChart3 className="w-5 h-5 text-green-500" />
+                                            </div>
                                         </div>
-                                        <div>
+                                        <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
+                                                    <BarChart3 className="w-5 h-5 text-green-500" />
+                                                </div>
+                                                <div>
                                                     <p className="text-xs text-foreground/50">Total Clicks</p>
                                                     <p className="text-2xl font-bold">{totalClicks.toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                    <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
+                                                </div>
+                                            </div>
+                                            <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
                                                 <div className="h-full bg-green-500" style={{ width: `${Math.min((totalClicks / Math.max(totalViews, 1)) * 100, 100)}%` }} />
-                                    </div>
-                                </div>
-                                <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
-                                            <Share2 className="w-5 h-5 text-purple-500" />
+                                            </div>
                                         </div>
-                                        <div>
+                                        <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
+                                                    <Share2 className="w-5 h-5 text-purple-500" />
+                                                </div>
+                                                <div>
                                                     <p className="text-xs text-foreground/50">Active This Week</p>
                                                     <p className="text-2xl font-bold">{thisWeekShares}</p>
+                                                </div>
+                                            </div>
+                                            <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-purple-500" style={{ width: `${Math.min((thisWeekShares / Math.max(showcases.length, 1)) * 100, 100)}%` }} />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
-                                                <div className="h-full bg-purple-500" style={{ width: `${Math.min((thisWeekShares / Math.max(showcases.length, 1)) * 100, 100)}%` }} />
-                                    </div>
-                                </div>
-                            </div>
                                 );
                             })()}
 
@@ -934,11 +935,10 @@ export default function ShowcasePage() {
                                             </p>
                                             <button
                                                 onClick={() => selectedShareShowcase && handleCopyIframe(selectedShareShowcase)}
-                                                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 flex-shrink-0 ${
-                                                    copiedIframe 
-                                                        ? 'bg-green-500 text-white' 
+                                                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 flex-shrink-0 ${copiedIframe
+                                                        ? 'bg-green-500 text-white'
                                                         : 'bg-primary/10 text-primary hover:bg-primary/20'
-                                                }`}
+                                                    }`}
                                             >
                                                 {copiedIframe ? (
                                                     <>
