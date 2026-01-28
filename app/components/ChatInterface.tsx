@@ -225,9 +225,17 @@ export function ChatInterface({
 
         setIsClearing(true);
         try {
-            if (conversationId) {
-                await chatService.deleteConversation(conversationId, organizationId);
-            }
+            // Delete all conversations for this organization so the playground starts fresh
+            const conversations: Conversation[] = await chatLogsService.getConversations(organizationId);
+            await Promise.all(
+                conversations.map((conv) =>
+                    chatLogsService
+                        .deleteConversation(conv.id, organizationId)
+                        .catch((error) => {
+                            console.error("Failed to delete conversation during clear chat:", error);
+                        })
+                )
+            );
         } catch (error) {
             console.error("Failed to clear chat conversation:", error);
         } finally {
