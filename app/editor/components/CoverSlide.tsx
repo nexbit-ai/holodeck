@@ -114,8 +114,8 @@ export function CoverSlide({
                         {/* Logo Area */}
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center p-3 shadow-2xl">
-                                {logo ? (
-                                    <img src={logo} alt="Logo" className="w-full h-full object-contain" />
+                                {(snapshot.logo || logoSrc) ? (
+                                    <img src={snapshot.logo || logoSrc} alt="Logo" className="w-full h-full object-contain" />
                                 ) : (
                                     <div
                                         className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"

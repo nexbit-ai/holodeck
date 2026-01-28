@@ -81,8 +81,8 @@ export function EndSlide({
                             className="absolute inset-0 rounded-3xl blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"
                             style={{ backgroundColor: primaryColor }}
                         />
-                        {logo ? (
-                            <img src={logo} alt="Logo" className="w-full h-full object-contain relative z-10" />
+                        {(snapshot.logo || logoSrc) ? (
+                            <img src={snapshot.logo || logoSrc} alt="Logo" className="w-full h-full object-contain relative z-10" />
                         ) : (
                             <div
                                 className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg relative z-10"
