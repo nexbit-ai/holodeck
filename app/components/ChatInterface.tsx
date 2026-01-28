@@ -55,6 +55,7 @@ export function ChatInterface({
     const [historyChecked, setHistoryChecked] = useState(false);
     // Track clear-chat action
     const [isClearing, setIsClearing] = useState(false);
+    const [showClearModal, setShowClearModal] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -155,7 +156,7 @@ export function ChatInterface({
         } else {
             setIsInitializing(false);
         }
-    }, [organizationId, historyChecked]);
+    }, [organizationId, historyChecked, messages.length]);
 
     const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
@@ -211,17 +212,16 @@ export function ChatInterface({
         }
     };
 
-    const handleClearChat = async () => {
-        if (isClearing) return;
-
+    const handleClearChatClick = () => {
         // Nothing to clear
         if (!conversationId && messages.length === 0) {
             return;
         }
+        setShowClearModal(true);
+    };
 
-        if (!window.confirm("Clear this chat? This will delete the conversation history.")) {
-            return;
-        }
+    const handleConfirmClearChat = async () => {
+        if (isClearing) return;
 
         setIsClearing(true);
         try {
@@ -236,7 +236,13 @@ export function ChatInterface({
             setMessages([]);
             setIsInitializing(true);
             setIsClearing(false);
+            setShowClearModal(false);
         }
+    };
+
+    const handleCancelClearChat = () => {
+        if (isClearing) return;
+        setShowClearModal(false);
     };
 
     return (
@@ -255,7 +261,7 @@ export function ChatInterface({
                     </div>
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={handleClearChat}
+                            onClick={handleClearChatClick}
                             disabled={isClearing}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium border border-primary/20 text-foreground/70 hover:bg-primary/5 transition-colors disabled:opacity-50"
                         >
@@ -361,6 +367,34 @@ export function ChatInterface({
                     Nex can help you explore demos and answer questions
                 </p>
             </div>
+
+            {/* Clear Chat Modal */}
+            {showClearModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-surface rounded-xl shadow-xl border border-primary/10 max-w-sm w-full mx-4 p-6">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Clear chat?</h3>
+                        <p className="text-sm text-foreground/70 mb-4">
+                            This will delete the current conversation history for this playground chat. You won&apos;t be able to see these messages again.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={handleCancelClearChat}
+                                disabled={isClearing}
+                                className="px-4 py-2 text-sm rounded-lg border border-primary/10 text-foreground hover:bg-primary/5 transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmClearChat}
+                                disabled={isClearing}
+                                className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                            >
+                                {isClearing ? "Clearing..." : "Clear chat"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
