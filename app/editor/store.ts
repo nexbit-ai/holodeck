@@ -50,6 +50,7 @@ interface EditorState {
     // Data
     clickRecording: AnnotatedRecording | null
     recordingId: string | null  // File ID for saving back
+    recordingName: string | null // Display name for the header
 
     // UI State
     selectedSlideIndex: number
@@ -64,7 +65,7 @@ interface EditorState {
     isPreviewMode: boolean
 
     // Actions
-    loadRecording: (recording: ClickRecording | AnnotatedRecording, id?: string) => void
+    loadRecording: (recording: ClickRecording | AnnotatedRecording, id?: string, name?: string) => void
     setSelectedSlide: (index: number) => void
     updateAnnotation: (snapshotIndex: number, annotation: Annotation) => void
     updateZoomPan: (snapshotIndex: number, zoomPan: ZoomPan | undefined) => void
@@ -82,6 +83,7 @@ interface EditorState {
     addHotspot: (snapshotIndex: number, hotspot: Hotspot) => void
     updateHotspot: (snapshotIndex: number, hotspotId: string, text: string) => void
     deleteHotspot: (snapshotIndex: number, hotspotId: string) => void
+    deletePrimaryClick: (snapshotIndex: number) => void
     addBlurRegion: (snapshotIndex: number, region: BlurRegion) => void
     deleteBlurRegion: (snapshotIndex: number, regionId: string) => void
     updateCrop: (snapshotIndex: number, crop: CropData | undefined) => void
@@ -94,6 +96,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // Initial state
     clickRecording: null,
     recordingId: null,
+    recordingName: null,
     selectedSlideIndex: 0,
     isLoaded: false,
     isSaving: false,
@@ -106,7 +109,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     isPreviewMode: false,
 
     // Actions
-    loadRecording: (recording, id) => {
+    loadRecording: (recording, id, name) => {
         let annotatedRecording = recording as AnnotatedRecording
 
         // Automatically add cover slide if not present
@@ -147,6 +150,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         set({
             clickRecording: annotatedRecording,
             recordingId: id || null,
+            recordingName: name || null,
             isLoaded: true,
             selectedSlideIndex: 0,
             lastSaved: null,
@@ -476,6 +480,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         if (recordingId) get().saveRecording()
     },
 
+    deletePrimaryClick: (snapshotIndex) => {
+        const { clickRecording, recordingId } = get()
+        if (!clickRecording) return
+
+        const updatedSnapshots = [...clickRecording.snapshots]
+        const snapshot = updatedSnapshots[snapshotIndex]
+
+        // Only proceed if it is a click type snapshot
+        if (snapshot.type !== EventType.CLICK && snapshot.type !== 'click') return
+
+        // Create a new snapshot without click coordinates
+        // We use object destructuring to exclude clickX and clickY
+        const { clickX, clickY, ...restSnapshot } = snapshot
+
+        updatedSnapshots[snapshotIndex] = restSnapshot as AnnotatedSnapshot
+
+        set({
+            clickRecording: {
+                ...clickRecording,
+                snapshots: updatedSnapshots,
+            }
+        })
+
+        if (recordingId) get().saveRecording()
+    },
+
     addBlurRegion: (snapshotIndex, region) => {
         const { clickRecording, recordingId } = get()
         if (!clickRecording) return
@@ -581,6 +611,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                             ...snapshots[coverIndex],
                             title: demoInfo.title || snapshots[coverIndex].title,
                             description: demoInfo.description || snapshots[coverIndex].description
+                        }
+                    }
+
+                    // Update the recording name in the backend if title is generated
+                    if (demoInfo.title && recordingId) {
+                        try {
+                            await recordingService.updateRecording(recordingId, {
+                                name: demoInfo.title
+                            })
+                            set({ recordingName: demoInfo.title })
+                            console.log('[Store] Recording name updated to:', demoInfo.title)
+                        } catch (e) {
+                            console.error('[Store] Failed to update recording name:', e)
                         }
                     }
                 } catch (e) {
@@ -693,6 +736,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         set({
             clickRecording: null,
             recordingId: null,
+            recordingName: null,
             selectedSlideIndex: 0,
             isLoaded: false,
             isSaving: false,

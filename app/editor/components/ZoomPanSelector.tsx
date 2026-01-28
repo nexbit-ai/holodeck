@@ -10,8 +10,8 @@ interface ZoomPanSelectorProps {
     originalWidth: number
     originalHeight: number
     scale: number
-    clickX: number
-    clickY: number
+    clickX?: number
+    clickY?: number
     initialZoomPan?: ZoomPan
     onConfirm: (zoomPan: ZoomPan) => void
     onCancel: () => void
@@ -47,9 +47,12 @@ export function ZoomPanSelector({
         const width = originalWidth / 2
         const height = originalHeight / 2
 
-        // Center selection around click point, then clamp to screen bounds
-        const x = Math.max(0, Math.min(clickX - width / 2, originalWidth - width))
-        const y = Math.max(0, Math.min(clickY - height / 2, originalHeight - height))
+        // Center selection around click point (or center of screen), then clamp to screen bounds
+        const targetX = clickX ?? originalWidth / 2
+        const targetY = clickY ?? originalHeight / 2
+
+        const x = Math.max(0, Math.min(targetX - width / 2, originalWidth - width))
+        const y = Math.max(0, Math.min(targetY - height / 2, originalHeight - height))
 
         return { x, y, width, height }
     })

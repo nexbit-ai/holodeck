@@ -60,6 +60,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
     const addBlurRegion = useEditorStore((state) => state.addBlurRegion)
     const deleteBlurRegion = useEditorStore((state) => state.deleteBlurRegion)
     const updateCrop = useEditorStore((state) => state.updateCrop)
+    const deletePrimaryClick = useEditorStore((state) => state.deletePrimaryClick)
 
     const snapshots = recording.snapshots
     const totalSlides = snapshots.length
@@ -446,6 +447,7 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                                         primaryColor={primaryColor}
                                         secondaryColor={secondaryColor}
                                         accentColor={accentColor}
+                                        onDelete={() => deletePrimaryClick(currentSlideIndex)}
                                     />
                                 )
                             )}
@@ -532,20 +534,23 @@ export function ClickSlideDeck({ recording, currentSlideIndex, onSlideChange, pr
                     )}
 
                     {/* Zoom Pan Selector (only in editor mode when zoom mode is active) */}
-                    {!viewOnly && isZoomMode && (currentSnapshot?.type === 'click' || currentSnapshot?.type === EventType.CLICK) && currentSnapshot.clickX !== undefined && currentSnapshot.clickY !== undefined && (
-                        <ZoomPanSelector
-                            containerWidth={containerSize.width}
-                            containerHeight={containerSize.height}
-                            originalWidth={originalWidth}
-                            originalHeight={originalHeight}
-                            scale={scale}
-                            clickX={currentSnapshot.clickX}
-                            clickY={currentSnapshot.clickY}
-                            initialZoomPan={currentZoomPan}
-                            onConfirm={handleZoomConfirm}
-                            onCancel={handleZoomCancel}
-                        />
-                    )}
+                    {!viewOnly && isZoomMode && (currentSnapshot?.type !== 'cover' && currentSnapshot?.type !== EventType.COVER && currentSnapshot?.type !== 'end' && currentSnapshot?.type !== EventType.END) && (
+                        (currentSnapshot?.clickX !== undefined && currentSnapshot?.clickY !== undefined) ||
+                        (currentHotspots && currentHotspots.length > 0)
+                    ) && (
+                            <ZoomPanSelector
+                                containerWidth={containerSize.width}
+                                containerHeight={containerSize.height}
+                                originalWidth={originalWidth}
+                                originalHeight={originalHeight}
+                                scale={scale}
+                                clickX={currentSnapshot?.clickX ?? (currentHotspots.length > 0 ? currentHotspots[0].x : undefined)}
+                                clickY={currentSnapshot?.clickY ?? (currentHotspots.length > 0 ? currentHotspots[0].y : undefined)}
+                                initialZoomPan={currentZoomPan}
+                                onConfirm={handleZoomConfirm}
+                                onCancel={handleZoomCancel}
+                            />
+                        )}
                 </div>
             </div>
 

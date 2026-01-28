@@ -24,6 +24,7 @@ export default function EditorWithIdPage() {
     const exportProject = useEditorStore((state) => state.exportProject)
     const clearProject = useEditorStore((state) => state.clearProject)
     const loadRecording = useEditorStore((state) => state.loadRecording)
+    const recordingName = useEditorStore((state) => state.recordingName)
     const selectedSlideIndex = useEditorStore((state) => state.selectedSlideIndex)
     const setSelectedSlide = useEditorStore((state) => state.setSelectedSlide)
     const isSaving = useEditorStore((state) => state.isSaving)
@@ -42,6 +43,13 @@ export default function EditorWithIdPage() {
     // Get counts
     const snapshotCount = clickRecording?.snapshots.length || 0
     const clickCount = clickRecording?.snapshots.filter(s => s.type === 'click').length || 0
+
+    // Zoom availability logic
+    const currentSnapshot = clickRecording?.snapshots[selectedSlideIndex]
+    const hasClick = currentSnapshot?.clickX !== undefined && currentSnapshot?.clickY !== undefined
+    const hasHotspots = (currentSnapshot?.annotation?.hotspots?.length ?? 0) > 0
+    const isSpecialSlide = currentSnapshot?.type === 'cover' || currentSnapshot?.type === 5 || currentSnapshot?.type === 'end' || currentSnapshot?.type === 6
+    const canZoom = !isSpecialSlide && (hasClick || hasHotspots)
 
     const handleSlideChange = useCallback((index: number) => {
         setSelectedSlide(index)
@@ -112,7 +120,7 @@ export default function EditorWithIdPage() {
                         setIsLoading(false)
                         return
                     }
-                    loadRecording(content, id)  // Pass ID for auto-save
+                    loadRecording(content, id, data.name)  // Pass ID and name for auto-save and display
                     setIsLoading(false)
                     return
                 }
@@ -183,44 +191,68 @@ export default function EditorWithIdPage() {
                 <div className="px-6 py-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Link
-                                href="/demos"
-                                className="p-2 rounded-lg hover:bg-foreground/5 transition-colors"
+                            <button
+                                onClick={() => {
+                                    if (isPreviewMode) {
+                                        setIsPreviewMode(false)
+                                    } else {
+                                        router.push('/demos')
+                                    }
+                                }}
+                                className={isPreviewMode
+                                    ? "px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
+                                    : "p-2 rounded-lg hover:bg-foreground/5 transition-colors"
+                                }
                             >
                                 <ArrowLeft className="w-5 h-5 text-foreground/60" />
-                            </Link>
-                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <FileJson className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                                <h1 className="text-lg font-bold text-foreground">Demo Editor</h1>
-                                <p className="text-xs text-foreground/50">
-                                    {snapshotCount} snapshots • {clickCount} clicks
-                                    {isSaving && <span className="ml-2 text-primary">Saving...</span>}
-                                    {!isSaving && lastSaved && <span className="ml-2 text-green-500">✓ Saved</span>}
-                                </p>
-                            </div>
+                                {isPreviewMode && "Back to Editor"}
+                            </button>
+                            {!isPreviewMode && (
+                                <>
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <FileJson className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-lg font-bold text-foreground">
+                                            {recordingName || 'Demo Editor'}
+                                        </h1>
+                                        <p className="text-xs text-foreground/50">
+                                            {snapshotCount} slides
+                                            {isSaving && <span className="ml-2 text-primary">Saving...</span>}
+                                            {!isSaving && lastSaved && <span className="ml-2 text-green-500">✓ Saved</span>}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={handleClear}
-                                className="px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
-                            >
-                                <X className="w-4 h-4" />
-                                Close
-                            </button>
-                            <button
-                                onClick={() => setIsPreviewMode(!isPreviewMode)}
-                                className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition-all flex items-center gap-2 ${isPreviewMode
-                                    ? 'bg-foreground text-background hover:bg-foreground/90'
-                                    : 'bg-primary text-white hover:bg-primary/90'
-                                    }`}
-                            >
-                                <Play className={`w-4 h-4 ${isPreviewMode ? 'fill-current' : ''}`} />
-                                {isPreviewMode ? 'Editor' : 'Preview'}
-                            </button>
-                        </div>
+                        {!isPreviewMode && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (isPreviewMode) {
+                                            setIsPreviewMode(false)
+                                        } else {
+                                            router.push('/demos')
+                                        }
+                                    }}
+                                    className="px-4 py-2 text-sm font-medium text-foreground/60 hover:text-foreground border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-all flex items-center gap-2"
+                                >
+                                    <X className="w-4 h-4" />
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                    className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition-all flex items-center gap-2 ${isPreviewMode
+                                        ? 'bg-foreground text-background hover:bg-foreground/90'
+                                        : 'bg-primary text-white hover:bg-primary/90'
+                                        }`}
+                                >
+                                    <Play className={`w-4 h-4 ${isPreviewMode ? 'fill-current' : ''}`} />
+                                    {isPreviewMode ? 'Editor' : 'Preview'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
@@ -241,7 +273,7 @@ export default function EditorWithIdPage() {
                             <EditorToolbar
                                 isZoomActive={isZoomMode}
                                 onZoomClick={handleZoomClick}
-                                canZoom={clickRecording.snapshots[selectedSlideIndex]?.type === 'click' || clickRecording.snapshots[selectedSlideIndex]?.type === 1}
+                                canZoom={canZoom}
                                 isHotspotActive={isHotspotMode}
                                 onHotspotClick={handleHotspotClick}
                                 canAddHotspot={true}

@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "../utils/apiAuth";
+import { fetchJson, fetchWithAuth } from "../utils/apiClient";
 import { API_BASE_URL as BASE_URL } from "../utils/config";
 
 const API_BASE_URL = `${BASE_URL}/knowledge-base`;
@@ -41,75 +41,42 @@ export interface UploadUrlData {
 
 export const knowledgeBaseService = {
     async getDocuments(organizationId: string): Promise<KBDocument[]> {
-        const response = await fetch(`${API_BASE_URL}/documents?organization_id=${organizationId}`, {
-            headers: getAuthHeaders(),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch documents: ${response.statusText}`);
-        }
-
-        return response.json();
+        return await fetchJson<KBDocument[]>(
+            `${API_BASE_URL}/documents?organization_id=${organizationId}`
+        );
     },
 
     async uploadDocument(data: UploadDocumentData): Promise<KBDocument> {
-        const response = await fetch(`${API_BASE_URL}/documents`, {
+        return await fetchJson<KBDocument>(`${API_BASE_URL}/documents`, {
             method: "POST",
-            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to upload document: ${response.statusText}`);
-        }
-
-        return response.json();
     },
 
     async deleteDocument(documentId: string, organizationId: string): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/documents/${documentId}?organization_id=${organizationId}`, {
-            method: "DELETE",
-            headers: getAuthHeaders(),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to delete document: ${response.statusText}`);
-        }
+        await fetchWithAuth(
+            `${API_BASE_URL}/documents/${documentId}?organization_id=${organizationId}`,
+            {
+                method: "DELETE",
+            }
+        );
     },
 
     async uploadUrl(data: UploadUrlData): Promise<KBDocument> {
-        const response = await fetch(`${API_BASE_URL}/urls`, {
+        return await fetchJson<KBDocument>(`${API_BASE_URL}/urls`, {
             method: "POST",
-            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to upload URL: ${response.statusText}`);
-        }
-
-        return response.json();
     },
 
     async search(organizationId: string, query: string, limit: number = 5): Promise<{ results: SearchResult[] }> {
-        const response = await fetch(`${API_BASE_URL}/search`, {
+        return await fetchJson<{ results: SearchResult[] }>(`${API_BASE_URL}/search`, {
             method: "POST",
-            headers: getAuthHeaders(),
             body: JSON.stringify({
                 organization_id: organizationId,
                 query,
                 limit
             }),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to search knowledge base: ${response.statusText}`);
-        }
-
-        return response.json();
     }
 };

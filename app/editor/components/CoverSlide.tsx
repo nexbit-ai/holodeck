@@ -112,19 +112,29 @@ export function CoverSlide({
 
                     {/* Title */}
                     <div className="space-y-4">
-                        {viewOnly ? (
-                            <h1 className="text-6xl font-extrabold tracking-tight leading-tight">
-                                {title}
-                            </h1>
-                        ) : (
-                            <textarea
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                onBlur={handleTitleBlur}
-                                className="w-full bg-transparent text-6xl font-extrabold tracking-tight leading-tight border-none focus:ring-0 focus:outline-none resize-none p-0 overflow-hidden font-inherit"
-                                rows={3}
-                            />
-                        )}
+                        {(() => {
+                            const len = title.length
+                            const fontSizeClass =
+                                len > 80 ? 'text-2xl' :
+                                    len > 60 ? 'text-3xl' :
+                                        len > 40 ? 'text-4xl' :
+                                            len > 20 ? 'text-5xl' :
+                                                'text-6xl'
+
+                            return viewOnly ? (
+                                <h1 className={`${fontSizeClass} font-extrabold tracking-tight leading-tight transition-all duration-200`}>
+                                    {title}
+                                </h1>
+                            ) : (
+                                <textarea
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    onBlur={handleTitleBlur}
+                                    className={`w-full bg-transparent ${fontSizeClass} font-extrabold tracking-tight leading-tight border-none focus:ring-0 focus:outline-none resize-none p-0 overflow-hidden font-inherit transition-all duration-200`}
+                                    rows={3}
+                                />
+                            )
+                        })()}
                         <div
                             className="h-1.5 w-24 rounded-full"
                             style={{ backgroundColor: primaryColor }}

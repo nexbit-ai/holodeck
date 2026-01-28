@@ -31,6 +31,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { DemoThumbnailWrapper } from "./components/DemoThumbnail";
+import { NewDemoModal } from "./components/NewDemoModal";
 import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { recordingService, Recording } from "../services/recordingService";
@@ -41,6 +42,7 @@ export default function DemosPage() {
   const [activeTab, setActiveTab] = useState("Shared with Team");
   const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
+  const [showNewDemoModal, setShowNewDemoModal] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Dynamic recordings state
@@ -317,7 +319,13 @@ export default function DemosPage() {
                 </button>
                 {showCreateDropdown && (
                   <div className="absolute right-0 mt-2 w-48 bg-surface border border-primary/10 rounded-lg shadow-lg z-10">
-                    <button className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors">
+                    <button
+                      onClick={() => {
+                        setShowCreateDropdown(false);
+                        setShowNewDemoModal(true);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/5 transition-colors"
+                    >
                       New Demo
                     </button>
                     <button
@@ -571,222 +579,232 @@ export default function DemosPage() {
             </div>
           )}
         </div>
-      </main>
+      </main >
 
       {/* Import Demo Modal */}
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
-          <div
-            className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-foreground">Import Demo</h3>
-              <button
-                onClick={() => {
-                  setShowImportModal(false);
-                  setUploadError(null);
-                  setUploadSuccess(false);
-                }}
-                className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-foreground/60" />
-              </button>
-            </div>
-
-            {uploadSuccess ? (
-              <div className="flex flex-col items-center py-8">
-                <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
-                <p className="text-foreground font-medium mb-2">Demo imported successfully!</p>
-                <p className="text-sm text-foreground/60">The demo will appear in your list shortly.</p>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-foreground/70 mb-6">
-                  Upload a demo file from your computer. Supported format: JSON files.
-                </p>
-
-                {/* Drag and Drop Area */}
-                <div
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center mb-4 hover:border-primary/40 transition-colors cursor-pointer"
-                  onClick={() => document.getElementById('file-input')?.click()}
+      {
+        showImportModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
+            <div
+              className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-foreground">Import Demo</h3>
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setUploadError(null);
+                    setUploadSuccess(false);
+                  }}
+                  className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
                 >
-                  <Upload className="w-12 h-12 text-primary/40 mx-auto mb-4" />
-                  <p className="text-sm text-foreground mb-2">
-                    Drag and drop your demo file here
+                  <X className="w-5 h-5 text-foreground/60" />
+                </button>
+              </div>
+
+              {uploadSuccess ? (
+                <div className="flex flex-col items-center py-8">
+                  <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
+                  <p className="text-foreground font-medium mb-2">Demo imported successfully!</p>
+                  <p className="text-sm text-foreground/60">The demo will appear in your list shortly.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-foreground/70 mb-6">
+                    Upload a demo file from your computer. Supported format: JSON files.
                   </p>
-                  <p className="text-xs text-foreground/60 mb-4">or</p>
-                  <button className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm">
-                    Browse Files
-                  </button>
-                  <p className="text-xs text-foreground/40 mt-4">Supported: JSON files</p>
-                </div>
 
-                {/* Hidden File Input */}
-                <input
-                  id="file-input"
-                  type="file"
-                  accept=".json"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-
-                {/* Upload Status */}
-                {isUploading && (
-                  <div className="flex items-center gap-2 text-primary mb-4">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Uploading demo...</span>
-                  </div>
-                )}
-
-                {uploadError && (
-                  <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm text-red-600 font-medium">Error</p>
-                      <p className="text-xs text-red-600/80 mt-1">{uploadError}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    onClick={() => {
-                      setShowImportModal(false);
-                      setUploadError(null);
-                      setUploadSuccess(false);
-                    }}
-                    className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
-                    disabled={isUploading}
+                  {/* Drag and Drop Area */}
+                  <div
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center mb-4 hover:border-primary/40 transition-colors cursor-pointer"
+                    onClick={() => document.getElementById('file-input')?.click()}
                   >
-                    Cancel
-                  </button>
-                </div>
-              </>
-            )}
+                    <Upload className="w-12 h-12 text-primary/40 mx-auto mb-4" />
+                    <p className="text-sm text-foreground mb-2">
+                      Drag and drop your demo file here
+                    </p>
+                    <p className="text-xs text-foreground/60 mb-4">or</p>
+                    <button className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm">
+                      Browse Files
+                    </button>
+                    <p className="text-xs text-foreground/40 mt-4">Supported: JSON files</p>
+                  </div>
+
+                  {/* Hidden File Input */}
+                  <input
+                    id="file-input"
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+
+                  {/* Upload Status */}
+                  {isUploading && (
+                    <div className="flex items-center gap-2 text-primary mb-4">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Uploading demo...</span>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                      <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-red-600 font-medium">Error</p>
+                        <p className="text-xs text-red-600/80 mt-1">{uploadError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => {
+                        setShowImportModal(false);
+                        setUploadError(null);
+                        setUploadSuccess(false);
+                      }}
+                      className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
+                      disabled={isUploading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && demoToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
-          <div
-            className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
+      {
+        showDeleteConfirm && demoToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
+            <div
+              className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-foreground">Remove Demo</h3>
+                  <p className="text-sm text-foreground/60 mt-1">This action cannot be undone</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-foreground">Remove Demo</h3>
-                <p className="text-sm text-foreground/60 mt-1">This action cannot be undone</p>
-              </div>
-            </div>
 
-            <p className="text-foreground mb-6">
-              Are you sure you want to remove <span className="font-semibold">"{demoToDelete.title}"</span>? This will permanently delete the demo.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDemoToDelete(null);
-                }}
-                className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Removing...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Remove
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rename Modal */}
-      {showRenameModal && demoToRename && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRenameModal(false)}>
-          <div
-            className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-foreground">Rename Demo</h3>
-              <button
-                onClick={() => setShowRenameModal(false)}
-                className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-foreground/60" />
-              </button>
-            </div>
-
-            <form onSubmit={handleConfirmRename}>
-              <div className="mb-6">
-                <label htmlFor="demo-name" className="block text-sm font-medium text-foreground/70 mb-2">
-                  Name
-                </label>
-                <input
-                  id="demo-name"
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-4 py-2 bg-background border border-primary/10 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
-                  placeholder="Enter demo name"
-                  autoFocus
-                />
-              </div>
+              <p className="text-foreground mb-6">
+                Are you sure you want to remove <span className="font-semibold">"{demoToDelete.title}"</span>? This will permanently delete the demo.
+              </p>
 
               <div className="flex justify-end gap-3">
                 <button
-                  type="button"
-                  onClick={() => setShowRenameModal(false)}
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDemoToDelete(null);
+                  }}
                   className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
-                  disabled={isRenaming}
+                  disabled={isDeleting}
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  disabled={isRenaming || !newName.trim()}
-                  className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {isRenaming ? (
+                  {isDeleting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving...
+                      Removing...
                     </>
                   ) : (
-                    'Save Changes'
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Remove
+                    </>
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {/* Share Modal */}
-    </div>
+      {/* Rename Modal */}
+      {
+        showRenameModal && demoToRename && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRenameModal(false)}>
+            <div
+              className="bg-surface rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border border-primary/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-foreground">Rename Demo</h3>
+                <button
+                  onClick={() => setShowRenameModal(false)}
+                  className="p-1 hover:bg-primary/5 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-foreground/60" />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmRename}>
+                <div className="mb-6">
+                  <label htmlFor="demo-name" className="block text-sm font-medium text-foreground/70 mb-2">
+                    Name
+                  </label>
+                  <input
+                    id="demo-name"
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full px-4 py-2 bg-background border border-primary/10 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+                    placeholder="Enter demo name"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowRenameModal(false)}
+                    className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
+                    disabled={isRenaming}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isRenaming || !newName.trim()}
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isRenaming ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
+      {/* New Demo Creation Modal */}
+      <NewDemoModal
+        isOpen={showNewDemoModal}
+        onClose={() => setShowNewDemoModal(false)}
+      />
+    </div >
   );
 }

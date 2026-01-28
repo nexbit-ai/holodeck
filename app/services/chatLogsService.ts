@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "../utils/apiAuth";
+import { fetchJson, fetchWithAuth } from "../utils/apiClient";
 import { API_BASE_URL } from "../utils/config";
 
 
@@ -21,41 +21,30 @@ export interface ChatMessage {
 
 export const chatLogsService = {
     async getConversations(organizationId: string, limit: number = 50): Promise<Conversation[]> {
-        const response = await fetch(`${API_BASE_URL}/conversations?organization_id=${organizationId}&limit=${limit}`, {
-            headers: getAuthHeaders(),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch conversations: ${response.statusText}`);
-        }
-
-        return response.json();
+        return await fetchJson<Conversation[]>(
+            `${API_BASE_URL}/conversations?organization_id=${organizationId}&limit=${limit}`
+        );
     },
 
     async getMessages(conversationId: string, organizationId: string): Promise<ChatMessage[]> {
-        const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages?organization_id=${organizationId}`, {
-            headers: getAuthHeaders(),
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
+        try {
+            return await fetchJson<ChatMessage[]>(
+                `${API_BASE_URL}/conversations/${conversationId}/messages?organization_id=${organizationId}`
+            );
+        } catch (error: any) {
+            if (error.status === 404) {
                 return [];
             }
-            throw new Error(`Failed to fetch messages: ${response.statusText}`);
+            throw error;
         }
-
-        return response.json();
     },
 
     async deleteConversation(conversationId: string, organizationId: string): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}?organization_id=${organizationId}`, {
-            method: "DELETE",
-            headers: getAuthHeaders(),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to delete conversation: ${response.statusText}`);
-        }
+        await fetchWithAuth(
+            `${API_BASE_URL}/conversations/${conversationId}?organization_id=${organizationId}`,
+            {
+                method: "DELETE",
+            }
+        );
     }
 };

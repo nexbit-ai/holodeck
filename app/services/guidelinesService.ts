@@ -12,7 +12,7 @@ export interface UpdateGuidelinesData {
     guidelines: string;
 }
 
-import { getAuthHeaders } from "../utils/apiAuth";
+import { fetchJson, fetchWithAuth } from "../utils/apiClient";
 import { API_BASE_URL as BASE_URL } from "../utils/config";
 
 const API_BASE_URL = `${BASE_URL}/config/guidelines`;
@@ -24,19 +24,11 @@ export const guidelinesService = {
      */
     getGuidelines: async (organizationId: string): Promise<GuidelinesConfig | null> => {
         try {
-            const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`, {
-                headers: getAuthHeaders(),
-            });
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null;
-                }
-                throw new Error(`Failed to fetch guidelines: ${response.statusText}`);
+            return await fetchJson<GuidelinesConfig>(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`);
+        } catch (error: any) {
+            if (error.status === 404) {
+                return null;
             }
-
-            return await response.json();
-        } catch (error) {
             console.error("Error fetching guidelines:", error);
             throw error;
         }
@@ -47,18 +39,10 @@ export const guidelinesService = {
      */
     updateGuidelines: async (data: UpdateGuidelinesData): Promise<GuidelinesConfig> => {
         try {
-            const response = await fetch(API_BASE_URL, {
+            return await fetchJson<GuidelinesConfig>(API_BASE_URL, {
                 method: "PUT",
-                headers: getAuthHeaders(),
                 body: JSON.stringify(data),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Failed to update guidelines: ${response.statusText}`);
-            }
-
-            return await response.json();
         } catch (error) {
             console.error("Error updating guidelines:", error);
             throw error;
@@ -70,15 +54,9 @@ export const guidelinesService = {
      */
     deleteGuidelines: async (organizationId: string): Promise<void> => {
         try {
-            const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`, {
+            await fetchWithAuth(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`, {
                 method: "DELETE",
-                headers: getAuthHeaders(),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Failed to delete guidelines: ${response.statusText}`);
-            }
         } catch (error) {
             console.error("Error deleting guidelines:", error);
             throw error;

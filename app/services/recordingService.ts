@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "../utils/apiAuth";
+import { fetchJson, fetchWithAuth } from "../utils/apiClient";
 import { API_BASE_URL, DEFAULT_ORGANIZATION_ID } from "../utils/config";
 
 
@@ -66,19 +66,10 @@ export const recordingService = {
      * Get all recordings for an organization
      */
     async getRecordings(organizationId: string = DEFAULT_ORGANIZATION_ID, limit: number = 100): Promise<Recording[]> {
-        const response = await fetch(
-            `${API_BASE_URL}/recordings?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`,
-            {
-                headers: getAuthHeaders(),
-            }
+        const responseData = await fetchJson<BackendRecording[]>(
+            `${API_BASE_URL}/recordings?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`
         );
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to fetch recordings: ${response.statusText}`);
-        }
-
-        const responseData = await response.json();
         return Array.isArray(responseData)
             ? responseData.map(transformBackendRecording)
             : [];
@@ -88,19 +79,9 @@ export const recordingService = {
      * Get a single recording by ID
      */
     async getRecording(recordingId: string, organizationId: string = DEFAULT_ORGANIZATION_ID): Promise<any> {
-        const response = await fetch(
-            `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`,
-            {
-                headers: getAuthHeaders(),
-            }
+        return await fetchJson(
+            `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`
         );
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to fetch recording: ${response.statusText}`);
-        }
-
-        return await response.json();
     },
 
     /**
@@ -122,11 +103,10 @@ export const recordingService = {
         },
         organizationId: string = DEFAULT_ORGANIZATION_ID
     ): Promise<BackendRecording> {
-        const response = await fetch(
+        return await fetchJson<BackendRecording>(
             `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`,
             {
                 method: 'PUT',
-                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     name: recording.name,
                     sourceUrl: recording.sourceUrl,
@@ -138,31 +118,18 @@ export const recordingService = {
                 }),
             }
         );
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to update recording: ${response.statusText}`);
-        }
-
-        return await response.json();
     },
 
     /**
      * Delete a recording by ID
      */
     async deleteRecording(recordingId: string, organizationId: string = DEFAULT_ORGANIZATION_ID): Promise<void> {
-        const response = await fetch(
+        await fetchWithAuth(
             `${API_BASE_URL}/recordings/${recordingId}?organization_id=${encodeURIComponent(organizationId)}`,
             {
                 method: 'DELETE',
-                headers: getAuthHeaders(),
             }
         );
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to delete recording: ${response.statusText}`);
-        }
     },
 
     /**
@@ -170,19 +137,22 @@ export const recordingService = {
      */
     async analyze(payload: { html: string, context?: any, type: 'demo_info' | 'step_info' }): Promise<any> {
         // Use relative path for internal API
-        const response = await fetch('/api/v1/analyze', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
+        // This is an internal API route (Next.js API route), not the backend API
+        // So we keep using raw fetch here as it might not be subject to the same auth rules or might be handled differently
+        // However, if /api/v1/analyze is protected, the 401 handling in fetchWithAuth handles it gracefully if we used it.
+        // Given it's a relative path '/api/v1/analyze', it's likely hitting the Next.js middleware/handler.
+        // Let's use fetchJson for consistency but we need to arguably keep it robust.
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `AI Analysis failed: ${response.statusText}`);
-        }
-
-        return await response.json();
+        // Use fetchJson to get standard error handling
+        return await fetchJson(
+            '/api/v1/analyze',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            }
+        );
     }
 };

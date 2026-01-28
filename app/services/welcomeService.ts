@@ -21,7 +21,7 @@ export interface UpdateWelcomeMessageData {
     conditions?: Record<string, any>;
 }
 
-import { getAuthHeaders } from "../utils/apiAuth";
+import { fetchJson, fetchWithAuth } from "../utils/apiClient";
 import { API_BASE_URL as BASE_URL } from "../utils/config";
 
 const API_BASE_URL = `${BASE_URL}/config/welcome`;
@@ -33,15 +33,7 @@ export const welcomeService = {
      */
     getWelcomeMessages: async (organizationId: string): Promise<WelcomeMessage[]> => {
         try {
-            const response = await fetch(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`, {
-                headers: getAuthHeaders(),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch welcome messages: ${response.statusText}`);
-            }
-
-            return await response.json();
+            return await fetchJson<WelcomeMessage[]>(`${API_BASE_URL}?organization_id=${encodeURIComponent(organizationId)}`);
         } catch (error) {
             console.error("Error fetching welcome messages:", error);
             throw error;
@@ -53,19 +45,11 @@ export const welcomeService = {
      */
     getDefaultWelcomeMessage: async (organizationId: string): Promise<WelcomeMessage> => {
         try {
-            const response = await fetch(`${API_BASE_URL}/default?organization_id=${encodeURIComponent(organizationId)}`, {
-                headers: getAuthHeaders(),
-            });
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error("No default welcome message found");
-                }
-                throw new Error(`Failed to fetch default welcome message: ${response.statusText}`);
+            return await fetchJson<WelcomeMessage>(`${API_BASE_URL}/default?organization_id=${encodeURIComponent(organizationId)}`);
+        } catch (error: any) {
+            if (error.status === 404) {
+                throw new Error("No default welcome message found");
             }
-
-            return await response.json();
-        } catch (error) {
             console.error("Error fetching default welcome message:", error);
             throw error;
         }
@@ -76,18 +60,10 @@ export const welcomeService = {
      */
     createWelcomeMessage: async (data: CreateWelcomeMessageData): Promise<WelcomeMessage> => {
         try {
-            const response = await fetch(API_BASE_URL, {
+            return await fetchJson<WelcomeMessage>(API_BASE_URL, {
                 method: "POST",
-                headers: getAuthHeaders(),
                 body: JSON.stringify(data),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Failed to create welcome message: ${response.statusText}`);
-            }
-
-            return await response.json();
         } catch (error) {
             console.error("Error creating welcome message:", error);
             throw error;
@@ -99,18 +75,10 @@ export const welcomeService = {
      */
     updateWelcomeMessage: async (id: string, organizationId: string, data: UpdateWelcomeMessageData): Promise<WelcomeMessage> => {
         try {
-            const response = await fetch(`${API_BASE_URL}/${id}?organization_id=${encodeURIComponent(organizationId)}`, {
+            return await fetchJson<WelcomeMessage>(`${API_BASE_URL}/${id}?organization_id=${encodeURIComponent(organizationId)}`, {
                 method: "PUT",
-                headers: getAuthHeaders(),
                 body: JSON.stringify(data),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Failed to update welcome message: ${response.statusText}`);
-            }
-
-            return await response.json();
         } catch (error) {
             console.error("Error updating welcome message:", error);
             throw error;
@@ -122,15 +90,9 @@ export const welcomeService = {
      */
     deleteWelcomeMessage: async (id: string, organizationId: string): Promise<void> => {
         try {
-            const response = await fetch(`${API_BASE_URL}/${id}?organization_id=${encodeURIComponent(organizationId)}`, {
+            await fetchWithAuth(`${API_BASE_URL}/${id}?organization_id=${encodeURIComponent(organizationId)}`, {
                 method: "DELETE",
-                headers: getAuthHeaders(),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Failed to delete welcome message: ${response.statusText}`);
-            }
         } catch (error) {
             console.error("Error deleting welcome message:", error);
             throw error;

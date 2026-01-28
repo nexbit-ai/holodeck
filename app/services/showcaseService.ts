@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "../utils/apiAuth";
+import { fetchJson } from "../utils/apiClient";
 import { API_BASE_URL } from "../utils/config";
 
 
@@ -67,18 +67,10 @@ export const showcaseService = {
      * Create a new showcase
      */
     async createShowcase(data: CreateShowcaseData): Promise<Showcase> {
-        const response = await fetch(`${API_BASE_URL}/showcases`, {
+        const responseData = await fetchJson<any>(`${API_BASE_URL}/showcases`, {
             method: "POST",
-            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to create showcase: ${response.statusText}`);
-        }
-
-        const responseData = await response.json();
         return transformShowcaseResponse(responseData);
     },
 
@@ -86,19 +78,9 @@ export const showcaseService = {
      * Get all showcases for an organization
      */
     async getShowcases(organizationId: string, limit: number = 100): Promise<Showcase[]> {
-        const response = await fetch(
-            `${API_BASE_URL}/showcases?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`,
-            {
-                headers: getAuthHeaders(),
-            }
+        const responseData = await fetchJson<any[]>(
+            `${API_BASE_URL}/showcases?organization_id=${encodeURIComponent(organizationId)}&limit=${limit}`
         );
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to fetch showcases: ${response.statusText}`);
-        }
-
-        const responseData = await response.json();
         return Array.isArray(responseData)
             ? responseData.map(transformShowcaseResponse)
             : [];
@@ -108,23 +90,17 @@ export const showcaseService = {
      * Get a single showcase by ID
      */
     async getShowcase(showcaseId: string, organizationId: string): Promise<Showcase> {
-        const response = await fetch(
-            `${API_BASE_URL}/showcases/${showcaseId}?organization_id=${encodeURIComponent(organizationId)}`,
-            {
-                headers: getAuthHeaders(),
-            }
-        );
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            if (response.status === 404) {
+        try {
+            const responseData = await fetchJson<any>(
+                `${API_BASE_URL}/showcases/${showcaseId}?organization_id=${encodeURIComponent(organizationId)}`
+            );
+            return transformShowcaseResponse(responseData);
+        } catch (error: any) {
+            if (error.status === 404) {
                 throw new Error("Showcase not found");
             }
-            throw new Error(errorData.detail || `Failed to fetch showcase: ${response.statusText}`);
+            throw error;
         }
-
-        const responseData = await response.json();
-        return transformShowcaseResponse(responseData);
     },
 
     /**
@@ -135,42 +111,30 @@ export const showcaseService = {
         organizationId: string,
         data: UpdateShowcaseData
     ): Promise<Showcase> {
-        const response = await fetch(
-            `${API_BASE_URL}/showcases/${showcaseId}?organization_id=${encodeURIComponent(organizationId)}`,
-            {
-                method: "PUT",
-                headers: getAuthHeaders(),
-                body: JSON.stringify(data),
-            }
-        );
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            if (response.status === 404) {
+        try {
+            const responseData = await fetchJson<any>(
+                `${API_BASE_URL}/showcases/${showcaseId}?organization_id=${encodeURIComponent(organizationId)}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(data),
+                }
+            );
+            return transformShowcaseResponse(responseData);
+        } catch (error: any) {
+            if (error.status === 404) {
                 throw new Error("Showcase not found");
             }
-            throw new Error(errorData.detail || `Failed to update showcase: ${response.statusText}`);
+            throw error;
         }
-
-        const responseData = await response.json();
-        return transformShowcaseResponse(responseData);
     },
 
     /**
      * Track an analytics event for a showcase
      */
     async trackEvent(showcaseId: string, eventType: "view" | "click" | "interaction"): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/showcases/${showcaseId}/track`, {
+        await fetchJson(`${API_BASE_URL}/showcases/${showcaseId}/track`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
             body: JSON.stringify({ event_type: eventType }),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Failed to track event: ${response.statusText}`);
-        }
     }
 };
