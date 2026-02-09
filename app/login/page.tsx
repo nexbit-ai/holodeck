@@ -92,7 +92,7 @@ function LoginPageInner() {
 
     // Stytch B2B Discovery flow configuration
     const config = {
-        products: [B2BProducts.emailMagicLinks, B2BProducts.passwords],
+        products: [B2BProducts.passwords],
         sessionOptions: { sessionDurationMinutes: 60 },
         authFlowType: AuthFlowType.Discovery,
         emailMagicLinksOptions: {
