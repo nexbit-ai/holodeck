@@ -6,6 +6,8 @@ import {
     openLoginPage,
     openEditorPage,
     uploadRecording,
+    getPendingRecording,
+    clearPendingRecording,
     type RecordingPayload,
 } from "./api"
 
@@ -26,6 +28,7 @@ function IndexPopup() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null)
     const [userName, setUserName] = useState<string | null>(null)
+    const [pendingRecording, setPendingRecording] = useState<RecordingPayload | null>(null)
 
     // Check auth status on mount and listen for changes
     useEffect(() => {
@@ -88,6 +91,35 @@ function IndexPopup() {
         }
 
         checkStatus()
+    }, [authState])
+
+    // Check for pending recording after successful auth
+    useEffect(() => {
+        if (authState !== "logged_in") return
+
+        const checkPending = async () => {
+            const pending = await getPendingRecording()
+            if (pending) {
+                setPendingRecording(pending)
+                // Auto-retry upload
+                setState("uploading")
+                setError(null)
+                try {
+                    const result = await uploadRecording(pending)
+                    await clearPendingRecording()
+                    setPendingRecording(null)
+                    openEditorPage(result.id)
+                    window.close()
+                } catch (uploadError: any) {
+                    console.error("Retry upload failed:", uploadError)
+                    setError(uploadError.message || "Failed to upload recording")
+                    setPendingRecording(null) // Clear so we don't loop
+                    setState("idle")
+                }
+            }
+        }
+
+        checkPending()
     }, [authState])
 
     // Timer effect - uses real elapsed time calculation

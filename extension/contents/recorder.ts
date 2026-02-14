@@ -44,48 +44,68 @@ let lastStylesheetCount = 0
 // ... removed unused getComputedStylesCSS ...
 
 // Inline all styles for the document by mapping cloned elements to live elements
-function inlineAllStyles(liveRoot: Element, clonedRoot: Element): void {
-    const liveElements = liveRoot.querySelectorAll('*')
-    const clonedElements = clonedRoot.querySelectorAll('*')
+function inlineAllStyles(liveRoot: Node, clonedRoot: Node): void {
+    // Traverse the entire tree including shadow roots
+    const walker = document.createTreeWalker(liveRoot, NodeFilter.SHOW_ELEMENT)
+    const cloneWalker = document.createTreeWalker(clonedRoot, NodeFilter.SHOW_ELEMENT)
 
-    // Ensure we have the same number of elements
-    const count = Math.min(liveElements.length, clonedElements.length)
-
-    // Critical styles to copy for layout and appearance
+    // Essential styles to copy for layout and appearance
     const stylesToCopy = [
         'display', 'position', 'top', 'left', 'right', 'bottom',
-        'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+        'width', 'height', 'min-width', 'min-height',
         'margin', 'padding', 'border', 'border-radius',
-        'background', 'background-color', 'background-image',
-        'color', 'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
+        'background-color', 'background-image',
+        'color', 'font-family', 'font-size', 'font-weight',
         'flex', 'flex-direction', 'justify-content', 'align-items', 'gap',
-        'grid', 'grid-template-columns', 'grid-template-rows',
         'box-shadow', 'opacity', 'visibility', 'z-index', 'overflow',
-        'transform', 'transition',
-        'fill', 'stroke', 'stroke-width', 'vertical-align'
+        'transform'
     ]
 
-    for (let i = 0; i < count; i++) {
-        const liveEl = liveElements[i] as HTMLElement
-        const clonedEl = clonedElements[i] as HTMLElement
+    let liveEl = walker.nextNode() as HTMLElement | null
+    let clonedEl = cloneWalker.nextNode() as HTMLElement | null
 
-        // Skip if elements don't match tags (sanity check)
-        if (liveEl.tagName !== clonedEl.tagName) continue
+    while (liveEl && clonedEl) {
+        // Skip hidden elements (performance)
+        if (liveEl.offsetWidth !== 0 || liveEl.offsetHeight !== 0) {
+            const computedStyles = window.getComputedStyle(liveEl)
 
-        // Performance: Skip hidden elements
-        const rect = liveEl.getBoundingClientRect()
-        if (rect.width === 0 && rect.height === 0) continue
+            for (let j = 0; j < stylesToCopy.length; j++) {
+                const prop = stylesToCopy[j]
+                const value = computedStyles.getPropertyValue(prop)
 
-        const computedStyles = window.getComputedStyle(liveEl)
-
-        for (let j = 0; j < stylesToCopy.length; j++) {
-            const prop = stylesToCopy[j]
-            const value = computedStyles.getPropertyValue(prop)
-            if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'rgba(0, 0, 0, 0)') {
-                clonedEl.style.setProperty(prop, value)
+                // Only set if value is non-default and meaningful
+                if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'rgba(0, 0, 0, 0)') {
+                    clonedEl.style.setProperty(prop, value)
+                }
             }
         }
+
+        // Handle Shadow DOM
+        if (liveEl.shadowRoot && clonedEl.shadowRoot) {
+            inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot)
+        }
+
+        liveEl = walker.nextNode() as HTMLElement | null
+        clonedEl = cloneWalker.nextNode() as HTMLElement | null
     }
+}
+
+// Helper to clone a node and its shadow root if it exists
+function cloneNodeWithShadow(node: Node): Node {
+    const clone = node.cloneNode(false)
+
+    if (node instanceof Element && node.shadowRoot) {
+        const shadowClone = (clone as Element).attachShadow({ mode: node.shadowRoot.mode })
+        for (const child of node.shadowRoot.childNodes) {
+            shadowClone.appendChild(cloneNodeWithShadow(child))
+        }
+    }
+
+    for (const child of node.childNodes) {
+        clone.appendChild(cloneNodeWithShadow(child))
+    }
+
+    return clone
 }
 
 // Generate a simple selector for an element
@@ -102,7 +122,10 @@ function getElementSelector(el: Element): string {
             if (classes) selector += `.${classes}`
         }
         path.unshift(selector)
-        current = current.parentElement
+
+        // Handle Shadow DOM traversal upwards
+        const parent = current.parentElement || (current.getRootNode() instanceof ShadowRoot ? (current.getRootNode() as ShadowRoot).host : null)
+        current = parent as Element | null
     }
 
     return path.join(' > ')
@@ -116,7 +139,6 @@ function captureStylesheets(): string {
     }
 
     let allCSS = ''
-    let accessedCount = 0
     let skippedCount = 0
 
     // Capture all stylesheet rules
@@ -128,7 +150,6 @@ function captureStylesheets(): string {
                 for (let j = 0; j < rules.length; j++) {
                     allCSS += rules[j].cssText + '\n'
                 }
-                accessedCount++
             }
         } catch (e) {
             // Cross-origin stylesheets can't be accessed
@@ -147,35 +168,42 @@ function captureStylesheets(): string {
 
 // Capture current DOM as HTML string with inlined styles
 function captureDOM(): string {
-    // Clone the document to avoid modifying the live DOM
-    const docClone = document.documentElement.cloneNode(true) as HTMLElement
+    // Clone the document with shadow roots
+    const docClone = cloneNodeWithShadow(document.documentElement) as HTMLElement
 
-    // Inline computed styles for all elements to handle cross-origin CSS issues (like icons)
-    // We do this BEFORE removing any elements from the clone to ensure index-based matching works perfectly
+    // Inline computed styles for all elements
     inlineAllStyles(document.documentElement, docClone)
 
-    // Remove any scripts to prevent execution issues
-    const scripts = docClone.querySelectorAll('script')
-    scripts.forEach(script => script.remove())
+    // Helper to process clones (remove scripts, links, etc)
+    function processClone(root: Node) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+        const removals: Element[] = []
 
-    // Remove preloads and other head noise that causes 404s
-    const removals = docClone.querySelectorAll('link[rel="preload"], link[rel="prefetch"], link[rel="modulepreload"], link[rel="next-head"]')
-    removals.forEach(el => el.remove())
+        let el = walker.nextNode() as HTMLElement | null
+        while (el) {
+            if (el.tagName === 'SCRIPT' ||
+                el.tagName === 'IFRAME' ||
+                (el.tagName === 'LINK' && (el.getAttribute('rel') === 'stylesheet' || el.getAttribute('rel')?.includes('preload')))) {
+                removals.push(el)
+            }
 
-    // Remove iframes to prevent nested fetches
-    const iframes = docClone.querySelectorAll('iframe')
-    iframes.forEach(iframe => iframe.remove())
+            if (el.shadowRoot) {
+                processClone(el.shadowRoot)
+            }
+            el = walker.nextNode() as HTMLElement | null
+        }
 
-    // Remove existing link stylesheets (we'll inline them)
-    const links = docClone.querySelectorAll('link[rel="stylesheet"]')
-    links.forEach(link => link.remove())
+        removals.forEach(e => e.remove())
+    }
+
+    processClone(docClone)
 
     // Capture all CSS and add as inline style
     const allCSS = captureStylesheets()
     const styleElement = document.createElement('style')
     styleElement.textContent = allCSS
 
-    // Add base tag to resolve relative assets (fonts, etc)
+    // Add base tag to resolve relative assets
     const baseElement = document.createElement('base')
     baseElement.href = window.location.href
 
@@ -192,6 +220,8 @@ function captureDOM(): string {
         ? `<!DOCTYPE ${doctype.name}${doctype.publicId ? ` PUBLIC "${doctype.publicId}"` : ''}${doctype.systemId ? ` "${doctype.systemId}"` : ''}>`
         : '<!DOCTYPE html>'
 
+    // OuterHTML doesn't capture shadow roots, we need to handle that or use a custom serializer
+    // For now, let's use a simpler approach for the prototype or implement a full serializer
     return doctypeString + docClone.outerHTML
 }
 
@@ -215,20 +245,35 @@ function createSnapshot(type: EventType, clickX?: number, clickY?: number): Clic
 function handleClick(event: MouseEvent) {
     if (!isRecording) return
 
-    const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY)
-
-    // Send to background to store
+    // 1. Immediate feedback to background script (to update badge ASAP)
     chrome.runtime.sendMessage({
-        type: "ADD_SNAPSHOT",
-        snapshot
-    })
+        type: "CLICK_RECORDED",
+        timestamp: Date.now()
+    }).catch(err => console.error("[Nexbit] Failed to send click feedback:", err))
+
+    // 2. Heavy snapshotting (wrapped in timeout to avoid blocking main thread if possible, 
+    // but we capture DOM state synchronously first)
+    try {
+        const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY)
+
+        // Send to background to store
+        chrome.runtime.sendMessage({
+            type: "ADD_SNAPSHOT",
+            snapshot
+        }).catch(err => {
+            console.error("[Nexbit] Failed to send snapshot to background:", err)
+        })
+    } catch (error) {
+        console.error("[Nexbit] Error during snapshot capture:", error)
+    }
 }
 
 // Start recording (called after countdown or from background state)
 function startRecordingListeners() {
     if (isRecording) return
     isRecording = true
-    document.addEventListener("click", handleClick, true)
+    // Use capture phase to ensure we catch clicks before they are stopped by other listeners
+    document.addEventListener("click", handleClick, { capture: true, passive: true })
 }
 
 // Stop recording listeners
@@ -240,15 +285,26 @@ function stopRecordingListeners() {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "START_RECORDING") {
-        // This is now just a trigger for the listeners, but we officially start in background
-        const firstSnapshot = createSnapshot(EventType.START)
+        // 1. Start session IMMEDIATELY 
         chrome.runtime.sendMessage({
             type: "START_RECORDING_SESSION",
-            startTime: Date.now(),
-            firstSnapshot
+            startTime: Date.now()
         }, (response) => {
             if (response?.success) {
                 startRecordingListeners()
+
+                // 2. Capture and add the "start" snapshot asynchronously
+                setTimeout(() => {
+                    try {
+                        const firstSnapshot = createSnapshot(EventType.START)
+                        chrome.runtime.sendMessage({
+                            type: "ADD_SNAPSHOT",
+                            snapshot: firstSnapshot
+                        })
+                    } catch (error) {
+                        console.error("[Nexbit] Failed to capture initial snapshot:", error)
+                    }
+                }, 100)
             }
             sendResponse(response)
         })
@@ -301,14 +357,26 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // Listen for countdown completion from countdown-overlay.tsx
 window.addEventListener("nexbit-countdown-complete", () => {
-    const firstSnapshot = createSnapshot(EventType.START)
+    // 1. Start session IMMEDIATELY without waiting for heavy snapshot
     chrome.runtime.sendMessage({
         type: "START_RECORDING_SESSION",
-        startTime: Date.now(),
-        firstSnapshot
+        startTime: Date.now()
     }, (response) => {
         if (response?.success) {
             startRecordingListeners()
+
+            // 2. Capture and add the "start" snapshot asynchronously
+            setTimeout(() => {
+                try {
+                    const firstSnapshot = createSnapshot(EventType.START)
+                    chrome.runtime.sendMessage({
+                        type: "ADD_SNAPSHOT",
+                        snapshot: firstSnapshot
+                    })
+                } catch (error) {
+                    console.error("[Nexbit] Failed to capture initial snapshot:", error)
+                }
+            }, 100)
         }
     })
 })

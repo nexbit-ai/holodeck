@@ -14,15 +14,97 @@ export async function POST(request: NextRequest) {
             }, { status: 500 });
         }
 
-        // Clean HTML to reduce token usage
-        // Remove scripts, styles, and SVG paths but keep structure and text
-        const cleanedHtml = html
+        let processedHtml = html;
+
+        // 1. If it's a step analysis with click coordinates, identify the clicked element
+        if (type === 'step_info' && context?.clickX !== undefined && context?.clickY !== undefined) {
+            const { clickX, clickY } = context;
+
+            // Regex to find all elements with a style attribute
+            const elementRegex = /<([a-z0-9-]+)\b([^>]*\bstyle="([^"]+)"[^>]*)>/gi;
+            let match;
+            let bestInteractiveElement = null;
+            let bestGenericElement = null;
+            let minInteractiveArea = Infinity;
+            let minGenericArea = Infinity;
+
+            const interactiveTags = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary']);
+
+            while ((match = elementRegex.exec(html)) !== null) {
+                const fullTag = match[0];
+                const tagName = match[1].toLowerCase();
+                const attributes = match[2];
+                const styleValue = match[3];
+
+                // Simple parser for inlined styles
+                const getStyleProp = (prop: string) => {
+                    const propRegex = new RegExp(`${prop}:\\s*(-?\\d+(\\.\\d+)?)px`, 'i');
+                    const m = styleValue.match(propRegex);
+                    return m ? parseFloat(m[1]) : null;
+                };
+
+                const top = getStyleProp('top');
+                const left = getStyleProp('left');
+                const width = getStyleProp('width');
+                const height = getStyleProp('height');
+
+                if (top !== null && left !== null && width !== null && height !== null) {
+                    if (clickX >= left && clickX <= left + width &&
+                        clickY >= top && clickY <= top + height) {
+
+                        const area = width * height;
+                        const isInteractive = interactiveTags.has(tagName) || attributes.toLowerCase().includes('role="button"');
+
+                        if (isInteractive) {
+                            if (area < minInteractiveArea && area > 0) {
+                                minInteractiveArea = area;
+                                bestInteractiveElement = { index: match.index, length: fullTag.length, tagName, attributes };
+                            }
+                        } else {
+                            if (area < minGenericArea && area > 0) {
+                                minGenericArea = area;
+                                bestGenericElement = { index: match.index, length: fullTag.length, tagName, attributes };
+                            }
+                        }
+                    }
+                }
+            }
+
+            const bestElement = bestInteractiveElement || bestGenericElement;
+
+            if (bestElement) {
+                const markedTag = `<${bestElement.tagName} data-ai-clicked="true" ${bestElement.attributes}>`;
+                processedHtml = html.substring(0, bestElement.index) +
+                    markedTag +
+                    html.substring(bestElement.index + bestElement.length);
+            }
+        }
+
+        // 2. Clean HTML to reduce token usage and allow more context
+        // We preserve more descriptive attributes but strip the bulky styles
+        const cleanedHtml = processedHtml
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
             .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
             .replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, '<svg></svg>')
+            // Remove style attributes
+            .replace(/\s+style="[^"]*"/gi, '')
+            // Remove most data attributes but keep critical ones
+            .replace(/\s+data-([a-z0-9-]+)="[^"]*"/gi, (match: string) => {
+                const key = match.toLowerCase();
+                if (key.includes('data-ai-clicked') ||
+                    key.includes('data-testid') ||
+                    key.includes('data-id') ||
+                    key.includes('data-label')) {
+                    return match;
+                }
+                return '';
+            })
+            // Remove other noise while keeping labels
+            .replace(/\s+onload="[^"]*"/gi, '')
+            .replace(/\s+onerror="[^"]*"/gi, '')
             .replace(/\s+/g, ' ')
             .trim()
-            .substring(0, 15000); // Limit to ~15k chars for safety
+            .substring(0, 60000); // Expanded context to 60k chars
 
         let systemPrompt = "You are an expert product analyst. Analyze HTML content and return JSON metadata for a product demo.";
         let userPrompt = "";
@@ -43,16 +125,29 @@ Return ONLY JSON:
         } else {
             userPrompt = `
 Analyze this screen HTML and the action context.
+IMPORTANT: The user clicked on a specific element marked with 'data-ai-clicked="true"'. 
+Your task is to identify THIS specific element (the button, link, or input actually clicked) and describe its action.
+
+Look for:
+1. The element with data-ai-clicked="true".
+2. Its text content and surrounding labels.
+3. Its ID, class, title, or ARIA attributes if present.
+
 Action Context: ${JSON.stringify(context)}
 
-Generate a descriptive step name and a short instructional script.
+Generate a descriptive step name (label) and a short instructional script (script).
+Example: 
+{
+  "label": "Click 'Sign Up'",
+  "script": "Click the Sign Up button to create your account."
+}
 
 HTML: ${cleanedHtml}
 
 Return ONLY JSON:
 {
-  "label": "Brief action (e.g., Click Settings)",
-  "script": "Instruction for the user."
+  "label": "...",
+  "script": "..."
 }
 `;
         }
