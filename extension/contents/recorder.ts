@@ -44,37 +44,71 @@ let lastStylesheetCount = 0
 // ... removed unused getComputedStylesCSS ...
 
 // Inline all styles for the document by mapping cloned elements to live elements
-function inlineAllStyles(liveRoot: Node, clonedRoot: Node): void {
+// Inline all styles and mark the target element
+function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): void {
     // Traverse the entire tree including shadow roots
     const walker = document.createTreeWalker(liveRoot, NodeFilter.SHOW_ELEMENT)
     const cloneWalker = document.createTreeWalker(clonedRoot, NodeFilter.SHOW_ELEMENT)
 
     // Essential styles to copy for layout and appearance
     const stylesToCopy = [
+        // Layout
         'display', 'position', 'top', 'left', 'right', 'bottom',
-        'width', 'height', 'min-width', 'min-height',
-        'margin', 'padding', 'border', 'border-radius',
-        'background-color', 'background-image',
-        'color', 'font-family', 'font-size', 'font-weight',
-        'flex', 'flex-direction', 'justify-content', 'align-items', 'gap',
-        'box-shadow', 'opacity', 'visibility', 'z-index', 'overflow',
-        'transform'
+        'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'box-sizing', 'vertical-align', 'z-index', 'overflow', 'overflow-x', 'overflow-y',
+
+        // Flexbox
+        'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
+        'align-content', 'align-items', 'align-self', 'justify-content', 'justify-items', 'justify-self', 'order',
+
+        // Grid
+        'grid', 'grid-area', 'grid-auto-columns', 'grid-auto-flow', 'grid-auto-rows',
+        'grid-column', 'grid-column-end', 'grid-column-gap', 'grid-column-start',
+        'grid-gap', 'grid-row', 'grid-row-end', 'grid-row-gap', 'grid-row-start',
+        'grid-template', 'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
+        'gap', 'row-gap', 'column-gap',
+
+        // Appearance
+        'background-color', 'background-image', 'background-position', 'background-repeat', 'background-size',
+        'border', 'border-radius', 'border-color', 'border-style', 'border-width',
+        'box-shadow', 'opacity', 'visibility', 'clip', 'clip-path',
+
+        // Typography
+        'color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+        'text-align', 'text-decoration', 'text-indent', 'text-overflow', 'text-shadow',
+        'text-transform', 'white-space', 'word-break', 'word-spacing', 'word-wrap',
+
+        // Effects
+        'transform', 'transform-origin', 'filter', 'backdrop-filter', 'mix-blend-mode',
+        'cursor', 'pointer-events', 'user-select'
     ]
 
     let liveEl = walker.nextNode() as HTMLElement | null
     let clonedEl = cloneWalker.nextNode() as HTMLElement | null
 
     while (liveEl && clonedEl) {
-        // Skip hidden elements (performance)
-        if (liveEl.offsetWidth !== 0 || liveEl.offsetHeight !== 0) {
-            const computedStyles = window.getComputedStyle(liveEl)
+        // Mark target element if it's the one that was clicked
+        if (targetNode && liveEl === targetNode) {
+            clonedEl.setAttribute('data-ai-target', 'primary')
+        }
+
+        const computedStyles = window.getComputedStyle(liveEl)
+
+        if (computedStyles.display !== 'none' || liveEl.tagName === 'STYLE' || liveEl.tagName === 'LINK') {
+            const rect = liveEl.getBoundingClientRect()
+            clonedEl.setAttribute('data-ai-x', Math.round(rect.left).toString())
+            clonedEl.setAttribute('data-ai-y', Math.round(rect.top).toString())
+            clonedEl.setAttribute('data-ai-w', Math.round(rect.width).toString())
+            clonedEl.setAttribute('data-ai-h', Math.round(rect.height).toString())
 
             for (let j = 0; j < stylesToCopy.length; j++) {
                 const prop = stylesToCopy[j]
                 const value = computedStyles.getPropertyValue(prop)
 
                 // Only set if value is non-default and meaningful
-                if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'rgba(0, 0, 0, 0)') {
+                if (value && value !== '' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'none' && value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') {
                     clonedEl.style.setProperty(prop, value)
                 }
             }
@@ -82,7 +116,7 @@ function inlineAllStyles(liveRoot: Node, clonedRoot: Node): void {
 
         // Handle Shadow DOM
         if (liveEl.shadowRoot && clonedEl.shadowRoot) {
-            inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot)
+            inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot, targetNode)
         }
 
         liveEl = walker.nextNode() as HTMLElement | null
@@ -106,6 +140,63 @@ function cloneNodeWithShadow(node: Node): Node {
     }
 
     return clone
+}
+
+// Custom serializer to handle Shadow DOM via Declarative Shadow DOM (<template shadowrootmode>)
+function serializeNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return (node.textContent || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    }
+
+    if (node.nodeType === Node.COMMENT_NODE) {
+        return `<!--${node.textContent}-->`
+    }
+
+    if (node.nodeType === Node.DOCUMENT_TYPE_NODE) {
+        const doctype = node as DocumentType
+        return `<!DOCTYPE ${doctype.name}${doctype.publicId ? ` PUBLIC "${doctype.publicId}"` : ''}${doctype.systemId ? ` "${doctype.systemId}"` : ''}>`
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+        return ''
+    }
+
+    const el = node as Element
+    const tagName = el.tagName.toLowerCase()
+
+    // Start tag
+    let html = `<${tagName}`
+
+    // Attributes
+    for (let i = 0; i < el.attributes.length; i++) {
+        const attr = el.attributes[i]
+        html += ` ${attr.name}="${attr.value.replace(/"/g, '&quot;')}"`
+    }
+
+    html += '>'
+
+    // Shadow Root (Declarative Shadow DOM)
+    if (el.shadowRoot) {
+        const mode = el.shadowRoot.mode || 'open'
+        html += `<template shadowrootmode="${mode}">`
+        for (const child of el.shadowRoot.childNodes) {
+            html += serializeNode(child)
+        }
+        html += '</template>'
+    }
+
+    // Children
+    for (const child of el.childNodes) {
+        html += serializeNode(child)
+    }
+
+    // End tag (except for void elements)
+    const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']
+    if (!voidElements.includes(tagName)) {
+        html += `</${tagName}>`
+    }
+
+    return html
 }
 
 // Generate a simple selector for an element
@@ -167,12 +258,12 @@ function captureStylesheets(): string {
 }
 
 // Capture current DOM as HTML string with inlined styles
-function captureDOM(): string {
+function captureDOM(targetNode?: Node): string {
     // Clone the document with shadow roots
     const docClone = cloneNodeWithShadow(document.documentElement) as HTMLElement
 
-    // Inline computed styles for all elements
-    inlineAllStyles(document.documentElement, docClone)
+    // Inline computed styles and mark target for all elements
+    inlineAllStyles(document.documentElement, docClone, targetNode)
 
     // Helper to process clones (remove scripts, links, etc)
     function processClone(root: Node) {
@@ -214,23 +305,21 @@ function captureDOM(): string {
         head.insertBefore(baseElement, head.firstChild)
     }
 
-    // Get the HTML with doctype
+    // Serialize using our custom serializer to include Shadow DOM
     const doctype = document.doctype
     const doctypeString = doctype
-        ? `<!DOCTYPE ${doctype.name}${doctype.publicId ? ` PUBLIC "${doctype.publicId}"` : ''}${doctype.systemId ? ` "${doctype.systemId}"` : ''}>`
+        ? serializeNode(doctype)
         : '<!DOCTYPE html>'
 
-    // OuterHTML doesn't capture shadow roots, we need to handle that or use a custom serializer
-    // For now, let's use a simpler approach for the prototype or implement a full serializer
-    return doctypeString + docClone.outerHTML
+    return doctypeString + serializeNode(docClone)
 }
 
 // Create a snapshot
-function createSnapshot(type: EventType, clickX?: number, clickY?: number): ClickSnapshot {
+function createSnapshot(type: EventType, clickX?: number, clickY?: number, targetNode?: Node): ClickSnapshot {
     return {
         type,
         timestamp: Date.now(),
-        html: captureDOM(),
+        html: captureDOM(targetNode),
         clickX,
         clickY,
         scrollX: window.scrollX,
@@ -254,7 +343,7 @@ function handleClick(event: MouseEvent) {
     // 2. Heavy snapshotting (wrapped in timeout to avoid blocking main thread if possible, 
     // but we capture DOM state synchronously first)
     try {
-        const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY)
+        const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY, event.target as Node)
 
         // Send to background to store
         chrome.runtime.sendMessage({

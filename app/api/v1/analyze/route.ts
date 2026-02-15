@@ -14,141 +14,100 @@ export async function POST(request: NextRequest) {
             }, { status: 500 });
         }
 
-        let processedHtml = html;
+        const demoTitle = context?.demoTitle || "this product";
 
-        // 1. If it's a step analysis with click coordinates, identify the clicked element
-        if (type === 'step_info' && context?.clickX !== undefined && context?.clickY !== undefined) {
-            const { clickX, clickY } = context;
+        // Helper to detect noise (cookie banners, etc) - aggressively filter for storytelling
+        const isNoise = (tag: string, attrs: string) => {
+            const combined = (tag + attrs).toLowerCase();
+            return combined.includes('cookie') ||
+                combined.includes('consent') ||
+                combined.includes('onetrust') ||
+                combined.includes('trustarc') ||
+                combined.includes('banner') ||
+                combined.includes('privacy');
+        };
 
-            // Regex to find all elements with a style attribute
-            const elementRegex = /<([a-z0-9-]+)\b([^>]*\bstyle="([^"]+)"[^>]*)>/gi;
-            let match;
-            let bestInteractiveElement = null;
-            let bestGenericElement = null;
-            let minInteractiveArea = Infinity;
-            let minGenericArea = Infinity;
-
-            const interactiveTags = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary']);
-
-            while ((match = elementRegex.exec(html)) !== null) {
-                const fullTag = match[0];
-                const tagName = match[1].toLowerCase();
-                const attributes = match[2];
-                const styleValue = match[3];
-
-                // Simple parser for inlined styles
-                const getStyleProp = (prop: string) => {
-                    const propRegex = new RegExp(`${prop}:\\s*(-?\\d+(\\.\\d+)?)px`, 'i');
-                    const m = styleValue.match(propRegex);
-                    return m ? parseFloat(m[1]) : null;
-                };
-
-                const top = getStyleProp('top');
-                const left = getStyleProp('left');
-                const width = getStyleProp('width');
-                const height = getStyleProp('height');
-
-                if (top !== null && left !== null && width !== null && height !== null) {
-                    if (clickX >= left && clickX <= left + width &&
-                        clickY >= top && clickY <= top + height) {
-
-                        const area = width * height;
-                        const isInteractive = interactiveTags.has(tagName) || attributes.toLowerCase().includes('role="button"');
-
-                        if (isInteractive) {
-                            if (area < minInteractiveArea && area > 0) {
-                                minInteractiveArea = area;
-                                bestInteractiveElement = { index: match.index, length: fullTag.length, tagName, attributes };
-                            }
-                        } else {
-                            if (area < minGenericArea && area > 0) {
-                                minGenericArea = area;
-                                bestGenericElement = { index: match.index, length: fullTag.length, tagName, attributes };
-                            }
-                        }
-                    }
-                }
-            }
-
-            const bestElement = bestInteractiveElement || bestGenericElement;
-
-            if (bestElement) {
-                const markedTag = `<${bestElement.tagName} data-ai-clicked="true" ${bestElement.attributes}>`;
-                processedHtml = html.substring(0, bestElement.index) +
-                    markedTag +
-                    html.substring(bestElement.index + bestElement.length);
+        // 1. Identify Target (Extension now marks this with data-ai-target="primary")
+        let targetDescription = "unknown element";
+        if (type === 'step_info') {
+            const targetRegex = /<([a-z0-9-]+)\b[^>]*data-ai-target="primary"[^>]*>(.*?)<\/\1>/i;
+            const match = html.match(targetRegex);
+            if (match) {
+                const tagName = match[1];
+                const content = match[2].replace(/<[^>]*>/g, '').trim().substring(0, 100);
+                targetDescription = `${tagName}${content ? ` with text "${content}"` : ''}`;
             }
         }
 
-        // 2. Clean HTML to reduce token usage and allow more context
-        // We preserve more descriptive attributes but strip the bulky styles
-        const cleanedHtml = processedHtml
+        // 2. Clean HTML - High fidelity for semantic info, low volume for tokens
+        const cleanedHtml = html
+            // Remove scripts and styles
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
             .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+            // Keep SVGs but empty them
             .replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, '<svg></svg>')
-            // Remove style attributes
+            // Remove styles and classes to save massive token amount
             .replace(/\s+style="[^"]*"/gi, '')
-            // Remove most data attributes but keep critical ones
+            .replace(/\s+class="[^"]*"/gi, '')
+            // Remove noise elements entirely (including their content)
+            .replace(/<([a-z0-9-]+)\b([^>]*)>(.*?)<\/\1>/gi, (match: string, tag: string, attrs: string) => {
+                if (isNoise(tag, attrs)) return '';
+                return match;
+            })
+            // Collapse redundant coordinates
+            .replace(/\s+data-ai-(x|y|w|h)="[^"]*"/gi, '')
+            // Keep critical identifiers
             .replace(/\s+data-([a-z0-9-]+)="[^"]*"/gi, (match: string) => {
                 const key = match.toLowerCase();
-                if (key.includes('data-ai-clicked') ||
+                if (key.includes('data-ai-target') ||
                     key.includes('data-testid') ||
                     key.includes('data-id') ||
-                    key.includes('data-label')) {
+                    key.includes('data-label') ||
+                    key.includes('aria-')) {
                     return match;
                 }
                 return '';
             })
-            // Remove other noise while keeping labels
-            .replace(/\s+onload="[^"]*"/gi, '')
-            .replace(/\s+onerror="[^"]*"/gi, '')
             .replace(/\s+/g, ' ')
             .trim()
-            .substring(0, 60000); // Expanded context to 60k chars
+            .substring(0, 20000);
 
-        let systemPrompt = "You are an expert product analyst. Analyze HTML content and return JSON metadata for a product demo.";
+        let systemPrompt = "You are a senior product documentation expert. Your goal is to write a compelling, story-driven guide for a product demo.";
         let userPrompt = "";
 
         if (type === 'demo_info') {
             userPrompt = `
-Analyze this web page HTML to determine what this product/feature is.
-Generate a concise demo title and a 2-sentence description.
+Analyze this web page HTML to understand the product.
+Create a high-impact, action-oriented title and a 2-sentence value-based description.
 
 HTML: ${cleanedHtml}
 
 Return ONLY JSON:
 {
-  "title": "Action-Oriented Title",
-  "description": "Short description."
+  "title": "...",
+  "description": "..."
 }
 `;
         } else {
             userPrompt = `
-Analyze this screen HTML and the action context.
-IMPORTANT: The user clicked on a specific element marked with 'data-ai-clicked="true"'. 
-Your task is to identify THIS specific element (the button, link, or input actually clicked) and describe its action.
+Context: The user is creating a demo titled "${demoTitle}". 
+Goal: Write a VERY CONCISE instruction for this specific interaction.
 
-Look for:
-1. The element with data-ai-clicked="true".
-2. Its text content and surrounding labels.
-3. Its ID, class, title, or ARIA attributes if present.
+Action: The user clicked on "${targetDescription}".
 
-Action Context: ${JSON.stringify(context)}
-
-Generate a descriptive step name (label) and a short instructional script (script).
-Example: 
-{
-  "label": "Click 'Sign Up'",
-  "script": "Click the Sign Up button to create your account."
-}
-
-HTML: ${cleanedHtml}
+CRITICAL RULES:
+1. Be EXTREMELY BRIEF (under 10 words).
+2. Format: "Action + Context" (e.g., "Click Pricing to see plans" or "Open Docs to learn more").
+3. DO NOT tell a story. Just describe the immediate value of the click.
+4. If no marked target is found, return empty strings.
 
 Return ONLY JSON:
 {
-  "label": "...",
-  "script": "..."
+  "label": "Action Verb + Target",
+  "script": "A very short, punchy sentence."
 }
+
+HTML: ${cleanedHtml}
 `;
         }
 

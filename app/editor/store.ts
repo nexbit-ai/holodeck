@@ -633,6 +633,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
             // 2. Analyze each click for labels and scripts
             // We'll do this in parallel but with a small limit if there are many slides
+            const demoTitle = snapshots.find(s => s.type === EventType.COVER || s.type === 'cover')?.title || '';
+
             const analysisPromises = snapshots.map(async (snapshot, index) => {
                 if (snapshot.type !== EventType.CLICK && snapshot.type !== 'click') return
 
@@ -644,7 +646,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                             clickY: snapshot.clickY,
                             viewportWidth: snapshot.viewportWidth,
                             viewportHeight: snapshot.viewportHeight,
-                            url: snapshot.url
+                            url: snapshot.url,
+                            demoTitle // Pass the demo title for better storytelling context
                         },
                         type: 'step_info'
                     })
