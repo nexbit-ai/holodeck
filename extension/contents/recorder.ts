@@ -37,6 +37,7 @@ export interface ClickRecording {
 
 // State
 let isRecording = false
+let isStarting = false // Guard against race conditions during initialization
 let cachedCSS: string | null = null
 let lastStylesheetCount = 0
 
@@ -340,8 +341,8 @@ function handleClick(event: MouseEvent) {
         timestamp: Date.now()
     }).catch(err => console.error("[Nexbit] Failed to send click feedback:", err))
 
-    // 2. Heavy snapshotting (wrapped in timeout to avoid blocking main thread if possible, 
-    // but we capture DOM state synchronously first)
+    // 2. Heavy snapshotting (we capture DOM state synchronously first, 
+    // and then send it to the background).
     try {
         const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY, event.target as Node)
 
@@ -374,27 +375,34 @@ function stopRecordingListeners() {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "START_RECORDING") {
-        // 1. Start session IMMEDIATELY 
+        if (isRecording || isStarting) {
+            sendResponse({ success: false, error: "Recording already in progress or starting" })
+            return true
+        }
+
+        isStarting = true
+
+        // 1. Capture the initial "start" snapshot SYNCHRONOUSLY to prevent race conditions
+        let initialSnapshot = null
+        try {
+            initialSnapshot = createSnapshot(EventType.START)
+        } catch (error) {
+            console.error("[Nexbit] Failed to capture initial snapshot:", error)
+            isStarting = false
+            sendResponse({ success: false, error: "Failed to capture initial snapshot" })
+            return true
+        }
+
+        // 2. Start session with the bundled snapshot
         chrome.runtime.sendMessage({
             type: "START_RECORDING_SESSION",
-            startTime: Date.now()
+            startTime: Date.now(),
+            firstSnapshot: initialSnapshot
         }, (response) => {
             if (response?.success) {
                 startRecordingListeners()
-
-                // 2. Capture and add the "start" snapshot asynchronously
-                setTimeout(() => {
-                    try {
-                        const firstSnapshot = createSnapshot(EventType.START)
-                        chrome.runtime.sendMessage({
-                            type: "ADD_SNAPSHOT",
-                            snapshot: firstSnapshot
-                        })
-                    } catch (error) {
-                        console.error("[Nexbit] Failed to capture initial snapshot:", error)
-                    }
-                }, 100)
             }
+            isStarting = false
             sendResponse(response)
         })
         return true
@@ -425,8 +433,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             // Check if this tab is the one being recorded (optional refinement later)
             const active = response?.isRecording || false
 
-            // Sync local state with background
-            if (active && !isRecording) {
+            // Sync local state with background, avoiding interruption if we're currently starting
+            if (active && !isRecording && !isStarting) {
                 startRecordingListeners()
             } else if (!active && isRecording) {
                 stopRecordingListeners()
@@ -446,33 +454,36 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // Listen for countdown completion from countdown-overlay.tsx
 window.addEventListener("nexbit-countdown-complete", () => {
-    // 1. Start session IMMEDIATELY without waiting for heavy snapshot
+    if (isRecording || isStarting) return
+
+    isStarting = true
+
+    // 1. Capture the initial "start" snapshot SYNCHRONOUSLY
+    let initialSnapshot = null
+    try {
+        initialSnapshot = createSnapshot(EventType.START)
+    } catch (error) {
+        console.error("[Nexbit] Failed to capture initial snapshot during countdown:", error)
+        isStarting = false
+        return
+    }
+
+    // 2. Start session bundled with the first snapshot
     chrome.runtime.sendMessage({
         type: "START_RECORDING_SESSION",
-        startTime: Date.now()
+        startTime: Date.now(),
+        firstSnapshot: initialSnapshot
     }, (response) => {
         if (response?.success) {
             startRecordingListeners()
-
-            // 2. Capture and add the "start" snapshot asynchronously
-            setTimeout(() => {
-                try {
-                    const firstSnapshot = createSnapshot(EventType.START)
-                    chrome.runtime.sendMessage({
-                        type: "ADD_SNAPSHOT",
-                        snapshot: firstSnapshot
-                    })
-                } catch (error) {
-                    console.error("[Nexbit] Failed to capture initial snapshot:", error)
-                }
-            }, 100)
         }
+        isStarting = false
     })
 })
 
 // Check status on script load to re-attach listeners if recording
 chrome.runtime.sendMessage({ type: "GET_RECORDING_STATE" }, (response) => {
-    if (response?.isRecording) {
+    if (response?.isRecording && !isRecording && !isStarting) {
         startRecordingListeners()
     }
 })

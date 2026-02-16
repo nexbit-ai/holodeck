@@ -19,9 +19,9 @@ const JWT_COOKIE_NAME = "stytch_session_jwt"
 function getJwtFromCookies(): string | null {
     const cookies = document.cookie.split(';')
     for (const cookie of cookies) {
-        const [name, value] = cookie.trim().split('=')
-        if (name === JWT_COOKIE_NAME && value) {
-            return decodeURIComponent(value)
+        const [name, ...rest] = cookie.trim().split('=')
+        if (name === JWT_COOKIE_NAME && rest.length > 0) {
+            return decodeURIComponent(rest.join('='))
         }
     }
     return null
