@@ -112,8 +112,19 @@ function IndexPopup() {
                     window.close()
                 } catch (uploadError: any) {
                     console.error("Retry upload failed:", uploadError)
-                    setError(uploadError.message || "Failed to upload recording")
-                    setPendingRecording(null) // Clear so we don't loop
+                    const errorMessage = uploadError.message || "Failed to upload recording"
+                    setError(errorMessage)
+
+                    // Only keep in storage if it's an auth failure (recoverable after login)
+                    const isAuthError = errorMessage.toLowerCase().includes("log in") ||
+                        errorMessage.toLowerCase().includes("authenticated") ||
+                        errorMessage.toLowerCase().includes("session expired")
+
+                    if (!isAuthError) {
+                        await clearPendingRecording()
+                    }
+
+                    setPendingRecording(null) // Clear React state so we don't loop
                     setState("idle")
                 }
             }
