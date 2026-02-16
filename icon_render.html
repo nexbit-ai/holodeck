@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { margin: 0; padding: 0; background: white; }
+  .icon {
+    width: 512px;
+    height: 512px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px;
+  }
+  .default { background: #C65A3A; }
+  .recording { background: #e11d48; }
+  .strip {
+    display: flex;
+    gap: 20px;
+  }
+  .block {
+    width: 80px;
+    height: 80px;
+    background: #F3E9DD;
+    border-radius: 16px;
+  }
+</style>
+</head>
+<body>
+  <div id="default" class="icon default">
+    <div class="strip">
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+    </div>
+  </div>
+  <div id="recording" class="icon recording">
+    <div class="strip">
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+    </div>
+  </div>
+</body>
+</html>

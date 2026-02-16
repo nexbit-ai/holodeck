@@ -157,6 +157,13 @@ function IndexPopup() {
                 return
             }
 
+            // Check if it's a restricted page
+            const restrictedPrefixes = ["chrome://", "about:", "https://chrome.google.com/webstore/", "chrome-extension://", "view-source:"]
+            if (tab.url && restrictedPrefixes.some(prefix => tab.url?.startsWith(prefix))) {
+                setError("Chrome pages are not allowed to record")
+                return
+            }
+
             // Show countdown overlay first
             chrome.tabs.sendMessage(tab.id, { type: "SHOW_COUNTDOWN" }, (response) => {
                 if (chrome.runtime.lastError) {
