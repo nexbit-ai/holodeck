@@ -20,7 +20,13 @@ let activeState: InternalRecordingState | null = null
 
 // Initial state
 async function getInitialState(): Promise<InternalRecordingState> {
-    if (activeState) return activeState
+    if (activeState) {
+        // Return a copy to prevent mutation of the cached reference
+        return {
+            ...activeState,
+            snapshots: [...activeState.snapshots]
+        }
+    }
 
     const data = await chrome.storage.local.get(STORAGE_KEY)
     const state = data[STORAGE_KEY] || {
@@ -35,7 +41,11 @@ async function getInitialState(): Promise<InternalRecordingState> {
         activeState = state
     }
 
-    return state
+    // Return a copy even when freshly loaded
+    return {
+        ...state,
+        snapshots: [...state.snapshots]
+    }
 }
 
 // Save state
@@ -52,6 +62,20 @@ async function saveState(state: InternalRecordingState) {
 async function clearState() {
     activeState = null
     await chrome.storage.local.remove(STORAGE_KEY)
+}
+
+// Queue for state updates to prevent race conditions
+let updateQueue: Promise<void> = Promise.resolve()
+
+async function queueUpdate(task: () => Promise<void>) {
+    updateQueue = updateQueue.then(async () => {
+        try {
+            await task()
+        } catch (error) {
+            console.error("[Nexbit] Error during queued update:", error)
+        }
+    })
+    return updateQueue
 }
 
 // Clear all authentication data
@@ -139,28 +163,35 @@ async function updateBadge(count: number | null) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
         if (message.type === "START_RECORDING_SESSION") {
-            activeState = {
-                isRecording: true,
-                tabId: sender.tab?.id || message.tabId || null,
-                startTime: message.startTime || Date.now(),
-                snapshots: message.firstSnapshot ? [message.firstSnapshot] : [],
-                version: "2.0"
-            }
-            await saveState(activeState)
-            startPulsingIcon()
-            // Always initialize badge to 0 at start (even if snapshots are empty)
-            updateBadge(activeState.snapshots.length)
-            sendResponse({ success: true })
+            await queueUpdate(async () => {
+                const newState = {
+                    isRecording: true,
+                    tabId: sender.tab?.id || message.tabId || null,
+                    startTime: message.startTime || Date.now(),
+                    snapshots: message.firstSnapshot ? [message.firstSnapshot] : [],
+                    version: "2.0"
+                }
+                await saveState(newState)
+                startPulsingIcon()
+                // Always initialize badge to 0 at start (even if snapshots are empty)
+                updateBadge(newState.snapshots.length)
+                sendResponse({ success: true })
+            })
         }
 
         else if (message.type === "ADD_SNAPSHOT") {
-            const state = await getInitialState()
-            if (state.isRecording) {
-                state.snapshots.push(message.snapshot)
-                await saveState(state)
-                updateBadge(state.snapshots.length)
-            }
-            sendResponse({ success: true })
+            await queueUpdate(async () => {
+                const state = await getInitialState()
+                if (state.isRecording) {
+                    const updatedState = {
+                        ...state,
+                        snapshots: [...state.snapshots, message.snapshot]
+                    }
+                    await saveState(updatedState)
+                    updateBadge(updatedState.snapshots.length)
+                }
+                sendResponse({ success: true })
+            })
         }
 
         else if (message.type === "GET_RECORDING_STATE") {
@@ -169,25 +200,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         else if (message.type === "STOP_RECORDING_SESSION") {
-            const state = await getInitialState()
-            const finalRecording = state.isRecording ? {
-                version: state.version,
-                startTime: state.startTime,
-                snapshots: [...state.snapshots] // Copy to be safe
-            } : null
+            await queueUpdate(async () => {
+                const state = await getInitialState()
+                const finalRecording = state.isRecording ? {
+                    version: state.version,
+                    startTime: state.startTime,
+                    snapshots: [...state.snapshots] // Copy to be safe
+                } : null
 
-            await clearState()
-            stopPulsingIcon()
-            updateBadge(null)
+                await clearState()
+                stopPulsingIcon()
+                updateBadge(null)
 
-            if (finalRecording) {
-                sendResponse({
-                    success: true,
-                    recording: finalRecording
-                })
-            } else {
-                sendResponse({ success: false, error: "No active recording" })
-            }
+                if (finalRecording) {
+                    sendResponse({
+                        success: true,
+                        recording: finalRecording
+                    })
+                } else {
+                    sendResponse({ success: false, error: "No active recording" })
+                }
+            })
         }
 
         else if (message.type === "CANCEL_RECORDING_SESSION") {
