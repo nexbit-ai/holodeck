@@ -586,97 +586,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     },
 
     analyzeDemo: async () => {
-        const { clickRecording, recordingId, isAnalyzing } = get()
-        if (!clickRecording || isAnalyzing) return
+        const { recordingId, isAnalyzing } = get()
+        if (!recordingId || isAnalyzing) return
 
         set({ isAnalyzing: true })
 
         try {
             const { recordingService } = await import('../services/recordingService')
-            const snapshots = [...clickRecording.snapshots]
 
-            // 1. Analyze first screen for demo title/description
-            const firstSnapshot = snapshots.find(s => s.type === EventType.CLICK || s.type === 'click')
-            if (firstSnapshot) {
-                try {
-                    const demoInfo = await recordingService.analyze({
-                        html: firstSnapshot.html,
-                        type: 'demo_info'
-                    })
+            // Call the backend to perform all analysis
+            const updatedRecording = await recordingService.analyzeRecording(recordingId)
 
-                    // Update cover slide if it exists
-                    const coverIndex = snapshots.findIndex(s => s.type === EventType.COVER || s.type === 'cover')
-                    if (coverIndex !== -1) {
-                        snapshots[coverIndex] = {
-                            ...snapshots[coverIndex],
-                            title: demoInfo.title || snapshots[coverIndex].title,
-                            description: demoInfo.description || snapshots[coverIndex].description
-                        }
-                    }
-
-                    // Update the recording name in the backend if title is generated
-                    if (demoInfo.title && recordingId) {
-                        try {
-                            await recordingService.updateRecording(recordingId, {
-                                name: demoInfo.title
-                            })
-                            set({ recordingName: demoInfo.title })
-                            console.log('[Store] Recording name updated to:', demoInfo.title)
-                        } catch (e) {
-                            console.error('[Store] Failed to update recording name:', e)
-                        }
-                    }
-                } catch (e) {
-                    console.error('[Store] Failed to analyze demo info:', e)
-                }
-            }
-
-            // 2. Analyze each click for labels and scripts
-            // We'll do this in parallel but with a small limit if there are many slides
-            const demoTitle = snapshots.find(s => s.type === EventType.COVER || s.type === 'cover')?.title || '';
-
-            const analysisPromises = snapshots.map(async (snapshot, index) => {
-                if (snapshot.type !== EventType.CLICK && snapshot.type !== 'click') return
-
-                try {
-                    const stepInfo = await recordingService.analyze({
-                        html: snapshot.html,
-                        context: {
-                            clickX: snapshot.clickX,
-                            clickY: snapshot.clickY,
-                            viewportWidth: snapshot.viewportWidth,
-                            viewportHeight: snapshot.viewportHeight,
-                            url: snapshot.url,
-                            demoTitle // Pass the demo title for better storytelling context
-                        },
-                        type: 'step_info'
-                    })
-
-                    const currentAnnotation = snapshots[index].annotation || { label: '', script: '' }
-                    snapshots[index] = {
-                        ...snapshots[index],
-                        annotation: {
-                            ...currentAnnotation,
-                            label: stepInfo.label || currentAnnotation.label,
-                            script: stepInfo.script || currentAnnotation.script
-                        }
-                    }
-                } catch (e) {
-                    console.error(`[Store] Failed to analyze step ${index}:`, e)
-                }
-            })
-
-            await Promise.all(analysisPromises)
-
-            set({
-                clickRecording: {
-                    ...clickRecording,
-                    snapshots
-                }
-            })
-
-            if (recordingId) {
-                get().saveRecording()
+            if (updatedRecording && updatedRecording.events) {
+                const currentRecording = get().clickRecording
+                set({
+                    clickRecording: {
+                        ...currentRecording,
+                        ...updatedRecording,
+                        snapshots: updatedRecording.events
+                    } as AnnotatedRecording,
+                    recordingName: updatedRecording.name
+                })
+                console.log('[Store] Recording analyzed and updated from backend')
             }
         } catch (error) {
             console.error('[Store] Error during AI analysis:', error)
@@ -687,49 +618,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     generateAiScript: async (snapshotIndex: number) => {
         const { clickRecording, recordingId } = get()
-        if (!clickRecording) return
+        if (!clickRecording || !recordingId) return
 
         const snapshot = clickRecording.snapshots[snapshotIndex]
         if (!snapshot || (snapshot.type !== 'click' && snapshot.type !== EventType.CLICK)) return
 
-        try {
-            const { recordingService } = await import('../services/recordingService')
-            const stepInfo = await recordingService.analyze({
-                html: snapshot.html,
-                context: {
-                    clickX: snapshot.clickX,
-                    clickY: snapshot.clickY,
-                    viewportWidth: snapshot.viewportWidth,
-                    viewportHeight: snapshot.viewportHeight,
-                    url: snapshot.url
-                },
-                type: 'step_info'
-            })
-
-            const currentAnnotation = snapshot.annotation || { label: '', script: '' }
-            const updatedSnapshots = [...clickRecording.snapshots]
-            updatedSnapshots[snapshotIndex] = {
-                ...updatedSnapshots[snapshotIndex],
-                annotation: {
-                    ...currentAnnotation,
-                    label: stepInfo.label || currentAnnotation.label,
-                    script: stepInfo.script || currentAnnotation.script
-                }
-            }
-
-            set({
-                clickRecording: {
-                    ...clickRecording,
-                    snapshots: updatedSnapshots
-                }
-            })
-
-            if (recordingId) {
-                get().saveRecording()
-            }
-        } catch (error) {
-            console.error('[Store] AI Script generation failed:', error)
-        }
+        // For now, we'll use analyzeDemo to refresh everything or we could implement a single step backend analyze
+        // Given the goal is to move logic to backend, let's just trigger a full analysis for now as it's cleaner
+        await get().analyzeDemo()
     },
     setIsPreviewMode: (active) => {
         set({ isPreviewMode: active })
