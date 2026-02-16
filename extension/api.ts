@@ -1,7 +1,7 @@
 // API service for recording uploads
 
-const API_URL = "https://api-studio.nexbit.ai"
-const APP_URL = "https://studio.nexbit.ai"
+const API_URL = "http://localhost:8000"
+const APP_URL = "http://localhost:3000"
 const STYTCH_SESSION_JWT = process.env.PLASMO_PUBLIC_STYTCH_SESSION_JWT || ""
 
 // Storage keys for auth

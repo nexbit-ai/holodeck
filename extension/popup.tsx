@@ -423,7 +423,7 @@ function IndexPopup() {
                         </div>
                         <h2 className="text-base font-semibold text-gray-800 mb-1">Recording...</h2>
                         <div className="text-2xl font-mono font-bold text-terracotta mb-3">
-                            {formatTime(elapsedTime)}
+                            {elapsedTime > 0 ? formatTime(elapsedTime) : "Preparing..."}
                         </div>
                         <button
                             onClick={stopRecording}

@@ -51,39 +51,27 @@ function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): v
     const walker = document.createTreeWalker(liveRoot, NodeFilter.SHOW_ELEMENT)
     const cloneWalker = document.createTreeWalker(clonedRoot, NodeFilter.SHOW_ELEMENT)
 
-    // Essential styles to copy for layout and appearance
+    // Essential styles to copy for layout and appearance - narrowed down to most impactful
     const stylesToCopy = [
         // Layout
         'display', 'position', 'top', 'left', 'right', 'bottom',
         'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-        'box-sizing', 'vertical-align', 'z-index', 'overflow', 'overflow-x', 'overflow-y',
+        'margin', 'padding', 'box-sizing', 'vertical-align', 'z-index', 'overflow',
 
-        // Flexbox
-        'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
-        'align-content', 'align-items', 'align-self', 'justify-content', 'justify-items', 'justify-self', 'order',
-
-        // Grid
-        'grid', 'grid-area', 'grid-auto-columns', 'grid-auto-flow', 'grid-auto-rows',
-        'grid-column', 'grid-column-end', 'grid-column-gap', 'grid-column-start',
-        'grid-gap', 'grid-row', 'grid-row-end', 'grid-row-gap', 'grid-row-start',
-        'grid-template', 'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
-        'gap', 'row-gap', 'column-gap',
+        // Flexbox & Grid
+        'flex', 'flex-direction', 'flex-wrap', 'align-items', 'justify-content', 'gap',
+        'grid-template-columns', 'grid-template-rows', 'grid-area',
 
         // Appearance
-        'background-color', 'background-image', 'background-position', 'background-repeat', 'background-size',
-        'border', 'border-radius', 'border-color', 'border-style', 'border-width',
-        'box-shadow', 'opacity', 'visibility', 'clip', 'clip-path',
+        'background-color', 'background-image', 'background-size',
+        'border', 'border-radius', 'box-shadow', 'opacity', 'visibility',
 
         // Typography
-        'color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
-        'text-align', 'text-decoration', 'text-indent', 'text-overflow', 'text-shadow',
-        'text-transform', 'white-space', 'word-break', 'word-spacing', 'word-wrap',
+        'color', 'font-family', 'font-size', 'font-weight', 'line-height',
+        'text-align', 'text-overflow', 'white-space',
 
         // Effects
-        'transform', 'transform-origin', 'filter', 'backdrop-filter', 'mix-blend-mode',
-        'cursor', 'pointer-events', 'user-select'
+        'transform', 'filter', 'backdrop-filter', 'pointer-events'
     ]
 
     let liveEl = walker.nextNode() as HTMLElement | null
@@ -96,20 +84,21 @@ function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): v
         }
 
         const computedStyles = window.getComputedStyle(liveEl)
+        const display = computedStyles.display
 
-        if (computedStyles.display !== 'none' || liveEl.tagName === 'STYLE' || liveEl.tagName === 'LINK') {
+        if (display !== 'none' || liveEl.tagName === 'STYLE' || liveEl.tagName === 'LINK') {
             const rect = liveEl.getBoundingClientRect()
             clonedEl.setAttribute('data-ai-x', Math.round(rect.left).toString())
             clonedEl.setAttribute('data-ai-y', Math.round(rect.top).toString())
             clonedEl.setAttribute('data-ai-w', Math.round(rect.width).toString())
             clonedEl.setAttribute('data-ai-h', Math.round(rect.height).toString())
 
-            for (let j = 0; j < stylesToCopy.length; j++) {
-                const prop = stylesToCopy[j]
+            // Optimization: Only copy styles if they differ from common defaults
+            for (const prop of stylesToCopy) {
                 const value = computedStyles.getPropertyValue(prop)
-
-                // Only set if value is non-default and meaningful
-                if (value && value !== '' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'none' && value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') {
+                if (value && value !== '' && value !== 'normal' && value !== 'none' &&
+                    value !== 'auto' && value !== '0px' && value !== 'rgba(0, 0, 0, 0)' &&
+                    value !== 'transparent' && value !== '0px none rgb(0, 0, 0)') {
                     clonedEl.style.setProperty(prop, value)
                 }
             }
@@ -117,7 +106,11 @@ function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): v
 
         // Handle Shadow DOM
         if (liveEl.shadowRoot && clonedEl.shadowRoot) {
-            inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot, targetNode)
+            try {
+                inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot, targetNode)
+            } catch (e) {
+                console.warn("[Nexbit] Failed to inline shadow styles:", e)
+            }
         }
 
         liveEl = walker.nextNode() as HTMLElement | null
@@ -399,6 +392,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             startTime: Date.now(),
             firstSnapshot: initialSnapshot
         }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error("[Nexbit] Failed to start recording session:", chrome.runtime.lastError)
+                isStarting = false
+                sendResponse({ success: false, error: "Failed to communicate with background script" })
+                return
+            }
             if (response?.success) {
                 startRecordingListeners()
             }
@@ -474,6 +473,11 @@ window.addEventListener("nexbit-countdown-complete", () => {
         startTime: Date.now(),
         firstSnapshot: initialSnapshot
     }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error("[Nexbit] Failed to start recording after countdown:", chrome.runtime.lastError)
+            isStarting = false
+            return
+        }
         if (response?.success) {
             startRecordingListeners()
         }
