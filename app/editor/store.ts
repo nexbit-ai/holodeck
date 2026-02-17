@@ -599,11 +599,79 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
             if (updatedRecording && updatedRecording.events) {
                 const currentRecording = get().clickRecording
+                
+                // Preserve cover and end slides from current recording if they exist
+                const currentCoverSlide = currentRecording?.snapshots.find(
+                    s => s.type === 'cover' || s.type === EventType.COVER
+                )
+                const currentEndSlide = currentRecording?.snapshots.find(
+                    s => s.type === 'end' || s.type === EventType.END
+                )
+                
+                // Start with events from backend
+                let finalSnapshots = [...updatedRecording.events]
+                
+                // Add cover slide if it doesn't exist in backend response but exists in current recording
+                const hasCoverInBackend = finalSnapshots.some(
+                    s => s.type === 'cover' || s.type === EventType.COVER
+                )
+                if (!hasCoverInBackend && currentCoverSlide) {
+                    // Preserve the cover slide from current recording
+                    finalSnapshots = [currentCoverSlide, ...finalSnapshots]
+                } else if (!hasCoverInBackend && finalSnapshots.length > 0) {
+                    // If no cover slide exists at all, create one from first snapshot (same logic as loadRecording)
+                    const firstSnapshot = finalSnapshots[0]
+                    const coverSlide: AnnotatedSnapshot = {
+                        ...firstSnapshot,
+                        type: EventType.COVER,
+                        // Cover title should reflect the demo name (if provided)
+                        title: updatedRecording.name || firstSnapshot.title || 'Welcome to the Demo',
+                        description: firstSnapshot.description || 'Click Get Started to begin',
+                        timestamp: firstSnapshot.timestamp - 1000,
+                    }
+                    finalSnapshots = [coverSlide, ...finalSnapshots]
+                }
+
+                // Ensure cover title always matches the demo name after analysis
+                if (updatedRecording.name) {
+                    const coverIndex = finalSnapshots.findIndex(
+                        s => s.type === 'cover' || s.type === EventType.COVER
+                    )
+                    if (coverIndex !== -1) {
+                        finalSnapshots = [...finalSnapshots]
+                        finalSnapshots[coverIndex] = {
+                            ...(finalSnapshots[coverIndex] as AnnotatedSnapshot),
+                            title: updatedRecording.name,
+                        }
+                    }
+                }
+                
+                // Add end slide if it doesn't exist in backend response but exists in current recording
+                const hasEndInBackend = finalSnapshots.some(
+                    s => s.type === 'end' || s.type === EventType.END
+                )
+                if (!hasEndInBackend && currentEndSlide) {
+                    // Preserve the end slide from current recording
+                    finalSnapshots = [...finalSnapshots, currentEndSlide]
+                } else if (!hasEndInBackend && finalSnapshots.length > 0) {
+                    // If no end slide exists at all, create one from last snapshot (same logic as loadRecording)
+                    const lastSnapshot = finalSnapshots[finalSnapshots.length - 1]
+                    const endSlide: AnnotatedSnapshot = {
+                        ...lastSnapshot,
+                        type: EventType.END,
+                        title: lastSnapshot.title || 'Enjoyed the guided demo?',
+                        description: lastSnapshot.description || 'See more features on our website',
+                        ctaLink: lastSnapshot.ctaLink || 'https://www.adopt.ai/',
+                        timestamp: lastSnapshot.timestamp + 10000,
+                    }
+                    finalSnapshots = [...finalSnapshots, endSlide]
+                }
+                
                 set({
                     clickRecording: {
                         ...currentRecording,
                         ...updatedRecording,
-                        snapshots: updatedRecording.events
+                        snapshots: finalSnapshots
                     } as AnnotatedRecording,
                     recordingName: updatedRecording.name
                 })

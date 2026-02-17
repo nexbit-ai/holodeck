@@ -51,27 +51,39 @@ function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): v
     const walker = document.createTreeWalker(liveRoot, NodeFilter.SHOW_ELEMENT)
     const cloneWalker = document.createTreeWalker(clonedRoot, NodeFilter.SHOW_ELEMENT)
 
-    // Essential styles to copy for layout and appearance - narrowed down to most impactful
+    // Essential styles to copy for layout and appearance
     const stylesToCopy = [
         // Layout
         'display', 'position', 'top', 'left', 'right', 'bottom',
         'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-        'margin', 'padding', 'box-sizing', 'vertical-align', 'z-index', 'overflow',
+        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'box-sizing', 'vertical-align', 'z-index', 'overflow', 'overflow-x', 'overflow-y',
 
-        // Flexbox & Grid
-        'flex', 'flex-direction', 'flex-wrap', 'align-items', 'justify-content', 'gap',
-        'grid-template-columns', 'grid-template-rows', 'grid-area',
+        // Flexbox
+        'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
+        'align-content', 'align-items', 'align-self', 'justify-content', 'justify-items', 'justify-self', 'order',
+
+        // Grid
+        'grid', 'grid-area', 'grid-auto-columns', 'grid-auto-flow', 'grid-auto-rows',
+        'grid-column', 'grid-column-end', 'grid-column-gap', 'grid-column-start',
+        'grid-gap', 'grid-row', 'grid-row-end', 'grid-row-gap', 'grid-row-start',
+        'grid-template', 'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
+        'gap', 'row-gap', 'column-gap',
 
         // Appearance
-        'background-color', 'background-image', 'background-size',
-        'border', 'border-radius', 'box-shadow', 'opacity', 'visibility',
+        'background-color', 'background-image', 'background-position', 'background-repeat', 'background-size',
+        'border', 'border-radius', 'border-color', 'border-style', 'border-width',
+        'box-shadow', 'opacity', 'visibility', 'clip', 'clip-path',
 
         // Typography
-        'color', 'font-family', 'font-size', 'font-weight', 'line-height',
-        'text-align', 'text-overflow', 'white-space',
+        'color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+        'text-align', 'text-decoration', 'text-indent', 'text-overflow', 'text-shadow',
+        'text-transform', 'white-space', 'word-break', 'word-spacing', 'word-wrap',
 
         // Effects
-        'transform', 'filter', 'backdrop-filter', 'pointer-events'
+        'transform', 'transform-origin', 'filter', 'backdrop-filter', 'mix-blend-mode',
+        'cursor', 'pointer-events', 'user-select'
     ]
 
     let liveEl = walker.nextNode() as HTMLElement | null
@@ -84,21 +96,20 @@ function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): v
         }
 
         const computedStyles = window.getComputedStyle(liveEl)
-        const display = computedStyles.display
 
-        if (display !== 'none' || liveEl.tagName === 'STYLE' || liveEl.tagName === 'LINK') {
+        if (computedStyles.display !== 'none' || liveEl.tagName === 'STYLE' || liveEl.tagName === 'LINK') {
             const rect = liveEl.getBoundingClientRect()
             clonedEl.setAttribute('data-ai-x', Math.round(rect.left).toString())
             clonedEl.setAttribute('data-ai-y', Math.round(rect.top).toString())
             clonedEl.setAttribute('data-ai-w', Math.round(rect.width).toString())
             clonedEl.setAttribute('data-ai-h', Math.round(rect.height).toString())
 
-            // Optimization: Only copy styles if they differ from common defaults
-            for (const prop of stylesToCopy) {
+            for (let j = 0; j < stylesToCopy.length; j++) {
+                const prop = stylesToCopy[j]
                 const value = computedStyles.getPropertyValue(prop)
-                if (value && value !== '' && value !== 'normal' && value !== 'none' &&
-                    value !== 'auto' && value !== '0px' && value !== 'rgba(0, 0, 0, 0)' &&
-                    value !== 'transparent' && value !== '0px none rgb(0, 0, 0)') {
+
+                // Only set if value is non-default and meaningful
+                if (value && value !== '' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'none' && value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') {
                     clonedEl.style.setProperty(prop, value)
                 }
             }
@@ -106,11 +117,7 @@ function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): v
 
         // Handle Shadow DOM
         if (liveEl.shadowRoot && clonedEl.shadowRoot) {
-            try {
-                inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot, targetNode)
-            } catch (e) {
-                console.warn("[Nexbit] Failed to inline shadow styles:", e)
-            }
+            inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot, targetNode)
         }
 
         liveEl = walker.nextNode() as HTMLElement | null
@@ -259,7 +266,7 @@ function captureDOM(targetNode?: Node): string {
     // Inline computed styles and mark target for all elements
     inlineAllStyles(document.documentElement, docClone, targetNode)
 
-    // Helper to process clones (remove scripts, links, etc)
+    // Helper to process clones (remove scripts, links, extension overlay, etc)
     function processClone(root: Node) {
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
         const removals: Element[] = []
@@ -269,6 +276,11 @@ function captureDOM(targetNode?: Node): string {
             if (el.tagName === 'SCRIPT' ||
                 el.tagName === 'IFRAME' ||
                 (el.tagName === 'LINK' && (el.getAttribute('rel') === 'stylesheet' || el.getAttribute('rel')?.includes('preload')))) {
+                removals.push(el)
+            }
+            // Exclude extension recording UI (countdown overlay, "Recording area" pill, stop button)
+            const className = el.getAttribute('class') || ''
+            if (el.getAttribute('data-nexbit-recording-overlay') !== null || className.includes('countdown-overlay')) {
                 removals.push(el)
             }
 
@@ -392,12 +404,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             startTime: Date.now(),
             firstSnapshot: initialSnapshot
         }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error("[Nexbit] Failed to start recording session:", chrome.runtime.lastError)
-                isStarting = false
-                sendResponse({ success: false, error: "Failed to communicate with background script" })
-                return
-            }
             if (response?.success) {
                 startRecordingListeners()
             }
@@ -473,11 +479,6 @@ window.addEventListener("nexbit-countdown-complete", () => {
         startTime: Date.now(),
         firstSnapshot: initialSnapshot
     }, (response) => {
-        if (chrome.runtime.lastError) {
-            console.error("[Nexbit] Failed to start recording after countdown:", chrome.runtime.lastError)
-            isStarting = false
-            return
-        }
         if (response?.success) {
             startRecordingListeners()
         }

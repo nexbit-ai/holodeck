@@ -162,119 +162,110 @@ async function updateBadge(count: number | null) {
 // Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
-        try {
-            if (message.type === "START_RECORDING_SESSION") {
-                await queueUpdate(async () => {
-                    const newState = {
-                        isRecording: true,
-                        tabId: sender.tab?.id || message.tabId || null,
-                        startTime: message.startTime || Date.now(),
-                        snapshots: message.firstSnapshot ? [message.firstSnapshot] : [],
-                        version: "2.0"
-                    }
-                    await saveState(newState)
-                    startPulsingIcon()
-                    // Always initialize badge to 0 at start (even if snapshots are empty)
-                    updateBadge(newState.snapshots.length)
-                    sendResponse({ success: true })
-                })
-            }
+        if (message.type === "START_RECORDING_SESSION") {
+            await queueUpdate(async () => {
+                const newState = {
+                    isRecording: true,
+                    tabId: sender.tab?.id || message.tabId || null,
+                    startTime: message.startTime || Date.now(),
+                    snapshots: message.firstSnapshot ? [message.firstSnapshot] : [],
+                    version: "2.0"
+                }
+                await saveState(newState)
+                startPulsingIcon()
+                // Always initialize badge to 0 at start (even if snapshots are empty)
+                updateBadge(newState.snapshots.length)
+                sendResponse({ success: true })
+            })
+        }
 
-            else if (message.type === "ADD_SNAPSHOT") {
-                await queueUpdate(async () => {
-                    const state = await getInitialState()
-                    if (state.isRecording) {
-                        const updatedState = {
-                            ...state,
-                            snapshots: [...state.snapshots, message.snapshot]
-                        }
-                        await saveState(updatedState)
-                        updateBadge(updatedState.snapshots.length)
-                    }
-                    sendResponse({ success: true })
-                })
-            }
-
-            else if (message.type === "GET_RECORDING_STATE") {
+        else if (message.type === "ADD_SNAPSHOT") {
+            await queueUpdate(async () => {
                 const state = await getInitialState()
-                sendResponse(state)
-            }
-
-            else if (message.type === "STOP_RECORDING_SESSION") {
-                await queueUpdate(async () => {
-                    const state = await getInitialState()
-                    const finalRecording = state.isRecording ? {
-                        version: state.version,
-                        startTime: state.startTime,
-                        snapshots: [...state.snapshots] // Copy to be safe
-                    } : null
-
-                    await clearState()
-                    stopPulsingIcon()
-                    updateBadge(null)
-
-                    if (finalRecording) {
-                        sendResponse({
-                            success: true,
-                            recording: finalRecording
-                        })
-                    } else {
-                        sendResponse({ success: false, error: "No active recording" })
+                if (state.isRecording) {
+                    const updatedState = {
+                        ...state,
+                        snapshots: [...state.snapshots, message.snapshot]
                     }
-                })
-            }
+                    await saveState(updatedState)
+                    updateBadge(updatedState.snapshots.length)
+                }
+                sendResponse({ success: true })
+            })
+        }
 
-            else if (message.type === "CANCEL_RECORDING_SESSION") {
+        else if (message.type === "GET_RECORDING_STATE") {
+            const state = await getInitialState()
+            sendResponse(state)
+        }
+
+        else if (message.type === "STOP_RECORDING_SESSION") {
+            await queueUpdate(async () => {
+                const state = await getInitialState()
+                const finalRecording = state.isRecording ? {
+                    version: state.version,
+                    startTime: state.startTime,
+                    snapshots: [...state.snapshots] // Copy to be safe
+                } : null
+
                 await clearState()
                 stopPulsingIcon()
                 updateBadge(null)
-                sendResponse({ success: true })
-            }
 
-            // Handle auth session detected from web app
-            else if (message.type === "AUTH_SESSION_DETECTED") {
-                if (message.sessionJwt) {
-                    // Store the session in chrome.storage.local
-                    await chrome.storage.local.set({
-                        "nexbit_stytch_session_token": message.sessionToken || "",
-                        "nexbit_stytch_session_jwt": message.sessionJwt,
-                        "nexbit_user_name": message.userName || null
+                if (finalRecording) {
+                    sendResponse({
+                        success: true,
+                        recording: finalRecording
                     })
+                } else {
+                    sendResponse({ success: false, error: "No active recording" })
                 }
-                sendResponse({ success: true })
-            }
+            })
+        }
 
-            // Handle auth session cleared from web app (logout)
-            else if (message.type === "AUTH_SESSION_CLEARED") {
-                await clearAuthStorage()
-                sendResponse({ success: true })
-            }
+        else if (message.type === "CANCEL_RECORDING_SESSION") {
+            await clearState()
+            stopPulsingIcon()
+            updateBadge(null)
+            sendResponse({ success: true })
+        }
 
-            // Backward compatibility / UI updates
-            else if (message.type === "RECORDING_STARTED") {
-                startPulsingIcon()
-                sendResponse({ success: true })
+        // Handle auth session detected from web app
+        else if (message.type === "AUTH_SESSION_DETECTED") {
+            if (message.sessionJwt) {
+                // Store the session in chrome.storage.local
+                await chrome.storage.local.set({
+                    "nexbit_stytch_session_token": message.sessionToken || "",
+                    "nexbit_stytch_session_jwt": message.sessionJwt,
+                    "nexbit_user_name": message.userName || null
+                })
             }
-            else if (message.type === "RECORDING_STOPPED") {
-                stopPulsingIcon()
-                updateBadge(null)
-                sendResponse({ success: true })
+            sendResponse({ success: true })
+        }
+
+        // Handle auth session cleared from web app (logout)
+        else if (message.type === "AUTH_SESSION_CLEARED") {
+            await clearAuthStorage()
+            sendResponse({ success: true })
+        }
+
+        // Backward compatibility / UI updates
+        else if (message.type === "RECORDING_STARTED") {
+            startPulsingIcon()
+            sendResponse({ success: true })
+        }
+        else if (message.type === "RECORDING_STOPPED") {
+            stopPulsingIcon()
+            updateBadge(null)
+            sendResponse({ success: true })
+        }
+        else if (message.type === "CLICK_RECORDED") {
+            const state = await getInitialState()
+            if (state.isRecording) {
+                // Optimistically update badge count (snapshots.length + 1 because this click isn't in state yet)
+                updateBadge(state.snapshots.length + 1)
             }
-            else if (message.type === "CLICK_RECORDED") {
-                const state = await getInitialState()
-                if (state.isRecording) {
-                    // Optimistically update badge count (snapshots.length + 1 because this click isn't in state yet)
-                    updateBadge(state.snapshots.length + 1)
-                }
-                sendResponse({ success: true })
-            }
-            else {
-                // Return success for unknown messages to avoid hanging senders
-                sendResponse({ success: false, error: "Unknown message type" })
-            }
-        } catch (error) {
-            console.error(`[Nexbit] Error handling message ${message.type}:`, error)
-            sendResponse({ success: false, error: error instanceof Error ? error.message : "Internal error" })
+            sendResponse({ success: true })
         }
     })()
 
