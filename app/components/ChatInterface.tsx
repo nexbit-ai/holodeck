@@ -257,27 +257,30 @@ export function ChatInterface({
         <div className={`flex flex-col h-full bg-surface overflow-hidden ${className}`}>
             {/* Chat Header */}
             {showHeader && (
-                <div className="bg-surface border-b px-4 py-4 flex items-center justify-between flex-shrink-0" style={{ borderColor: primaryColor + '20' }}>
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
+                <div className="bg-surface border-b px-6 py-5 flex items-center justify-between flex-shrink-0" style={{ borderColor: primaryColor + '10' }}>
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: primaryColor }}>
                             <Sparkles className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="font-semibold text-foreground">Nex AI Assistant</h2>
-                            <p className="text-xs text-foreground/60">Always here to help</p>
+                            <h2 className="font-bold text-foreground text-lg tracking-tight">Nex AI Assistant</h2>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                <p className="text-xs text-foreground/50 font-medium">Always online</p>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={handleClearChatClick}
                             disabled={isClearing}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-primary/20 text-foreground/70 hover:bg-primary/5 transition-colors disabled:opacity-50"
+                            className="px-4 py-2 rounded-xl text-xs font-bold border border-primary/10 text-foreground/60 hover:text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
                         >
-                            Clear chat
+                            Clear
                         </button>
-                        <button className="px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-primary/10 transition-colors flex items-center gap-1" style={{ backgroundColor: primaryColor + '10', color: primaryColor }}>
+                        <button className="btn-terracotta px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
                             Book Full Demo
-                            <ArrowRight className="w-3 h-3" />
+                            <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </div>
@@ -301,26 +304,30 @@ export function ChatInterface({
                             }
                         >
                             {message.sender === "nex" && (
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-semibold" style={{ color: secondaryColor }}>Nex</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+                                        <Sparkles className="w-3 h-3 text-primary" />
+                                    </div>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Nex Assistant</span>
                                 </div>
                             )}
-                            <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                            <p className="text-sm leading-relaxed">{message.text}</p>
                             {message.button && (
-                                <div className="mt-3">
+                                <div className="mt-4">
                                     <button
                                         onClick={message.button.action}
-                                        className="w-full px-4 py-2 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-sm"
-                                        style={{ backgroundColor: primaryColor }}
+                                        className="btn-terracotta w-full px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-md"
                                     >
                                         {message.button.text}
                                         <ArrowRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             )}
-                            <span className="text-xs opacity-70 mt-1 block" suppressHydrationWarning>
-                                {isMounted ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                            </span>
+                            <div className="flex items-center justify-end mt-2 opacity-40">
+                                <span className="text-[9px] font-medium tracking-wide uppercase" suppressHydrationWarning>
+                                    {isMounted ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -350,29 +357,27 @@ export function ChatInterface({
             </div>
 
             {/* Input Area */}
-            <div className="border-t p-4 flex-shrink-0" style={{ borderColor: primaryColor + '20' }}>
-                <div className="flex items-center gap-2">
+            <div className="p-6 bg-background/50 border-t border-primary/10 flex-shrink-0">
+                <div className="relative group">
                     <input
                         ref={inputRef}
                         type="text"
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Ask about pricing, integrations, features..."
-                        className="flex-1 px-4 py-2 bg-background border rounded-lg text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2"
-                        style={{ borderColor: primaryColor + '20', '--tw-ring-color': primaryColor + '40' } as React.CSSProperties}
+                        placeholder="Ask about pricing, integrations..."
+                        className="w-full pl-5 pr-14 py-4 bg-surface border border-primary/10 rounded-2xl text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all shadow-sm premium-surface"
                     />
                     <button
                         onClick={handleSendMessage}
                         disabled={!inputValue.trim()}
-                        className="p-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: primaryColor }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 btn-terracotta rounded-xl transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed group-hover:scale-105 active:scale-95"
                     >
                         <Send className="w-5 h-5" />
                     </button>
                 </div>
-                <p className="text-xs text-foreground/40 mt-2 text-center">
-                    Nex can help you explore demos and answer questions
+                <p className="text-[10px] text-foreground/30 mt-3 text-center uppercase font-bold tracking-widest">
+                    Nexbit AI Engine
                 </p>
             </div>
 

@@ -45,44 +45,52 @@ export default function ChatsPage() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
         {/* Header with Tabs */}
-        <div className="px-8 pt-6 pb-0 border-b border-primary/10 bg-surface z-10 sticky top-0">
-          <div className="flex items-center justify-between mb-6">
+        <div className="px-8 pt-8 pb-0 border-b border-primary/10 bg-background/80 backdrop-blur-md z-10 sticky top-0">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Chat</h1>
-              <p className="text-foreground/70">Manage your AI assistant settings and test them in the playground.</p>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2">
+                Chat <span className="text-primary">Assistant</span>
+              </h1>
+              <p className="text-foreground/50 font-medium">Fine-tune your AI's personality and knowledge base.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="px-4 py-2 bg-primary/10 rounded-xl border border-primary/10 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">Live on your site</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <button
               onClick={() => setActiveTab("settings")}
-              className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === "settings"
+              className={`pb-4 px-1 text-sm font-bold transition-all relative ${activeTab === "settings"
                 ? "text-primary"
-                : "text-foreground/60 hover:text-foreground"
+                : "text-foreground/40 hover:text-foreground/60"
                 }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <Settings className="w-4 h-4" />
                 Settings
               </div>
               {activeTab === "settings" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full shadow-[0_-2px_6px_rgba(176,90,54,0.3)]" />
               )}
             </button>
 
             <button
               onClick={() => setActiveTab("playground")}
-              className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === "playground"
+              className={`pb-4 px-1 text-sm font-bold transition-all relative ${activeTab === "playground"
                 ? "text-primary"
-                : "text-foreground/60 hover:text-foreground"
+                : "text-foreground/40 hover:text-foreground/60"
                 }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <Gamepad2 className="w-4 h-4" />
                 Playground
               </div>
               {activeTab === "playground" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full shadow-[0_-2px_6px_rgba(176,90,54,0.3)]" />
               )}
             </button>
           </div>
