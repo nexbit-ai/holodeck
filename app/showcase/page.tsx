@@ -269,38 +269,37 @@ export default function ShowcasePage() {
 
             <main className="flex-1 overflow-y-auto relative bg-background/50">
                 {/* Header */}
-                <div className="px-8 py-6 border-b border-primary/10 bg-surface">
-                    <div className="flex items-center justify-between mb-4">
+                <div className="px-8 pt-8 pb-0 border-b border-primary/10 bg-background/80 backdrop-blur-md z-10 sticky top-0">
+                    <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h1 className="text-3xl font-bold text-foreground">
-                                Agentic Showcase
+                            <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                                Agentic <span className="text-primary">Showcase</span>
                             </h1>
-                            <p className="text-foreground/70 mt-1">
+                            <p className="text-foreground/50 font-medium mt-1">
                                 Design and manage interactive experiences for your prospects.
                             </p>
                         </div>
                     </div>
 
-                    {/* Sub Navigation */}
-                    <div className="flex gap-8 mt-8">
+                    <div className="flex gap-8">
                         <button
                             onClick={() => {
                                 setActiveTab("home");
                                 setViewMode("tiles");
                             }}
-                            className={`pb-4 text-sm font-medium transition-all relative ${activeTab === "home" ? "text-primary" : "text-foreground/60 hover:text-foreground"
+                            className={`pb-4 text-sm font-bold transition-all relative ${activeTab === "home" ? "text-primary" : "text-foreground/40 hover:text-foreground/60"
                                 }`}
                         >
-                            Home
-                            {activeTab === "home" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
+                            Overview
+                            {activeTab === "home" && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full shadow-[0_-2px_6px_rgba(176,90,54,0.3)]" />}
                         </button>
                         <button
                             onClick={() => setActiveTab("performance")}
-                            className={`pb-4 text-sm font-medium transition-all relative ${activeTab === "performance" ? "text-primary" : "text-foreground/60 hover:text-foreground"
+                            className={`pb-4 text-sm font-bold transition-all relative ${activeTab === "performance" ? "text-primary" : "text-foreground/40 hover:text-foreground/60"
                                 }`}
                         >
                             Performance
-                            {activeTab === "performance" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />}
+                            {activeTab === "performance" && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full shadow-[0_-2px_6px_rgba(176,90,54,0.3)]" />}
                         </button>
                     </div>
                 </div>
@@ -320,7 +319,7 @@ export default function ShowcasePage() {
                                                 ctaText: "Book Full Demo",
                                                 ctaType: "Open Calendar"
                                             });
-                                            setPrimaryColor("#6366F1");
+                                            setPrimaryColor("#B05A36");
                                             setSecondaryColor("#10B981");
                                             setAccentColor("#F59E0B");
                                             setSelectedDemoContent(null);
@@ -329,14 +328,15 @@ export default function ShowcasePage() {
                                             setIsCreateMode(true);
                                             setViewMode("playground");
                                         }}
-                                        className="aspect-[4/3] bg-surface border-2 border-dashed border-primary/20 rounded-3xl flex flex-col items-center justify-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                                        className="aspect-[4/3] bg-background border-2 border-dashed border-primary/20 rounded-[2rem] flex flex-col items-center justify-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all group overflow-hidden relative shadow-sm hover:shadow-md"
                                     >
-                                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <div className="absolute inset-0 bg-primary/2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-500 shadow-inner">
                                             <Plus className="w-8 h-8 text-primary" />
                                         </div>
-                                        <div className="text-center">
-                                            <p className="font-bold text-foreground">Create New Showcase</p>
-                                            <p className="text-xs text-foreground/50">Start a new interaction</p>
+                                        <div className="text-center relative z-10">
+                                            <p className="font-bold text-foreground tracking-tight">Create New Showcase</p>
+                                            <p className="text-xs text-foreground/40 font-medium">Build a new experiment</p>
                                         </div>
                                     </button>
 
@@ -353,7 +353,7 @@ export default function ShowcasePage() {
                                         showcases.map((sh) => (
                                             <div
                                                 key={sh.id}
-                                                className="aspect-[4/3] bg-surface border border-primary/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col"
+                                                className="aspect-[4/3] premium-surface rounded-[2rem] overflow-hidden group flex flex-col transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1"
                                             >
                                                 <div
                                                     onClick={async () => {
@@ -366,7 +366,7 @@ export default function ShowcasePage() {
                                                             ctaText: "Book Full Demo",
                                                             ctaType: "Open Calendar"
                                                         });
-                                                        setPrimaryColor(sh.primaryColor || "#6366F1");
+                                                        setPrimaryColor(sh.primaryColor || "#B05A36");
                                                         setSecondaryColor(sh.secondaryColor || "#10B981");
                                                         setAccentColor(sh.accentColor || "#F59E0B");
                                                         setChatId(sh.chatId);
@@ -394,36 +394,37 @@ export default function ShowcasePage() {
 
                                                         setViewMode("playground");
                                                     }}
-                                                    className="h-1/2 bg-background/50 flex items-center justify-center relative cursor-pointer group/preview"
+                                                    className="h-1/2 bg-background/30 flex items-center justify-center relative cursor-pointer overflow-hidden"
                                                 >
-                                                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center group-hover/preview:scale-110 transition-transform">
-                                                        <Play className="w-6 h-6 text-primary" />
+                                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                                    <div className="w-14 h-14 bg-surface rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-500 relative z-10 border border-primary/5">
+                                                        <Play className="w-6 h-6 text-primary fill-current" />
                                                     </div>
                                                     {sh.live && (
-                                                        <div className="absolute top-4 right-4 px-2 py-1 bg-green-500/10 text-green-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                        <div className="absolute top-4 right-4 px-3 py-1 bg-green-500/10 text-green-600 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-green-500/20 backdrop-blur-md">
                                                             Live
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="flex-1 p-5 border-t border-primary/5 flex flex-col justify-between">
+                                                <div className="flex-1 p-6 flex flex-col justify-between">
                                                     <div>
-                                                        <h4 className="font-bold text-foreground truncate">{sh.title}</h4>
-                                                        <div className="flex flex-col gap-1 mt-1">
-                                                            <div className="flex items-center gap-1.5 text-[10px] text-foreground/40 font-medium">
-                                                                <Clock className="w-3 h-3" />
-                                                                Created {formatDate(sh.createdAt)}
+                                                        <h4 className="font-bold text-foreground text-lg leading-tight truncate tracking-tight">{sh.title}</h4>
+                                                        <div className="flex items-center gap-2 mt-2">
+                                                            <div className="flex items-center gap-1.5 text-[10px] text-foreground/40 font-bold uppercase tracking-wider">
+                                                                <Clock className="w-3.5 h-3.5" />
+                                                                {formatDate(sh.createdAt)}
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 mt-4">
+                                                    <div className="flex items-center gap-3 mt-6">
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setSelectedShareShowcase(sh);
                                                                 setShowShareModal(true);
                                                             }}
-                                                            className="flex-1 bg-primary/10 text-primary py-2 rounded-xl text-xs font-bold hover:bg-primary/20 transition-all flex items-center justify-center gap-1.5"
+                                                            className="flex-1 bg-primary/10 text-primary py-2.5 rounded-xl text-xs font-bold hover:bg-primary/20 transition-all flex items-center justify-center gap-2 border border-primary/10"
                                                         >
                                                             <Share2 className="w-3.5 h-3.5" />
                                                             Share
@@ -433,10 +434,9 @@ export default function ShowcasePage() {
                                                                 e.stopPropagation();
                                                                 setActiveTab("performance");
                                                             }}
-                                                            className="flex-1 bg-surface border border-primary/10 text-foreground/70 py-2 rounded-xl text-xs font-bold hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
+                                                            className="p-2.5 bg-background border border-primary/10 text-foreground/50 rounded-xl hover:text-primary hover:border-primary/30 transition-all"
                                                         >
-                                                            <BarChart3 className="w-3.5 h-3.5" />
-                                                            Analytics
+                                                            <BarChart3 className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -715,61 +715,64 @@ export default function ShowcasePage() {
 
                                 return (
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                        <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                                                    <Users className="w-5 h-5 text-blue-500" />
+                                        <div className="premium-surface p-8 rounded-[2rem] relative overflow-hidden group">
+                                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all duration-500" />
+                                            <div className="flex items-center gap-5 mb-6">
+                                                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center shadow-inner">
+                                                    <Users className="w-6 h-6 text-blue-500" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-foreground/50">Total Views</p>
-                                                    <p className="text-2xl font-bold">{totalViews.toLocaleString()}</p>
+                                                    <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">Total Views</p>
+                                                    <p className="text-3xl font-bold tracking-tight">{totalViews.toLocaleString()}</p>
                                                 </div>
                                             </div>
-                                            <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
-                                                <div className="h-full bg-blue-500" style={{ width: `${Math.min((totalViews / 100) * 100, 100)}%` }} />
+                                            <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" style={{ width: `${Math.min((totalViews / 100) * 100, 100)}%` }} />
                                             </div>
                                         </div>
-                                        <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-                                                    <BarChart3 className="w-5 h-5 text-green-500" />
+                                        <div className="premium-surface p-8 rounded-[2rem] relative overflow-hidden group">
+                                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-green-500/5 rounded-full blur-2xl group-hover:bg-green-500/10 transition-all duration-500" />
+                                            <div className="flex items-center gap-5 mb-6">
+                                                <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center shadow-inner">
+                                                    <BarChart3 className="w-6 h-6 text-green-500" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-foreground/50">Total Clicks</p>
-                                                    <p className="text-2xl font-bold">{totalClicks.toLocaleString()}</p>
+                                                    <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">Total Clicks</p>
+                                                    <p className="text-3xl font-bold tracking-tight">{totalClicks.toLocaleString()}</p>
                                                 </div>
                                             </div>
-                                            <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
-                                                <div className="h-full bg-green-500" style={{ width: `${Math.min((totalClicks / Math.max(totalViews, 1)) * 100, 100)}%` }} />
+                                            <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" style={{ width: `${Math.min((totalClicks / Math.max(totalViews, 1)) * 100, 100)}%` }} />
                                             </div>
                                         </div>
-                                        <div className="bg-surface p-6 rounded-2xl border border-primary/10 shadow-sm">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
-                                                    <Share2 className="w-5 h-5 text-purple-500" />
+                                        <div className="premium-surface p-8 rounded-[2rem] relative overflow-hidden group">
+                                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-all duration-500" />
+                                            <div className="flex items-center gap-5 mb-6">
+                                                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-inner">
+                                                    <Share2 className="w-6 h-6 text-primary" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-foreground/50">Active This Week</p>
-                                                    <p className="text-2xl font-bold">{thisWeekShares}</p>
+                                                    <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">Active Week</p>
+                                                    <p className="text-3xl font-bold tracking-tight">{thisWeekShares}</p>
                                                 </div>
                                             </div>
-                                            <div className="h-1 bg-foreground/5 rounded-full overflow-hidden">
-                                                <div className="h-full bg-purple-500" style={{ width: `${Math.min((thisWeekShares / Math.max(showcases.length, 1)) * 100, 100)}%` }} />
+                                            <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-primary shadow-[0_0_8px_rgba(176,90,54,0.5)]" style={{ width: `${Math.min((thisWeekShares / Math.max(showcases.length, 1)) * 100, 100)}%` }} />
                                             </div>
                                         </div>
                                     </div>
                                 );
                             })()}
 
-                            <div className="bg-surface rounded-2xl border border-primary/10 shadow-sm overflow-hidden">
+                            <div className="premium-surface rounded-[2rem] border border-primary/10 shadow-sm overflow-hidden">
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="bg-primary/5">
-                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Showcase Title</th>
-                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Views</th>
-                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Clicks</th>
-                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60">Last Opened</th>
-                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-foreground/60 text-right">Actions</th>
+                                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Showcase Title</th>
+                                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Views</th>
+                                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Clicks</th>
+                                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Last Opened</th>
+                                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-primary/5">
@@ -936,8 +939,8 @@ export default function ShowcasePage() {
                                             <button
                                                 onClick={() => selectedShareShowcase && handleCopyIframe(selectedShareShowcase)}
                                                 className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 flex-shrink-0 ${copiedIframe
-                                                        ? 'bg-green-500 text-white'
-                                                        : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                                    ? 'bg-green-500 text-white'
+                                                    : 'bg-primary/10 text-primary hover:bg-primary/20'
                                                     }`}
                                             >
                                                 {copiedIframe ? (

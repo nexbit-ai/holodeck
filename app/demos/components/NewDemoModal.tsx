@@ -17,11 +17,11 @@ export function NewDemoModal({ isOpen, onClose }: NewDemoModalProps) {
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300">
             <div
-                className="bg-surface border border-primary/10 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[90vh]"
+                className="bg-surface premium-surface border-none rounded-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[90vh] shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-8 py-6 border-b border-primary/10 bg-surface/50">
+                <div className="flex items-center justify-between px-8 py-6 border-b border-primary/10 bg-surface">
                     <h2 className="text-2xl font-bold text-foreground">Create New Demo</h2>
                     <button
                         onClick={onClose}
@@ -43,7 +43,7 @@ export function NewDemoModal({ isOpen, onClose }: NewDemoModalProps) {
                             href="https://chromewebstore.google.com/detail/mnjgjmfmfeoaeajgbbnnadomdfnjehkc"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-primary rounded-xl text-white font-semibold text-lg hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            className="btn-terracotta group relative inline-flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg"
                         >
                             <Chrome className="w-6 h-6" />
                             <span>Install Chrome Extension</span>
@@ -129,12 +129,12 @@ export function NewDemoModal({ isOpen, onClose }: NewDemoModalProps) {
                     <div className="mt-10 border border-primary/10 rounded-xl overflow-hidden">
                         <button
                             onClick={() => setShowTroubleshooting(!showTroubleshooting)}
-                            className="w-full flex items-center justify-between px-6 py-4 bg-primary/5 hover:bg-primary/10 transition-colors text-left"
+                            className="w-full flex items-center justify-between px-6 py-4 bg-primary/5 hover:bg-primary/10 transition-colors text-left group"
                         >
-                            <span className="font-semibold text-primary">Can't find the extension icon?</span>
-                            <div className={`transform transition-transform duration-200 ${showTroubleshooting ? 'rotate-180' : ''}`}>
+                            <span className="font-bold text-primary group-hover:translate-x-1 transition-transform inline-block">Can't find the extension icon?</span>
+                            <div className={`transform transition-transform duration-300 ${showTroubleshooting ? 'rotate-180' : ''}`}>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
                         </button>

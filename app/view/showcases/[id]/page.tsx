@@ -209,69 +209,86 @@ export default function PublicShowcasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex" style={{
+    <div className="min-h-screen bg-background flex flex-col" style={{
       '--showcase-primary': primaryColor,
       '--showcase-secondary': secondaryColor,
       '--showcase-accent': accentColor
     } as React.CSSProperties}>
+      {/* Header for Public View */}
+      <div className="px-8 py-4 bg-background/80 backdrop-blur-md border-b border-primary/10 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+            <Play className="w-4 h-4 text-primary fill-current" />
+          </div>
+          <h1 className="font-bold text-foreground tracking-tight">{showcase.title}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1 bg-primary/5 border border-primary/10 rounded-lg">
+            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Nexbit Interactive Demo</span>
+          </div>
+        </div>
+      </div>
+
       {/* Demo Player and Chat Interface */}
-      <Group orientation="horizontal" className="min-h-screen border-t" style={{ borderColor: primaryColor + '20' }}>
-        {/* Left Column - Demo Player (60%) */}
-        <Panel defaultSize={60} minSize={30}>
-          <div className="flex flex-col h-full border-r overflow-hidden" style={{ borderColor: primaryColor + '20' }}>
-            {/* Demo Player Area */}
-            <div className="flex-1 flex flex-col bg-surface overflow-hidden">
-              {isLoadingDemo ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" style={{ color: primaryColor }} />
-                    <p className="text-sm text-foreground/60">Loading demo...</p>
-                  </div>
-                </div>
-              ) : !demoContent || !demoContent.snapshots || demoContent.snapshots.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: primaryColor + '20' }}>
-                      <Play className="w-10 h-10" style={{ color: primaryColor }} />
+      <div className="flex-1 flex overflow-hidden">
+        <Group orientation="horizontal" className="w-full">
+          {/* Left Column - Demo Player (60%) */}
+          <Panel defaultSize={60} minSize={30}>
+            <div className="flex flex-col h-full border-r overflow-hidden" style={{ borderColor: primaryColor + '20' }}>
+              {/* Demo Player Area */}
+              <div className="flex-1 flex flex-col bg-surface overflow-hidden">
+                {isLoadingDemo ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" style={{ color: primaryColor }} />
+                      <p className="text-sm text-foreground/60">Loading demo...</p>
                     </div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">{showcase.title}</h3>
-                    <p className="text-sm text-foreground/60">
-                      No demo content available for this showcase.
-                    </p>
                   </div>
-                </div>
-              ) : (
-                <div className="flex-1 overflow-hidden">
-                  <ClickSlideDeck
-                    recording={demoContent}
-                    currentSlideIndex={currentSlideIndex}
-                    onSlideChange={handleSlideChange}
-                    primaryColor={primaryColor}
-                    secondaryColor={secondaryColor}
-                    accentColor={accentColor}
-                    viewOnly={true}
-                  />
-                </div>
-              )}
+                ) : !demoContent || !demoContent.snapshots || demoContent.snapshots.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: primaryColor + '20' }}>
+                        <Play className="w-10 h-10" style={{ color: primaryColor }} />
+                      </div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">{showcase.title}</h3>
+                      <p className="text-sm text-foreground/60">
+                        No demo content available for this showcase.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-hidden">
+                    <ClickSlideDeck
+                      recording={demoContent}
+                      currentSlideIndex={currentSlideIndex}
+                      onSlideChange={handleSlideChange}
+                      primaryColor={primaryColor}
+                      secondaryColor={secondaryColor}
+                      accentColor={accentColor}
+                      viewOnly={true}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </Panel>
+          </Panel>
 
-        <Separator className="w-1 hover:bg-primary/20 transition-colors cursor-col-resize" style={{ backgroundColor: primaryColor + '20' }} />
+          <Separator className="w-1 hover:bg-primary/20 transition-colors cursor-col-resize" style={{ backgroundColor: primaryColor + '20' }} />
 
-        {/* Right Column - Chatbot (40%) */}
-        <Panel defaultSize={40} minSize={30}>
-          <div className="flex flex-col h-full bg-surface border-l overflow-hidden" style={{ borderColor: primaryColor + '20' }}>
-            <ChatInterface
-              className="h-full"
-              organizationId={showcase.organizationId}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-              conversationId={showcase.chatId}
-            />
-          </div>
-        </Panel>
-      </Group>
+          {/* Right Column - Chatbot (40%) */}
+          <Panel defaultSize={40} minSize={30}>
+            <div className="flex flex-col h-full bg-surface border-l overflow-hidden" style={{ borderColor: primaryColor + '20' }}>
+              <ChatInterface
+                className="h-full"
+                organizationId={showcase.organizationId}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                conversationId={showcase.chatId}
+              />
+            </div>
+          </Panel>
+        </Group>
+      </div>
     </div>
   );
 }

@@ -129,18 +129,23 @@ export function WelcomeMessagesSection() {
     };
 
     return (
-        <section className="bg-surface rounded-lg p-6 shadow-sm border border-primary/5">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    <h2 className="text-xl font-bold text-foreground">Welcome Messages</h2>
+        <section className="premium-surface rounded-2xl p-8">
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                        <MessageSquare className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-foreground">Welcome Messages</h2>
+                        <p className="text-xs text-foreground/50 font-medium tracking-tight">Set the first impression for new users.</p>
+                    </div>
                 </div>
                 <button
                     onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    className="btn-terracotta flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md"
                 >
                     <Plus className="w-4 h-4" />
-                    Add New
+                    Create New
                 </button>
             </div>
 
@@ -163,7 +168,7 @@ export function WelcomeMessagesSection() {
                     {messages.map((msg) => (
                         <div
                             key={msg.id}
-                            className={`p-4 bg-background border rounded-lg transition-colors group ${msg.is_default ? "border-primary/40 bg-primary/5" : "border-primary/10 hover:border-primary/30"
+                            className={`p-5 bg-background/50 border rounded-2xl transition-all duration-300 group ${msg.is_default ? "border-primary/30 bg-primary/5 shadow-sm" : "border-primary/5 hover:border-primary/20 hover:bg-background"
                                 }`}
                         >
                             <div className="flex items-start justify-between gap-4">
@@ -182,11 +187,11 @@ export function WelcomeMessagesSection() {
                                     <p className="text-sm text-foreground">{msg.message}</p>
                                 </div>
 
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                     {!msg.is_default && (
                                         <button
                                             onClick={() => handleSetDefault(msg)}
-                                            className="p-2 text-foreground/60 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                            className="p-2.5 text-foreground/40 hover:text-primary bg-surface/50 hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/10 transition-all"
                                             title="Set as Default"
                                         >
                                             <Star className="w-4 h-4" />
@@ -194,7 +199,7 @@ export function WelcomeMessagesSection() {
                                     )}
                                     <button
                                         onClick={() => handleDelete(msg.id)}
-                                        className="p-2 text-foreground/60 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="p-2.5 text-foreground/40 hover:text-red-600 bg-surface/50 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100 transition-all"
                                         title="Delete"
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -253,28 +258,28 @@ export function WelcomeMessagesSection() {
                             </div>
 
                             {error && (
-                                <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg flex items-center gap-2">
+                                <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-center gap-2 font-medium">
                                     <X className="w-4 h-4" />
                                     {error}
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-3">
+                            <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
+                                    className="px-5 py-2.5 border border-primary/10 text-foreground/60 rounded-xl font-bold text-sm hover:bg-primary/5 transition-all"
                                     disabled={isSubmitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                    className="btn-terracotta flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm shadow-md disabled:opacity-50"
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    {editingMessage ? "Save Changes" : "Create Message"}
+                                    <span>{editingMessage ? "Save Changes" : "Create Message"}</span>
                                 </button>
                             </div>
                         </form>

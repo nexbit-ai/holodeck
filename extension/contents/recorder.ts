@@ -37,6 +37,7 @@ export interface ClickRecording {
 
 // State
 let isRecording = false
+let isStarting = false // Guard against race conditions during initialization
 let cachedCSS: string | null = null
 let lastStylesheetCount = 0
 
@@ -44,48 +45,159 @@ let lastStylesheetCount = 0
 // ... removed unused getComputedStylesCSS ...
 
 // Inline all styles for the document by mapping cloned elements to live elements
-function inlineAllStyles(liveRoot: Element, clonedRoot: Element): void {
-    const liveElements = liveRoot.querySelectorAll('*')
-    const clonedElements = clonedRoot.querySelectorAll('*')
+// Inline all styles and mark the target element
+function inlineAllStyles(liveRoot: Node, clonedRoot: Node, targetNode?: Node): void {
+    // Traverse the entire tree including shadow roots
+    const walker = document.createTreeWalker(liveRoot, NodeFilter.SHOW_ELEMENT)
+    const cloneWalker = document.createTreeWalker(clonedRoot, NodeFilter.SHOW_ELEMENT)
 
-    // Ensure we have the same number of elements
-    const count = Math.min(liveElements.length, clonedElements.length)
-
-    // Critical styles to copy for layout and appearance
+    // Essential styles to copy for layout and appearance
     const stylesToCopy = [
+        // Layout
         'display', 'position', 'top', 'left', 'right', 'bottom',
         'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-        'margin', 'padding', 'border', 'border-radius',
-        'background', 'background-color', 'background-image',
-        'color', 'font-family', 'font-size', 'font-weight', 'line-height', 'text-align',
-        'flex', 'flex-direction', 'justify-content', 'align-items', 'gap',
-        'grid', 'grid-template-columns', 'grid-template-rows',
-        'box-shadow', 'opacity', 'visibility', 'z-index', 'overflow',
-        'transform', 'transition',
-        'fill', 'stroke', 'stroke-width', 'vertical-align'
+        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'box-sizing', 'vertical-align', 'z-index', 'overflow', 'overflow-x', 'overflow-y',
+
+        // Flexbox
+        'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
+        'align-content', 'align-items', 'align-self', 'justify-content', 'justify-items', 'justify-self', 'order',
+
+        // Grid
+        'grid', 'grid-area', 'grid-auto-columns', 'grid-auto-flow', 'grid-auto-rows',
+        'grid-column', 'grid-column-end', 'grid-column-gap', 'grid-column-start',
+        'grid-gap', 'grid-row', 'grid-row-end', 'grid-row-gap', 'grid-row-start',
+        'grid-template', 'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
+        'gap', 'row-gap', 'column-gap',
+
+        // Appearance
+        'background-color', 'background-image', 'background-position', 'background-repeat', 'background-size',
+        'border', 'border-radius', 'border-color', 'border-style', 'border-width',
+        'box-shadow', 'opacity', 'visibility', 'clip', 'clip-path',
+
+        // Typography
+        'color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+        'text-align', 'text-decoration', 'text-indent', 'text-overflow', 'text-shadow',
+        'text-transform', 'white-space', 'word-break', 'word-spacing', 'word-wrap',
+
+        // Effects
+        'transform', 'transform-origin', 'filter', 'backdrop-filter', 'mix-blend-mode',
+        'cursor', 'pointer-events', 'user-select'
     ]
 
-    for (let i = 0; i < count; i++) {
-        const liveEl = liveElements[i] as HTMLElement
-        const clonedEl = clonedElements[i] as HTMLElement
+    let liveEl = walker.nextNode() as HTMLElement | null
+    let clonedEl = cloneWalker.nextNode() as HTMLElement | null
 
-        // Skip if elements don't match tags (sanity check)
-        if (liveEl.tagName !== clonedEl.tagName) continue
-
-        // Performance: Skip hidden elements
-        const rect = liveEl.getBoundingClientRect()
-        if (rect.width === 0 && rect.height === 0) continue
+    while (liveEl && clonedEl) {
+        // Mark target element if it's the one that was clicked
+        if (targetNode && liveEl === targetNode) {
+            clonedEl.setAttribute('data-ai-target', 'primary')
+        }
 
         const computedStyles = window.getComputedStyle(liveEl)
 
-        for (let j = 0; j < stylesToCopy.length; j++) {
-            const prop = stylesToCopy[j]
-            const value = computedStyles.getPropertyValue(prop)
-            if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'rgba(0, 0, 0, 0)') {
-                clonedEl.style.setProperty(prop, value)
+        if (computedStyles.display !== 'none' || liveEl.tagName === 'STYLE' || liveEl.tagName === 'LINK') {
+            const rect = liveEl.getBoundingClientRect()
+            clonedEl.setAttribute('data-ai-x', Math.round(rect.left).toString())
+            clonedEl.setAttribute('data-ai-y', Math.round(rect.top).toString())
+            clonedEl.setAttribute('data-ai-w', Math.round(rect.width).toString())
+            clonedEl.setAttribute('data-ai-h', Math.round(rect.height).toString())
+
+            for (let j = 0; j < stylesToCopy.length; j++) {
+                const prop = stylesToCopy[j]
+                const value = computedStyles.getPropertyValue(prop)
+
+                // Only set if value is non-default and meaningful
+                if (value && value !== '' && value !== 'normal' && value !== 'auto' && value !== '0px' && value !== 'none' && value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') {
+                    clonedEl.style.setProperty(prop, value)
+                }
             }
         }
+
+        // Handle Shadow DOM
+        if (liveEl.shadowRoot && clonedEl.shadowRoot) {
+            inlineAllStyles(liveEl.shadowRoot, clonedEl.shadowRoot, targetNode)
+        }
+
+        liveEl = walker.nextNode() as HTMLElement | null
+        clonedEl = cloneWalker.nextNode() as HTMLElement | null
     }
+}
+
+// Helper to clone a node and its shadow root if it exists
+function cloneNodeWithShadow(node: Node): Node {
+    const clone = node.cloneNode(false)
+
+    if (node instanceof Element && node.shadowRoot) {
+        const shadowClone = (clone as Element).attachShadow({ mode: node.shadowRoot.mode })
+        for (const child of node.shadowRoot.childNodes) {
+            shadowClone.appendChild(cloneNodeWithShadow(child))
+        }
+    }
+
+    for (const child of node.childNodes) {
+        clone.appendChild(cloneNodeWithShadow(child))
+    }
+
+    return clone
+}
+
+// Custom serializer to handle Shadow DOM via Declarative Shadow DOM (<template shadowrootmode>)
+function serializeNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return (node.textContent || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    }
+
+    if (node.nodeType === Node.COMMENT_NODE) {
+        return `<!--${node.textContent}-->`
+    }
+
+    if (node.nodeType === Node.DOCUMENT_TYPE_NODE) {
+        const doctype = node as DocumentType
+        return `<!DOCTYPE ${doctype.name}${doctype.publicId ? ` PUBLIC "${doctype.publicId}"` : ''}${doctype.systemId ? ` "${doctype.systemId}"` : ''}>`
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+        return ''
+    }
+
+    const el = node as Element
+    const tagName = el.tagName.toLowerCase()
+
+    // Start tag
+    let html = `<${tagName}`
+
+    // Attributes
+    for (let i = 0; i < el.attributes.length; i++) {
+        const attr = el.attributes[i]
+        html += ` ${attr.name}="${attr.value.replace(/"/g, '&quot;')}"`
+    }
+
+    html += '>'
+
+    // Shadow Root (Declarative Shadow DOM)
+    if (el.shadowRoot) {
+        const mode = el.shadowRoot.mode || 'open'
+        html += `<template shadowrootmode="${mode}">`
+        for (const child of el.shadowRoot.childNodes) {
+            html += serializeNode(child)
+        }
+        html += '</template>'
+    }
+
+    // Children
+    for (const child of el.childNodes) {
+        html += serializeNode(child)
+    }
+
+    // End tag (except for void elements)
+    const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']
+    if (!voidElements.includes(tagName)) {
+        html += `</${tagName}>`
+    }
+
+    return html
 }
 
 // Generate a simple selector for an element
@@ -102,7 +214,10 @@ function getElementSelector(el: Element): string {
             if (classes) selector += `.${classes}`
         }
         path.unshift(selector)
-        current = current.parentElement
+
+        // Handle Shadow DOM traversal upwards
+        const parent = current.parentElement || (current.getRootNode() instanceof ShadowRoot ? (current.getRootNode() as ShadowRoot).host : null)
+        current = parent as Element | null
     }
 
     return path.join(' > ')
@@ -116,7 +231,6 @@ function captureStylesheets(): string {
     }
 
     let allCSS = ''
-    let accessedCount = 0
     let skippedCount = 0
 
     // Capture all stylesheet rules
@@ -128,7 +242,6 @@ function captureStylesheets(): string {
                 for (let j = 0; j < rules.length; j++) {
                     allCSS += rules[j].cssText + '\n'
                 }
-                accessedCount++
             }
         } catch (e) {
             // Cross-origin stylesheets can't be accessed
@@ -146,36 +259,48 @@ function captureStylesheets(): string {
 }
 
 // Capture current DOM as HTML string with inlined styles
-function captureDOM(): string {
-    // Clone the document to avoid modifying the live DOM
-    const docClone = document.documentElement.cloneNode(true) as HTMLElement
+function captureDOM(targetNode?: Node): string {
+    // Clone the document with shadow roots
+    const docClone = cloneNodeWithShadow(document.documentElement) as HTMLElement
 
-    // Inline computed styles for all elements to handle cross-origin CSS issues (like icons)
-    // We do this BEFORE removing any elements from the clone to ensure index-based matching works perfectly
-    inlineAllStyles(document.documentElement, docClone)
+    // Inline computed styles and mark target for all elements
+    inlineAllStyles(document.documentElement, docClone, targetNode)
 
-    // Remove any scripts to prevent execution issues
-    const scripts = docClone.querySelectorAll('script')
-    scripts.forEach(script => script.remove())
+    // Helper to process clones (remove scripts, links, extension overlay, etc)
+    function processClone(root: Node) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+        const removals: Element[] = []
 
-    // Remove preloads and other head noise that causes 404s
-    const removals = docClone.querySelectorAll('link[rel="preload"], link[rel="prefetch"], link[rel="modulepreload"], link[rel="next-head"]')
-    removals.forEach(el => el.remove())
+        let el = walker.nextNode() as HTMLElement | null
+        while (el) {
+            if (el.tagName === 'SCRIPT' ||
+                el.tagName === 'IFRAME' ||
+                (el.tagName === 'LINK' && (el.getAttribute('rel') === 'stylesheet' || el.getAttribute('rel')?.includes('preload')))) {
+                removals.push(el)
+            }
+            // Exclude extension recording UI (countdown overlay, "Recording area" pill, stop button)
+            const className = el.getAttribute('class') || ''
+            if (el.getAttribute('data-nexbit-recording-overlay') !== null || className.includes('countdown-overlay')) {
+                removals.push(el)
+            }
 
-    // Remove iframes to prevent nested fetches
-    const iframes = docClone.querySelectorAll('iframe')
-    iframes.forEach(iframe => iframe.remove())
+            if (el.shadowRoot) {
+                processClone(el.shadowRoot)
+            }
+            el = walker.nextNode() as HTMLElement | null
+        }
 
-    // Remove existing link stylesheets (we'll inline them)
-    const links = docClone.querySelectorAll('link[rel="stylesheet"]')
-    links.forEach(link => link.remove())
+        removals.forEach(e => e.remove())
+    }
+
+    processClone(docClone)
 
     // Capture all CSS and add as inline style
     const allCSS = captureStylesheets()
     const styleElement = document.createElement('style')
     styleElement.textContent = allCSS
 
-    // Add base tag to resolve relative assets (fonts, etc)
+    // Add base tag to resolve relative assets
     const baseElement = document.createElement('base')
     baseElement.href = window.location.href
 
@@ -186,21 +311,21 @@ function captureDOM(): string {
         head.insertBefore(baseElement, head.firstChild)
     }
 
-    // Get the HTML with doctype
+    // Serialize using our custom serializer to include Shadow DOM
     const doctype = document.doctype
     const doctypeString = doctype
-        ? `<!DOCTYPE ${doctype.name}${doctype.publicId ? ` PUBLIC "${doctype.publicId}"` : ''}${doctype.systemId ? ` "${doctype.systemId}"` : ''}>`
+        ? serializeNode(doctype)
         : '<!DOCTYPE html>'
 
-    return doctypeString + docClone.outerHTML
+    return doctypeString + serializeNode(docClone)
 }
 
 // Create a snapshot
-function createSnapshot(type: EventType, clickX?: number, clickY?: number): ClickSnapshot {
+function createSnapshot(type: EventType, clickX?: number, clickY?: number, targetNode?: Node): ClickSnapshot {
     return {
         type,
         timestamp: Date.now(),
-        html: captureDOM(),
+        html: captureDOM(targetNode),
         clickX,
         clickY,
         scrollX: window.scrollX,
@@ -215,20 +340,35 @@ function createSnapshot(type: EventType, clickX?: number, clickY?: number): Clic
 function handleClick(event: MouseEvent) {
     if (!isRecording) return
 
-    const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY)
-
-    // Send to background to store
+    // 1. Immediate feedback to background script (to update badge ASAP)
     chrome.runtime.sendMessage({
-        type: "ADD_SNAPSHOT",
-        snapshot
-    })
+        type: "CLICK_RECORDED",
+        timestamp: Date.now()
+    }).catch(err => console.error("[Nexbit] Failed to send click feedback:", err))
+
+    // 2. Heavy snapshotting (we capture DOM state synchronously first, 
+    // and then send it to the background).
+    try {
+        const snapshot = createSnapshot(EventType.CLICK, event.clientX, event.clientY, event.target as Node)
+
+        // Send to background to store
+        chrome.runtime.sendMessage({
+            type: "ADD_SNAPSHOT",
+            snapshot
+        }).catch(err => {
+            console.error("[Nexbit] Failed to send snapshot to background:", err)
+        })
+    } catch (error) {
+        console.error("[Nexbit] Error during snapshot capture:", error)
+    }
 }
 
 // Start recording (called after countdown or from background state)
 function startRecordingListeners() {
     if (isRecording) return
     isRecording = true
-    document.addEventListener("click", handleClick, true)
+    // Use capture phase to ensure we catch clicks before they are stopped by other listeners
+    document.addEventListener("click", handleClick, { capture: true, passive: true })
 }
 
 // Stop recording listeners
@@ -240,16 +380,34 @@ function stopRecordingListeners() {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "START_RECORDING") {
-        // This is now just a trigger for the listeners, but we officially start in background
-        const firstSnapshot = createSnapshot(EventType.START)
+        if (isRecording || isStarting) {
+            sendResponse({ success: false, error: "Recording already in progress or starting" })
+            return true
+        }
+
+        isStarting = true
+
+        // 1. Capture the initial "start" snapshot SYNCHRONOUSLY to prevent race conditions
+        let initialSnapshot = null
+        try {
+            initialSnapshot = createSnapshot(EventType.START)
+        } catch (error) {
+            console.error("[Nexbit] Failed to capture initial snapshot:", error)
+            isStarting = false
+            sendResponse({ success: false, error: "Failed to capture initial snapshot" })
+            return true
+        }
+
+        // 2. Start session with the bundled snapshot
         chrome.runtime.sendMessage({
             type: "START_RECORDING_SESSION",
             startTime: Date.now(),
-            firstSnapshot
+            firstSnapshot: initialSnapshot
         }, (response) => {
             if (response?.success) {
                 startRecordingListeners()
             }
+            isStarting = false
             sendResponse(response)
         })
         return true
@@ -280,8 +438,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             // Check if this tab is the one being recorded (optional refinement later)
             const active = response?.isRecording || false
 
-            // Sync local state with background
-            if (active && !isRecording) {
+            // Sync local state with background, avoiding interruption if we're currently starting
+            if (active && !isRecording && !isStarting) {
                 startRecordingListeners()
             } else if (!active && isRecording) {
                 stopRecordingListeners()
@@ -301,21 +459,36 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // Listen for countdown completion from countdown-overlay.tsx
 window.addEventListener("nexbit-countdown-complete", () => {
-    const firstSnapshot = createSnapshot(EventType.START)
+    if (isRecording || isStarting) return
+
+    isStarting = true
+
+    // 1. Capture the initial "start" snapshot SYNCHRONOUSLY
+    let initialSnapshot = null
+    try {
+        initialSnapshot = createSnapshot(EventType.START)
+    } catch (error) {
+        console.error("[Nexbit] Failed to capture initial snapshot during countdown:", error)
+        isStarting = false
+        return
+    }
+
+    // 2. Start session bundled with the first snapshot
     chrome.runtime.sendMessage({
         type: "START_RECORDING_SESSION",
         startTime: Date.now(),
-        firstSnapshot
+        firstSnapshot: initialSnapshot
     }, (response) => {
         if (response?.success) {
             startRecordingListeners()
         }
+        isStarting = false
     })
 })
 
 // Check status on script load to re-attach listeners if recording
 chrome.runtime.sendMessage({ type: "GET_RECORDING_STATE" }, (response) => {
-    if (response?.isRecording) {
+    if (response?.isRecording && !isRecording && !isStarting) {
         startRecordingListeners()
     }
 })

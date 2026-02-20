@@ -141,29 +141,32 @@ export function KnowledgeBaseSection() {
     };
 
     return (
-        <section className="bg-surface rounded-lg p-6 shadow-sm border border-primary/5">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                        <BookOpen className="w-5 h-5 text-primary" />
+        <section className="premium-surface rounded-2xl p-8">
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm">
+                        <BookOpen className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-foreground">Knowledge Base</h2>
-                        <p className="text-xs text-foreground/60">
-                            Manage documents for AI context
-                        </p>
+                        <h2 className="text-xl font-bold text-foreground tracking-tight">Knowledge Base</h2>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            <p className="text-xs text-foreground/50 font-medium">
+                                Manage documents for AI context
+                            </p>
+                        </div>
                     </div>
                 </div>
                 <button
                     onClick={() => setShowUploadModal(true)}
-                    className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    className="btn-terracotta flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md"
                 >
                     <Plus className="w-4 h-4" />
                     Add Content
                 </button>
             </div>
 
-            <p className="text-sm text-foreground/70 mb-4">
+            <p className="text-sm text-foreground/60 mb-6 leading-relaxed bg-primary/5 p-4 rounded-xl border border-primary/10">
                 Upload text-based documents (TXT, MD) or add URLs that your chatbot can reference when answering questions.
             </p>
 
@@ -182,7 +185,7 @@ export function KnowledgeBaseSection() {
                     {documents.map((doc) => (
                         <div
                             key={doc.id}
-                            className="flex items-center justify-between p-4 bg-background border border-primary/10 rounded-lg hover:bg-primary/5 transition-colors"
+                            className="flex items-center justify-between p-5 bg-background/50 border border-primary/10 rounded-2xl hover:bg-background hover:shadow-sm transition-all group"
                         >
                             <div className="flex items-center gap-4 flex-1">
                                 <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -220,7 +223,7 @@ export function KnowledgeBaseSection() {
                             </div>
                             <button
                                 onClick={() => handleDelete(doc.id, doc.filename)}
-                                className="p-2 text-foreground/60 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-2.5 text-foreground/40 hover:text-red-600 bg-surface/50 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100 transition-all opacity-0 group-hover:opacity-100"
                                 title="Delete Document"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -251,11 +254,10 @@ export function KnowledgeBaseSection() {
                                     setModalTab("file");
                                     setError(null);
                                 }}
-                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-                                    modalTab === "file"
+                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${modalTab === "file"
                                         ? "text-primary"
                                         : "text-foreground/60 hover:text-foreground"
-                                }`}
+                                    }`}
                             >
                                 Upload Document
                                 {modalTab === "file" && (
@@ -267,11 +269,10 @@ export function KnowledgeBaseSection() {
                                     setModalTab("url");
                                     setError(null);
                                 }}
-                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-                                    modalTab === "url"
+                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${modalTab === "url"
                                         ? "text-primary"
                                         : "text-foreground/60 hover:text-foreground"
-                                }`}
+                                    }`}
                             >
                                 Add URL
                                 {modalTab === "url" && (
@@ -351,17 +352,17 @@ export function KnowledgeBaseSection() {
                             </div>
                         )}
 
-                        <div className="flex justify-end gap-3">
+                        <div className="flex justify-end gap-3 pt-2">
                             <button
                                 onClick={handleCloseModal}
-                                className="px-4 py-2 border border-primary/10 text-foreground rounded-lg font-medium hover:bg-primary/5 transition-colors"
+                                className="px-5 py-2.5 border border-primary/10 text-foreground/60 rounded-xl font-bold text-sm hover:bg-primary/5 transition-all"
                                 disabled={uploading}
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={modalTab === "file" ? handleUpload : handleUploadUrl}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                className="btn-terracotta flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-30 disabled:grayscale"
                                 disabled={
                                     (modalTab === "file" && !selectedFile) ||
                                     (modalTab === "url" && !urlInput.trim()) ||
@@ -375,7 +376,7 @@ export function KnowledgeBaseSection() {
                                 ) : (
                                     <LinkIcon className="w-4 h-4" />
                                 )}
-                                {modalTab === "file" ? "Upload" : "Add URL"}
+                                <span>{modalTab === "file" ? (uploading ? "Uploading..." : "Upload File") : (uploading ? "Adding..." : "Add Content")}</span>
                             </button>
                         </div>
                     </div>

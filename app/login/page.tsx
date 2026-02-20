@@ -105,18 +105,27 @@ function LoginPageInner() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
-            <div className="w-full max-w-md bg-surface border border-primary/10 rounded-2xl shadow-xl p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-foreground mb-2">
-                        Welcome to Nexbit
+        <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+            {/* Ambient Background Elements */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
+
+            <div className="w-full max-w-md premium-surface rounded-[2.5rem] shadow-2xl p-10 relative z-10 border border-primary/5">
+                <div className="text-center mb-10">
+                    {/* <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <span className="text-4xl font-black text-primary tracking-tighter italic"></span>
+                    </div> */}
+                    <h1 className="text-3xl font-bold text-foreground mb-3 tracking-tight">
+                        Welcome to <span className="text-primary tracking-tighter">Nexbit</span>
                     </h1>
-                    <p className="text-foreground/60">
-                        Sign in to access your account
+                    <p className="text-foreground/40 font-medium">
+                        Enter your credentials to continue
                     </p>
                 </div>
 
-                <StytchB2B config={config} />
+                <div className="stytch-auth-container">
+                    <StytchB2B config={config} />
+                </div>
 
                 <div className="mt-6 text-center text-xs text-foreground/60">
                     By continuing, you agree to our Terms of Service and Privacy Policy

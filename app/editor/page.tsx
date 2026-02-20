@@ -47,8 +47,8 @@ export default function EditorPage() {
                                 <FileJson className="w-5 h-5 text-primary" />
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold text-foreground">Demo Editor</h1>
-                                <p className="text-xs text-foreground/50">Create interactive demos from recordings</p>
+                                <h1 className="text-xl font-bold text-foreground tracking-tight">Demo <span className="text-primary">Editor</span></h1>
+                                <p className="text-xs text-foreground/40 font-medium">Create interactive experiences from recordings</p>
                             </div>
                         </div>
                     </div>
@@ -71,12 +71,12 @@ export default function EditorPage() {
                                 <FileJson className="w-5 h-5 text-primary" />
                             </div>
                             <div>
-                                <h1 className="text-lg font-bold text-foreground">Demo Editor</h1>
+                                <h1 className="text-lg font-bold text-foreground tracking-tight">Demo <span className="text-primary font-black">Editor</span></h1>
                                 {!isPreviewMode && (
-                                    <p className="text-xs text-foreground/50">
-                                        {snapshotCount} snapshots • {clickCount} clicks
-                                        {isSaving && <span className="ml-2 text-primary">Saving...</span>}
-                                        {!isSaving && lastSaved && <span className="ml-2 text-green-500">✓ Saved</span>}
+                                    <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">
+                                        {snapshotCount} slides • {clickCount} clicks
+                                        {isSaving && <span className="ml-2 text-primary animate-pulse italic">Saving...</span>}
+                                        {!isSaving && lastSaved && <span className="ml-2 text-green-500 font-bold">✓ Ready</span>}
                                     </p>
                                 )}
                             </div>

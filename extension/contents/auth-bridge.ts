@@ -1,121 +1,105 @@
-// Content script that runs on the Nexbit web app (localhost:3000 / production domain)
-// This script reads the Stytch session JWT cookie and sends it to the extension
+// Auth bridge content script
+// Runs on Nexbit web app pages to sync authentication state to the extension
 
 import type { PlasmoCSConfig } from "plasmo"
 
-// This content script runs on the Nexbit web app URLs
 export const config: PlasmoCSConfig = {
     matches: [
         "http://localhost:3000/*",
-        "https://*.nexbit.ai/*",
-        "https://*.nexbit.io/*"
+        "https://*.nexbit.ai/*"
     ],
     run_at: "document_idle"
 }
 
-// Cookie names used by Stytch (from StytchProvider.tsx)
-const STYTCH_SESSION_COOKIE = "stytch_session"
-const STYTCH_JWT_COOKIE = "stytch_session_jwt"
+const JWT_COOKIE_NAME = "stytch_session_jwt"
 
-// Get cookie value by name
-function getCookie(name: string): string | null {
-    const value = `; ${document.cookie}`
-    const parts = value.split(`; ${name}=`)
-    if (parts.length === 2) {
-        return parts.pop()?.split(";").shift() || null
+/**
+ * Read JWT from cookies
+ */
+function getJwtFromCookies(): string | null {
+    const cookies = document.cookie.split(';')
+    for (const cookie of cookies) {
+        const [name, ...rest] = cookie.trim().split('=')
+        if (name === JWT_COOKIE_NAME && rest.length > 0) {
+            return decodeURIComponent(rest.join('='))
+        }
     }
     return null
 }
 
-// Listen for messages from the extension popup/background
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "GET_AUTH_SESSION") {
-        const sessionToken = getCookie(STYTCH_SESSION_COOKIE)
-        const sessionJwt = getCookie(STYTCH_JWT_COOKIE)
-        const userName = localStorage.getItem("nexbit_user_name")
-
-        if (sessionJwt) {
-            sendResponse({
-                success: true,
-                sessionToken,
-                sessionJwt,
-                userName
-            })
-        } else {
-            sendResponse({
-                success: false,
-                error: "No session found"
-            })
+/**
+ * Get user name from the page if available
+ */
+function getUserName(): string | null {
+    // Try to get from localStorage if Stytch stores it there
+    try {
+        const stytchData = localStorage.getItem('stytch-sdk-member-session')
+        if (stytchData) {
+            const parsed = JSON.parse(stytchData)
+            return parsed?.member?.name || parsed?.member?.email_address || null
         }
-        return true // Keep message channel open for async response
+    } catch {
+        // Ignore parse errors
     }
-})
+    return null
+}
 
-// Also notify the extension when the page loads or session changes
-// This helps sync auth state when user logs in/out via the web app
-function notifyExtensionOfSession() {
-    const sessionJwt = getCookie(STYTCH_JWT_COOKIE)
-    const sessionToken = getCookie(STYTCH_SESSION_COOKIE)
-    const userName = localStorage.getItem("nexbit_user_name")
+/**
+ * Sync auth state to extension
+ */
+function syncAuthToExtension() {
+    const jwt = getJwtFromCookies()
 
-    if (sessionJwt) {
+    if (jwt) {
+        // User is logged in, send session to extension
         chrome.runtime.sendMessage({
             type: "AUTH_SESSION_DETECTED",
-            sessionToken,
-            sessionJwt,
-            userName
-        }).catch(() => {
-            // Extension might not be listening, that's fine
+            sessionJwt: jwt,
+            sessionToken: "", // Not needed for JWT auth
+            userName: getUserName()
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.debug("[Nexbit Auth Bridge] Could not sync auth:", chrome.runtime.lastError.message)
+            } else {
+                console.debug("[Nexbit Auth Bridge] Auth synced to extension")
+            }
         })
     } else {
-        // Notify extension that session is cleared
+        // User is logged out, clear extension session
         chrome.runtime.sendMessage({
             type: "AUTH_SESSION_CLEARED"
-        }).catch(() => {
-            // Extension might not be listening
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.debug("[Nexbit Auth Bridge] Could not clear auth:", chrome.runtime.lastError.message)
+            }
         })
     }
 }
 
-// Notify on page load
-notifyExtensionOfSession()
+// Sync on initial page load
+syncAuthToExtension()
 
-// Also watch for auth state changes (for when user logs in or out)
-// We use MutationObserver and events instead of polling to save CPU/battery
-let lastSessionJwt = getCookie(STYTCH_JWT_COOKIE)
+// Re-sync periodically to catch login/logout events
+setInterval(syncAuthToExtension, 5000)
 
-function syncIfChanged() {
-    const currentJwt = getCookie(STYTCH_JWT_COOKIE)
-
-    if (currentJwt !== lastSessionJwt) {
-        lastSessionJwt = currentJwt
-        notifyExtensionOfSession()
-    }
-}
-
-// 1. Watch for localStorage changes from other tabs
-window.addEventListener("storage", (event) => {
-    if (event.key === "nexbit_user_name") {
-        syncIfChanged()
-    }
-})
-
-// 2. Watch for DOM changes which typically accompany login/logout in SPAs
-// Use a small debounce to avoid redundant checks during heavy DOM updates
-let mutationTimeout: ReturnType<typeof setTimeout>
-const observer = new MutationObserver(() => {
-    clearTimeout(mutationTimeout)
-    mutationTimeout = setTimeout(syncIfChanged, 500)
-})
-
-observer.observe(document.body || document.documentElement, {
-    childList: true,
-    subtree: true
-})
-
-// 3. Check when user returns to the tab to ensure state is fresh
+// Also sync when visibility changes (user comes back to tab)
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-        syncIfChanged()
+        syncAuthToExtension()
     }
+})
+
+// Listen for explicit sync requests from popup
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.type === "GET_AUTH_SESSION") {
+        const jwt = getJwtFromCookies()
+        sendResponse({
+            success: !!jwt,
+            sessionJwt: jwt,
+            sessionToken: "",
+            userName: getUserName()
+        })
+        return true
+    }
+    return false
 })

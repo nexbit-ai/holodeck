@@ -586,94 +586,96 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     },
 
     analyzeDemo: async () => {
-        const { clickRecording, recordingId, isAnalyzing } = get()
-        if (!clickRecording || isAnalyzing) return
+        const { recordingId, isAnalyzing } = get()
+        if (!recordingId || isAnalyzing) return
 
         set({ isAnalyzing: true })
 
         try {
             const { recordingService } = await import('../services/recordingService')
-            const snapshots = [...clickRecording.snapshots]
 
-            // 1. Analyze first screen for demo title/description
-            const firstSnapshot = snapshots.find(s => s.type === EventType.CLICK || s.type === 'click')
-            if (firstSnapshot) {
-                try {
-                    const demoInfo = await recordingService.analyze({
-                        html: firstSnapshot.html,
-                        type: 'demo_info'
-                    })
+            // Call the backend to perform all analysis
+            const updatedRecording = await recordingService.analyzeRecording(recordingId)
 
-                    // Update cover slide if it exists
-                    const coverIndex = snapshots.findIndex(s => s.type === EventType.COVER || s.type === 'cover')
+            if (updatedRecording && updatedRecording.events) {
+                const currentRecording = get().clickRecording
+                
+                // Preserve cover and end slides from current recording if they exist
+                const currentCoverSlide = currentRecording?.snapshots.find(
+                    s => s.type === 'cover' || s.type === EventType.COVER
+                )
+                const currentEndSlide = currentRecording?.snapshots.find(
+                    s => s.type === 'end' || s.type === EventType.END
+                )
+                
+                // Start with events from backend
+                let finalSnapshots = [...updatedRecording.events]
+                
+                // Add cover slide if it doesn't exist in backend response but exists in current recording
+                const hasCoverInBackend = finalSnapshots.some(
+                    s => s.type === 'cover' || s.type === EventType.COVER
+                )
+                if (!hasCoverInBackend && currentCoverSlide) {
+                    // Preserve the cover slide from current recording
+                    finalSnapshots = [currentCoverSlide, ...finalSnapshots]
+                } else if (!hasCoverInBackend && finalSnapshots.length > 0) {
+                    // If no cover slide exists at all, create one from first snapshot (same logic as loadRecording)
+                    const firstSnapshot = finalSnapshots[0]
+                    const coverSlide: AnnotatedSnapshot = {
+                        ...firstSnapshot,
+                        type: EventType.COVER,
+                        // Cover title should reflect the demo name (if provided)
+                        title: updatedRecording.name || firstSnapshot.title || 'Welcome to the Demo',
+                        description: firstSnapshot.description || 'Click Get Started to begin',
+                        timestamp: firstSnapshot.timestamp - 1000,
+                    }
+                    finalSnapshots = [coverSlide, ...finalSnapshots]
+                }
+
+                // Ensure cover title always matches the demo name after analysis
+                if (updatedRecording.name) {
+                    const coverIndex = finalSnapshots.findIndex(
+                        s => s.type === 'cover' || s.type === EventType.COVER
+                    )
                     if (coverIndex !== -1) {
-                        snapshots[coverIndex] = {
-                            ...snapshots[coverIndex],
-                            title: demoInfo.title || snapshots[coverIndex].title,
-                            description: demoInfo.description || snapshots[coverIndex].description
+                        finalSnapshots = [...finalSnapshots]
+                        finalSnapshots[coverIndex] = {
+                            ...(finalSnapshots[coverIndex] as AnnotatedSnapshot),
+                            title: updatedRecording.name,
                         }
                     }
-
-                    // Update the recording name in the backend if title is generated
-                    if (demoInfo.title && recordingId) {
-                        try {
-                            await recordingService.updateRecording(recordingId, {
-                                name: demoInfo.title
-                            })
-                            set({ recordingName: demoInfo.title })
-                            console.log('[Store] Recording name updated to:', demoInfo.title)
-                        } catch (e) {
-                            console.error('[Store] Failed to update recording name:', e)
-                        }
+                }
+                
+                // Add end slide if it doesn't exist in backend response but exists in current recording
+                const hasEndInBackend = finalSnapshots.some(
+                    s => s.type === 'end' || s.type === EventType.END
+                )
+                if (!hasEndInBackend && currentEndSlide) {
+                    // Preserve the end slide from current recording
+                    finalSnapshots = [...finalSnapshots, currentEndSlide]
+                } else if (!hasEndInBackend && finalSnapshots.length > 0) {
+                    // If no end slide exists at all, create one from last snapshot (same logic as loadRecording)
+                    const lastSnapshot = finalSnapshots[finalSnapshots.length - 1]
+                    const endSlide: AnnotatedSnapshot = {
+                        ...lastSnapshot,
+                        type: EventType.END,
+                        title: lastSnapshot.title || 'Enjoyed the guided demo?',
+                        description: lastSnapshot.description || 'See more features on our website',
+                        ctaLink: lastSnapshot.ctaLink || 'https://www.adopt.ai/',
+                        timestamp: lastSnapshot.timestamp + 10000,
                     }
-                } catch (e) {
-                    console.error('[Store] Failed to analyze demo info:', e)
+                    finalSnapshots = [...finalSnapshots, endSlide]
                 }
-            }
-
-            // 2. Analyze each click for labels and scripts
-            // We'll do this in parallel but with a small limit if there are many slides
-            const analysisPromises = snapshots.map(async (snapshot, index) => {
-                if (snapshot.type !== EventType.CLICK && snapshot.type !== 'click') return
-
-                try {
-                    const stepInfo = await recordingService.analyze({
-                        html: snapshot.html,
-                        context: {
-                            clickX: snapshot.clickX,
-                            clickY: snapshot.clickY,
-                            viewportWidth: snapshot.viewportWidth,
-                            viewportHeight: snapshot.viewportHeight,
-                            url: snapshot.url
-                        },
-                        type: 'step_info'
-                    })
-
-                    const currentAnnotation = snapshots[index].annotation || { label: '', script: '' }
-                    snapshots[index] = {
-                        ...snapshots[index],
-                        annotation: {
-                            ...currentAnnotation,
-                            label: stepInfo.label || currentAnnotation.label,
-                            script: stepInfo.script || currentAnnotation.script
-                        }
-                    }
-                } catch (e) {
-                    console.error(`[Store] Failed to analyze step ${index}:`, e)
-                }
-            })
-
-            await Promise.all(analysisPromises)
-
-            set({
-                clickRecording: {
-                    ...clickRecording,
-                    snapshots
-                }
-            })
-
-            if (recordingId) {
-                get().saveRecording()
+                
+                set({
+                    clickRecording: {
+                        ...currentRecording,
+                        ...updatedRecording,
+                        snapshots: finalSnapshots
+                    } as AnnotatedRecording,
+                    recordingName: updatedRecording.name
+                })
+                console.log('[Store] Recording analyzed and updated from backend')
             }
         } catch (error) {
             console.error('[Store] Error during AI analysis:', error)
@@ -684,49 +686,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     generateAiScript: async (snapshotIndex: number) => {
         const { clickRecording, recordingId } = get()
-        if (!clickRecording) return
+        if (!clickRecording || !recordingId) return
 
         const snapshot = clickRecording.snapshots[snapshotIndex]
         if (!snapshot || (snapshot.type !== 'click' && snapshot.type !== EventType.CLICK)) return
 
-        try {
-            const { recordingService } = await import('../services/recordingService')
-            const stepInfo = await recordingService.analyze({
-                html: snapshot.html,
-                context: {
-                    clickX: snapshot.clickX,
-                    clickY: snapshot.clickY,
-                    viewportWidth: snapshot.viewportWidth,
-                    viewportHeight: snapshot.viewportHeight,
-                    url: snapshot.url
-                },
-                type: 'step_info'
-            })
-
-            const currentAnnotation = snapshot.annotation || { label: '', script: '' }
-            const updatedSnapshots = [...clickRecording.snapshots]
-            updatedSnapshots[snapshotIndex] = {
-                ...updatedSnapshots[snapshotIndex],
-                annotation: {
-                    ...currentAnnotation,
-                    label: stepInfo.label || currentAnnotation.label,
-                    script: stepInfo.script || currentAnnotation.script
-                }
-            }
-
-            set({
-                clickRecording: {
-                    ...clickRecording,
-                    snapshots: updatedSnapshots
-                }
-            })
-
-            if (recordingId) {
-                get().saveRecording()
-            }
-        } catch (error) {
-            console.error('[Store] AI Script generation failed:', error)
-        }
+        // For now, we'll use analyzeDemo to refresh everything or we could implement a single step backend analyze
+        // Given the goal is to move logic to backend, let's just trigger a full analysis for now as it's cleaner
+        await get().analyzeDemo()
     },
     setIsPreviewMode: (active) => {
         set({ isPreviewMode: active })

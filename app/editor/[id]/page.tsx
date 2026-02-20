@@ -209,17 +209,17 @@ export default function EditorWithIdPage() {
                             </button>
                             {!isPreviewMode && (
                                 <>
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner">
                                         <FileJson className="w-5 h-5 text-primary" />
                                     </div>
                                     <div>
-                                        <h1 className="text-lg font-bold text-foreground">
+                                        <h1 className="text-lg font-bold text-foreground tracking-tight">
                                             {recordingName || 'Demo Editor'}
                                         </h1>
-                                        <p className="text-xs text-foreground/50">
+                                        <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">
                                             {snapshotCount} slides
-                                            {isSaving && <span className="ml-2 text-primary">Saving...</span>}
-                                            {!isSaving && lastSaved && <span className="ml-2 text-green-500">✓ Saved</span>}
+                                            {isSaving && <span className="ml-2 text-primary animate-pulse italic">Saving...</span>}
+                                            {!isSaving && lastSaved && <span className="ml-2 text-green-500 font-bold">✓ Ready</span>}
                                         </p>
                                     </div>
                                 </>
@@ -243,9 +243,9 @@ export default function EditorWithIdPage() {
                                 </button>
                                 <button
                                     onClick={() => setIsPreviewMode(!isPreviewMode)}
-                                    className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition-all flex items-center gap-2 ${isPreviewMode
+                                    className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm ${isPreviewMode
                                         ? 'bg-foreground text-background hover:bg-foreground/90'
-                                        : 'bg-primary text-white hover:bg-primary/90'
+                                        : 'btn-terracotta'
                                         }`}
                                 >
                                     <Play className={`w-4 h-4 ${isPreviewMode ? 'fill-current' : ''}`} />

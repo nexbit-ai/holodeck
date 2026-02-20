@@ -190,12 +190,14 @@ function CountdownOverlay() {
             setTimeout(() => {
                 setCountdown((prev) => {
                     if (prev <= 1) {
-                        // Countdown complete - dispatch custom event to trigger recording
+                        // Countdown complete - hide overlay first, then trigger recording
                         clearInterval(timer)
                         setIsVisible(false)
 
-                        // Dispatch custom event that recorder.ts listens for
-                        window.dispatchEvent(new CustomEvent("nexbit-countdown-complete"))
+                        // Dispatch after React has unmounted the overlay so it's not in the captured snapshot
+                        requestAnimationFrame(() => {
+                            window.dispatchEvent(new CustomEvent("nexbit-countdown-complete"))
+                        })
 
                         return 0
                     }
@@ -217,7 +219,7 @@ function CountdownOverlay() {
     if (!isVisible) return null
 
     return (
-        <div className="countdown-overlay">
+        <div className="countdown-overlay" data-nexbit-recording-overlay>
             <div className="recording-pill">Recording area</div>
 
             <div className="countdown-container">

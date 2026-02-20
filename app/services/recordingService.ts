@@ -133,7 +133,20 @@ export const recordingService = {
     },
 
     /**
+     * Analyze a recording using backend AI
+     */
+    async analyzeRecording(recordingId: string, organizationId: string = DEFAULT_ORGANIZATION_ID): Promise<BackendRecording> {
+        return await fetchJson<BackendRecording>(
+            `${API_BASE_URL}/recordings/${recordingId}/analyze?organization_id=${encodeURIComponent(organizationId)}`,
+            {
+                method: 'POST',
+            }
+        );
+    },
+
+    /**
      * Analyze HTML content with AI to generate metadata
+     * @deprecated Use analyzeRecording instead for consistent backend-driven analysis
      */
     async analyze(payload: { html: string, context?: any, type: 'demo_info' | 'step_info' }): Promise<any> {
         // Use relative path for internal API
