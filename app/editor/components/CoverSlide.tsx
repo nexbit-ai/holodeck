@@ -30,7 +30,7 @@ export function CoverSlide({
     const iframeRef = useRef<HTMLIFrameElement>(null)
     const [title, setTitle] = useState(snapshot.title || 'Welcome to the Demo')
     // Use a consistent static logo for all demos
-    const logoSrc = "/assets/adoptai_logo.jpg"
+    const logoSrc = "/assets/highrev_logo.jpg"
 
     // Use a fixed reference size for scaling
     const originalWidth = 1440
