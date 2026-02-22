@@ -74,30 +74,32 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
     ];
 
     return (
-        <aside className="w-64 bg-surface border-r border-primary/10 flex flex-col h-screen sticky top-0">
+        <aside className="w-64 bg-background border-r border-primary/10 flex flex-col h-screen sticky top-0">
             {/* Logo */}
-            <div className="p-6 border-b border-primary/10">
-                <Link href="/demos" className="flex items-center gap-2">
-                    <Image
-                        src="/assets/logo.jpg"
-                        alt="Nexbit Logo"
-                        width={32}
-                        height={32}
-                        className="rounded-lg"
-                    />
-                    <h1 className="text-2xl font-bold text-primary">Nexbit</h1>
+            <div className="p-6">
+                <Link href="/demos" className="flex items-center gap-2 group">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-all shadow-sm">
+                        <Image
+                            src="/assets/logo.jpg"
+                            alt="Nexbit Logo"
+                            width={32}
+                            height={32}
+                            className="rounded-lg"
+                        />
+                    </div>
+                    <h1 className="text-2xl font-bold text-primary tracking-tight">Nexbit</h1>
                 </Link>
             </div>
 
-            {/* Navigation */}
+            {/* Navigation container with premium feel */}
             <nav className="flex-1 p-4 space-y-1">
                 {navItems.map((item) => (
                     <Link
                         key={item.href}
                         href={item.href}
-                        className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${isActive(item.href)
-                            ? "bg-primary text-white"
-                            : "text-foreground hover:bg-primary/5"
+                        className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${isActive(item.href)
+                            ? "bg-primary text-white shadow-md shadow-primary/20 translate-x-1"
+                            : "text-foreground/70 hover:text-primary hover:bg-primary/5"
                             }`}
                     >
                         <item.icon className="w-4 h-4" />
@@ -131,9 +133,9 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
 
                 <Link
                     href="/insights"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${isActive("/insights")
-                        ? "bg-primary text-white"
-                        : "text-foreground hover:bg-primary/5"
+                    className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${isActive("/insights")
+                        ? "bg-primary text-white shadow-md shadow-primary/20 translate-x-1"
+                        : "text-foreground/70 hover:text-primary hover:bg-primary/5"
                         }`}
                 >
                     <BarChart3 className="w-4 h-4" />
@@ -142,9 +144,9 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
 
                 <Link
                     href="/integrations"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${isActive("/integrations")
-                        ? "bg-primary text-white"
-                        : "text-foreground hover:bg-primary/5"
+                    className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${isActive("/integrations")
+                        ? "bg-primary text-white shadow-md shadow-primary/20 translate-x-1"
+                        : "text-foreground/70 hover:text-primary hover:bg-primary/5"
                         }`}
                 >
                     <LinkIcon className="w-4 h-4" />
@@ -153,17 +155,17 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
             </nav>
 
             {/* Logout Option */}
-            <div className="p-4 border-t border-primary/10">
+            <div className="p-4">
                 <button
                     onClick={handleLogoutClick}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors group"
+                    className="w-full flex items-center gap-3 px-3 py-3 text-red-600 bg-red-50/50 hover:bg-red-50 border border-red-100/50 rounded-2xl transition-all duration-200 group"
                 >
-                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors">
+                    <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
                         <LogOut className="w-4 h-4" />
                     </div>
                     <div className="flex-1 text-left overflow-hidden">
-                        <p className="text-sm font-medium">Logout</p>
-                        <p className="text-xs text-red-600/60 truncate">{user?.email}</p>
+                        <p className="text-sm font-bold">Logout</p>
+                        <p className="text-[10px] text-red-600/60 truncate uppercase tracking-wider">{user?.email}</p>
                     </div>
                 </button>
             </div>

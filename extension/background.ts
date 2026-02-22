@@ -15,26 +15,67 @@ interface InternalRecordingState {
 
 const STORAGE_KEY = "nexbit_recording_state"
 
+// In-memory cache for the active recording to prevent race conditions
+let activeState: InternalRecordingState | null = null
+
 // Initial state
 async function getInitialState(): Promise<InternalRecordingState> {
+    if (activeState) {
+        // Return a copy to prevent mutation of the cached reference
+        return {
+            ...activeState,
+            snapshots: [...activeState.snapshots]
+        }
+    }
+
     const data = await chrome.storage.local.get(STORAGE_KEY)
-    return data[STORAGE_KEY] || {
+    const state = data[STORAGE_KEY] || {
         isRecording: false,
         tabId: null,
         startTime: null,
         snapshots: [],
         version: "2.0"
     }
+
+    if (state.isRecording) {
+        activeState = state
+    }
+
+    // Return a copy even when freshly loaded
+    return {
+        ...state,
+        snapshots: [...state.snapshots]
+    }
 }
 
 // Save state
 async function saveState(state: InternalRecordingState) {
+    if (state.isRecording) {
+        activeState = state
+    } else {
+        activeState = null
+    }
     await chrome.storage.local.set({ [STORAGE_KEY]: state })
 }
 
 // Clear recording state
 async function clearState() {
+    activeState = null
     await chrome.storage.local.remove(STORAGE_KEY)
+}
+
+// Queue for state updates to prevent race conditions
+let updateQueue: Promise<void> = Promise.resolve()
+
+async function queueUpdate(task: () => Promise<void>) {
+    updateQueue = updateQueue.then(async () => {
+        try {
+            await task()
+        } catch (error) {
+            console.error("[Nexbit] Error during queued update:", error)
+        }
+    })
+    return updateQueue
 }
 
 // Clear all authentication data
@@ -122,27 +163,35 @@ async function updateBadge(count: number | null) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
         if (message.type === "START_RECORDING_SESSION") {
-            const state: InternalRecordingState = {
-                isRecording: true,
-                tabId: sender.tab?.id || message.tabId || null,
-                startTime: message.startTime || Date.now(),
-                snapshots: message.firstSnapshot ? [message.firstSnapshot] : [],
-                version: "2.0"
-            }
-            await saveState(state)
-            startPulsingIcon()
-            updateBadge(state.snapshots.length)
-            sendResponse({ success: true })
+            await queueUpdate(async () => {
+                const newState = {
+                    isRecording: true,
+                    tabId: sender.tab?.id || message.tabId || null,
+                    startTime: message.startTime || Date.now(),
+                    snapshots: message.firstSnapshot ? [message.firstSnapshot] : [],
+                    version: "2.0"
+                }
+                await saveState(newState)
+                startPulsingIcon()
+                // Always initialize badge to 0 at start (even if snapshots are empty)
+                updateBadge(newState.snapshots.length)
+                sendResponse({ success: true })
+            })
         }
 
         else if (message.type === "ADD_SNAPSHOT") {
-            const state = await getInitialState()
-            if (state.isRecording) {
-                state.snapshots.push(message.snapshot)
-                await saveState(state)
-                updateBadge(state.snapshots.length)
-            }
-            sendResponse({ success: true })
+            await queueUpdate(async () => {
+                const state = await getInitialState()
+                if (state.isRecording) {
+                    const updatedState = {
+                        ...state,
+                        snapshots: [...state.snapshots, message.snapshot]
+                    }
+                    await saveState(updatedState)
+                    updateBadge(updatedState.snapshots.length)
+                }
+                sendResponse({ success: true })
+            })
         }
 
         else if (message.type === "GET_RECORDING_STATE") {
@@ -151,23 +200,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         else if (message.type === "STOP_RECORDING_SESSION") {
-            const state = await getInitialState()
-            await clearState()
-            stopPulsingIcon()
-            updateBadge(null)
+            await queueUpdate(async () => {
+                const state = await getInitialState()
+                const finalRecording = state.isRecording ? {
+                    version: state.version,
+                    startTime: state.startTime,
+                    snapshots: [...state.snapshots] // Copy to be safe
+                } : null
 
-            if (state.isRecording) {
-                sendResponse({
-                    success: true,
-                    recording: {
-                        version: state.version,
-                        startTime: state.startTime,
-                        snapshots: state.snapshots
-                    }
-                })
-            } else {
-                sendResponse({ success: false, error: "No active recording" })
-            }
+                await clearState()
+                stopPulsingIcon()
+                updateBadge(null)
+
+                if (finalRecording) {
+                    sendResponse({
+                        success: true,
+                        recording: finalRecording
+                    })
+                } else {
+                    sendResponse({ success: false, error: "No active recording" })
+                }
+            })
         }
 
         else if (message.type === "CANCEL_RECORDING_SESSION") {
@@ -207,7 +260,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true })
         }
         else if (message.type === "CLICK_RECORDED") {
-            updateBadge(message.snapshotCount)
+            const state = await getInitialState()
+            if (state.isRecording) {
+                // Optimistically update badge count (snapshots.length + 1 because this click isn't in state yet)
+                updateBadge(state.snapshots.length + 1)
+            }
             sendResponse({ success: true })
         }
     })()

@@ -4,21 +4,16 @@ import {
   Home,
   LayoutGrid,
   MessageCircle,
-  Users,
   BarChart3,
   ChevronDown,
   Link as LinkIcon,
   Bell,
-  Filter,
-  ArrowUpDown,
   Grid3x3,
   List,
   MoreVertical,
   FileText,
   HelpCircle,
   ChevronDown as ChevronDownIcon,
-  User2,
-  FolderArchive,
   Loader2,
   RefreshCw,
   Upload,
@@ -39,8 +34,7 @@ import { recordingService, Recording } from "../services/recordingService";
 
 export default function DemosPage() {
 
-  const [activeTab, setActiveTab] = useState("Shared with Team");
-  const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
+
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showNewDemoModal, setShowNewDemoModal] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -296,23 +290,28 @@ export default function DemosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex font-sans">
       <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
         {/* Main Header Section */}
-        <div className="bg-surface border-b border-primary/10 px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground">Team Demos</h1>
-              <HelpCircle className="w-5 h-5 text-foreground/40" />
+        <div className="bg-surface border-b border-primary/10 px-8 py-8">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  <span className="text-foreground">Team</span>{" "}
+                  <span className="text-primary">Demos</span>
+                </h1>
+              </div>
+              <p className="text-foreground/60 text-sm">Manage and share your interactive demo recordings.</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative">
                 <button
                   onClick={() => setShowCreateDropdown(!showCreateDropdown)}
-                  className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                  className="btn-terracotta flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all"
                 >
                   Create
                   <ChevronDownIcon className="w-4 h-4" />
@@ -346,48 +345,8 @@ export default function DemosPage() {
         </div>
 
         {/* Secondary Navigation */}
-        <div className="bg-surface border-b border-primary/10 px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <button
-              onClick={() => setActiveTab("Shared with Team")}
-              className={`flex items-center gap-2 pb-2 px-1 text-sm font-medium transition-colors ${activeTab === "Shared with Team"
-                ? "text-foreground border-b-2 border-primary"
-                : "text-foreground/60 hover:text-foreground"
-                }`}
-            >
-              <Users className="w-4 h-4" />
-              Shared with Team
-            </button>
-            <button
-              onClick={() => setActiveTab("Personal")}
-              className={`flex items-center gap-2 pb-2 px-1 text-sm font-medium transition-colors ${activeTab === "Personal"
-                ? "text-foreground border-b-2 border-primary"
-                : "text-foreground/60 hover:text-foreground"
-                }`}
-            >
-              <User2 className="w-4 h-4" />
-              Personal
-            </button>
-            <button
-              onClick={() => setActiveTab("Archived")}
-              className={`flex items-center gap-2 pb-2 px-1 text-sm font-medium transition-colors ${activeTab === "Archived"
-                ? "text-foreground border-b-2 border-primary"
-                : "text-foreground/60 hover:text-foreground"
-                }`}
-            >
-              <FolderArchive className="w-4 h-4" />
-              Archived
-            </button>
-          </div>
+        <div className="px-8 py-4 flex items-center justify-end max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 border border-primary/10 rounded-lg text-sm hover:bg-primary/5 transition-colors">
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-primary/10 rounded-lg text-sm hover:bg-primary/5 transition-colors">
-              <ArrowUpDown className="w-4 h-4" />
-              Recently updated
-            </button>
             <div className="flex items-center gap-1 border border-primary/10 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("grid")}
@@ -455,12 +414,12 @@ export default function DemosPage() {
               </button>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
               {recordings.map((recording) => (
                 <Link
                   key={recording.id}
                   href={`/editor/${encodeURIComponent(recording.id)}`}
-                  className="bg-surface rounded-lg border border-primary/10 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group block"
+                  className="premium-surface rounded-2xl overflow-hidden group block"
                 >
                   {/* Thumbnail area - full width, no padding */}
                   <div className="relative">
@@ -499,14 +458,19 @@ export default function DemosPage() {
                     </div>
                   </div>
                   {/* Text content with padding */}
-                  <div className="p-4">
-                    <h3 className="font-semibold text-foreground mb-1 truncate">{recording.title}</h3>
-                    <p className="text-sm text-foreground/60">
-                      {recording.creator} • {recording.date}
-                    </p>
-                    <p className="text-xs text-foreground/40 mt-1">
-                      {recording.eventCount} clicks
-                    </p>
+                  <div className="p-5">
+                    <h3 className="font-bold text-lg text-foreground mb-1 mt-1 truncate group-hover:text-primary transition-colors">
+                      {recording.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-foreground/50 text-xs font-medium">
+                      <span>{recording.creator}</span>
+                      <span>•</span>
+                      <span>{recording.date}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-primary/70 text-xs mt-3 bg-primary/5 w-fit px-2 py-1 rounded-md font-semibold">
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      {recording.eventCount} Clicks
+                    </div>
                   </div>
                 </Link>
               ))}

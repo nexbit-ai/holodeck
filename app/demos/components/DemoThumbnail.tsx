@@ -135,7 +135,9 @@ export function DemoThumbnail({
             {/* Loading placeholder */}
             {!isLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-primary/5 z-10">
-                    <FileText className="w-12 h-12 text-primary/40 animate-pulse" />
+                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+                        <FileText className="w-10 h-10 text-primary/40 animate-pulse" />
+                    </div>
                 </div>
             )}
 

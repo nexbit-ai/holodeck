@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react"
 import "./popup.css"
 import {
-    getAuthToken,
     isAuthenticated,
     openLoginPage,
     openEditorPage,
     uploadRecording,
+    getPendingRecording,
+    clearPendingRecording,
     type RecordingPayload,
 } from "./api"
 
@@ -26,6 +27,7 @@ function IndexPopup() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null)
     const [userName, setUserName] = useState<string | null>(null)
+    const [pendingRecording, setPendingRecording] = useState<RecordingPayload | null>(null)
 
     // Check auth status on mount and listen for changes
     useEffect(() => {
@@ -90,6 +92,46 @@ function IndexPopup() {
         checkStatus()
     }, [authState])
 
+    // Check for pending recording after successful auth
+    useEffect(() => {
+        if (authState !== "logged_in") return
+
+        const checkPending = async () => {
+            const pending = await getPendingRecording()
+            if (pending) {
+                setPendingRecording(pending)
+                // Auto-retry upload
+                setState("uploading")
+                setError(null)
+                try {
+                    const result = await uploadRecording(pending)
+                    await clearPendingRecording()
+                    setPendingRecording(null)
+                    openEditorPage(result.id)
+                    window.close()
+                } catch (uploadError: any) {
+                    console.error("Retry upload failed:", uploadError)
+                    const errorMessage = uploadError.message || "Failed to upload recording"
+                    setError(errorMessage)
+
+                    // Only keep in storage if it's an auth failure (recoverable after login)
+                    const isAuthError = errorMessage.toLowerCase().includes("log in") ||
+                        errorMessage.toLowerCase().includes("authenticated") ||
+                        errorMessage.toLowerCase().includes("session expired")
+
+                    if (!isAuthError) {
+                        await clearPendingRecording()
+                    }
+
+                    setPendingRecording(null) // Clear React state so we don't loop
+                    setState("idle")
+                }
+            }
+        }
+
+        checkPending()
+    }, [authState])
+
     // Timer effect - uses real elapsed time calculation
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null
@@ -122,6 +164,13 @@ function IndexPopup() {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
             if (!tab?.id) {
                 setError("No active tab found")
+                return
+            }
+
+            // Check if it's a restricted page
+            const restrictedPrefixes = ["chrome://", "about:", "https://chrome.google.com/webstore/", "chrome-extension://", "view-source:"]
+            if (tab.url && restrictedPrefixes.some(prefix => tab.url?.startsWith(prefix))) {
+                setError("Chrome pages are not allowed to record")
                 return
             }
 

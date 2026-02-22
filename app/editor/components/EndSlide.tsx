@@ -27,7 +27,7 @@ export function EndSlide({
     const [description, setDescription] = useState(snapshot.description || 'See more features on our website')
     const [ctaLink, setCtaLink] = useState(snapshot.ctaLink || 'https://nexbit.ai')
     // Use a consistent static logo for all demos
-    const logoSrc = "/assets/adoptai_logo.png"
+    const logoSrc = "/assets/highrev_logo.jpg"
 
     // Use a fixed reference size for scaling
     const originalWidth = 1440
@@ -36,7 +36,7 @@ export function EndSlide({
     useEffect(() => {
         setTitle(snapshot.title || 'Enjoyed the guided demo?')
         setDescription(snapshot.description || 'See more features on our website')
-        setCtaLink(snapshot.ctaLink || 'https://adopt.ai')
+        setCtaLink(snapshot.ctaLink || 'https://highrev.ai')
     }, [snapshot])
 
     const handleBlur = () => {

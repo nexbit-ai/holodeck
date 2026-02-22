@@ -11,6 +11,7 @@ const AUTH_SESSION_JWT_KEY = "nexbit_stytch_session_jwt"
 const AUTH_ORG_ID_KEY = "nexbit_stytch_org_id"
 const AUTH_USER_INFO_KEY = "nexbit_stytch_user_info"
 const AUTH_USER_NAME_KEY = "nexbit_user_name"
+const PENDING_RECORDING_KEY = "nexbit_pending_recording"
 
 export interface RecordingPayload {
     name: string
@@ -200,18 +201,12 @@ export async function syncAuthFromWebApp(): Promise<boolean> {
 
 /**
  * Check if user is authenticated
- * First checks local storage, then tries to sync from web app if not found
+ * Uses the same JWT key that API calls use
  */
 export async function isAuthenticated(): Promise<boolean> {
-    // First check if we have a token stored locally
-    const token = await getAuthToken()
-    if (token) {
-        return true
-    }
-
-    // If no local token, we are not authenticated. 
-    // The background script handles syncing when the web app is active.
-    return false
+    // Use the same JWT that API calls use to ensure consistency
+    const jwt = await getStytchSessionJWT()
+    return !!jwt
 }
 
 /**
@@ -238,8 +233,9 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
 
         if (!response.ok) {
             if (response.status === 401) {
-                // Token expired, clear it
+                // Token expired, clear it and open login
                 await removeAuthToken()
+                openLoginPage()
             }
             return null
         }
@@ -259,6 +255,8 @@ export async function uploadRecording(
 ): Promise<RecordingResponse> {
     const headers = await getAuthHeaders()
     if (!headers["Authorization"]) {
+        // Save recording for later retry
+        await savePendingRecording(payload)
         throw new Error("Not authenticated")
     }
 
@@ -270,7 +268,10 @@ export async function uploadRecording(
 
     if (!response.ok) {
         if (response.status === 401) {
+            // Save recording for later retry before clearing auth
+            await savePendingRecording(payload)
             await removeAuthToken()
+            openLoginPage()
             throw new Error("Session expired. Please log in again.")
         }
         if (response.status === 413) {
@@ -280,7 +281,43 @@ export async function uploadRecording(
         throw new Error(errorData.error?.message || `Upload failed: ${response.status}`)
     }
 
+    // Clear any pending recording on success
+    await clearPendingRecording()
     return await response.json()
+}
+
+/**
+ * Save a recording for later retry (e.g., after re-authentication)
+ */
+export async function savePendingRecording(payload: RecordingPayload): Promise<void> {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ [PENDING_RECORDING_KEY]: payload }, () => {
+            console.log("[Nexbit] Recording saved for retry after login")
+            resolve()
+        })
+    })
+}
+
+/**
+ * Get pending recording if one exists
+ */
+export async function getPendingRecording(): Promise<RecordingPayload | null> {
+    return new Promise((resolve) => {
+        chrome.storage.local.get([PENDING_RECORDING_KEY], (result) => {
+            resolve(result[PENDING_RECORDING_KEY] || null)
+        })
+    })
+}
+
+/**
+ * Clear pending recording after successful upload
+ */
+export async function clearPendingRecording(): Promise<void> {
+    return new Promise((resolve) => {
+        chrome.storage.local.remove(PENDING_RECORDING_KEY, () => {
+            resolve()
+        })
+    })
 }
 
 /**
