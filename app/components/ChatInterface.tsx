@@ -77,9 +77,10 @@ export function ChatInterface({
     };
 
     const handleBookDemoClick = () => {
-        // Hook for booking flow; keeps CTA styling consistent with platform theme.
-        // Integrate your calendar/meeting link or routing logic here.
-        console.log("Book demo CTA clicked");
+        // Open Calendly booking link in a new tab (keeps CTA styling/theme in UI).
+        if (typeof window !== "undefined") {
+            window.open("https://calendly.com/raj-highrev/new-meeting", "_blank", "noopener,noreferrer");
+        }
     };
 
     // Set mounted flag on client side only
