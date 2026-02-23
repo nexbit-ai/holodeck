@@ -76,6 +76,12 @@ export function ChatInterface({
         }
     };
 
+    const handleBookDemoClick = () => {
+        // Hook for booking flow; keeps CTA styling consistent with platform theme.
+        // Integrate your calendar/meeting link or routing logic here.
+        console.log("Book demo CTA clicked");
+    };
+
     // Set mounted flag on client side only
     useEffect(() => {
         setIsMounted(true);
@@ -233,7 +239,13 @@ export function ChatInterface({
                 id: response.message_id,
                 text: response.response,
                 sender: "nex",
-                timestamp: new Date()
+                timestamp: new Date(),
+                button: response.cta?.type === "BOOK_DEMO"
+                    ? {
+                        text: "Book a demo",
+                        action: handleBookDemoClick,
+                    }
+                    : undefined,
             };
 
             setMessages(prev => [...prev, nexMessage]);
@@ -324,7 +336,10 @@ export function ChatInterface({
                         >
                             Clear
                         </button>
-                        <button className="btn-terracotta px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                        <button
+                            onClick={handleBookDemoClick}
+                            className="btn-terracotta px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                        >
                             Book Full Demo
                             <ArrowRight className="w-3.5 h-3.5" />
                         </button>

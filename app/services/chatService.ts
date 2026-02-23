@@ -11,10 +11,15 @@ export interface ChatMessage {
     metadata?: Record<string, any>;
 }
 
+export interface ChatResponseCTA {
+    type: string; // e.g. "BOOK_DEMO"
+}
+
 export interface ChatResponse {
     response: string;
     conversation_id: string;
     message_id: string;
+    cta?: ChatResponseCTA;
 }
 
 export interface Conversation {
