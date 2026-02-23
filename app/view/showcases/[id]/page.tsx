@@ -209,7 +209,7 @@ export default function PublicShowcasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col" style={{
+    <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden" style={{
       '--showcase-primary': primaryColor,
       '--showcase-secondary': secondaryColor,
       '--showcase-accent': accentColor
@@ -231,7 +231,7 @@ export default function PublicShowcasePage() {
 
       {/* Demo Player and Chat Interface */}
       <div className="flex-1 flex overflow-hidden">
-        <Group orientation="horizontal" className="w-full">
+        <Group orientation="horizontal" className="w-full h-full">
           {/* Left Column - Demo Player (60%) */}
           <Panel defaultSize={60} minSize={30}>
             <div className="flex flex-col h-full border-r overflow-hidden" style={{ borderColor: primaryColor + '20' }}>
