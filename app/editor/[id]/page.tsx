@@ -219,7 +219,7 @@ export default function EditorWithIdPage() {
                                         <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">
                                             {snapshotCount} slides
                                             {isSaving && <span className="ml-2 text-primary animate-pulse italic">Saving...</span>}
-                                            {!isSaving && lastSaved && <span className="ml-2 text-green-500 font-bold">✓ Ready</span>}
+                                            {!isSaving && lastSaved && <span className="ml-2 text-green-500 font-bold">✓ Saved</span>}
                                         </p>
                                     </div>
                                 </>
