@@ -158,20 +158,14 @@ export function ChatInterface({
 
         const initChat = async () => {
             try {
-                if (publicView) {
-                    // Public showcase: use fallback without calling API (avoids 401)
-                    setMessages([
-                        {
-                            id: 1,
-                            text: "Hey! I'm Nex. I'm here to help you explore AdoptAI - The Next-Gen Agentification Platform for the Enterprise. \n Want to learn more or jump straight into demos?",
-                            sender: "nex",
-                            timestamp: new Date()
-                        }
-                    ]);
-                    setIsInitializing(false);
-                    return;
+                let welcomeMsg;
+                if (publicView && showcaseId) {
+                    // Public showcase: fetch welcome message via public endpoint (org resolved from showcaseId)
+                    welcomeMsg = await welcomeService.getPublicDefaultWelcomeForShowcase(showcaseId);
+                } else {
+                    // Authenticated/portal: use org-scoped welcome API
+                    welcomeMsg = await welcomeService.getDefaultWelcomeMessage(organizationId);
                 }
-                const welcomeMsg = await welcomeService.getDefaultWelcomeMessage(organizationId);
                 setMessages([
                     {
                         id: "welcome",
@@ -201,7 +195,7 @@ export function ChatInterface({
         } else {
             setIsInitializing(false);
         }
-    }, [organizationId, historyChecked, messages.length, publicView]);
+    }, [organizationId, historyChecked, messages.length, publicView, showcaseId]);
 
     const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
