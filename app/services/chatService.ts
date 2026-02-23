@@ -37,6 +37,21 @@ export const chatService = {
         });
     },
 
+    async sendPublicShowcaseMessage(
+        showcaseId: string,
+        message: string,
+        conversationId?: string | null
+    ): Promise<ChatResponse> {
+        // Public chat endpoint (no auth); organization is resolved from showcaseId on the backend
+        return await fetchJson<ChatResponse>(`${API_BASE_URL}/public/showcases/${showcaseId}/chat`, {
+            method: 'POST',
+            body: JSON.stringify({
+                message,
+                conversation_id: conversationId,
+            }),
+        });
+    },
+
     async getConversations(organizationId: string, limit: number = 50): Promise<Conversation[]> {
         return await fetchJson<Conversation[]>(`${API_BASE_URL}/conversations?organization_id=${organizationId}&limit=${limit}`);
     },

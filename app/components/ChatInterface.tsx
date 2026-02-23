@@ -34,6 +34,8 @@ interface ChatInterfaceProps {
     onConversationIdChange?: (conversationId: string) => void;
     /** When true (e.g. public showcase page), skip auth-required API calls to avoid 401 redirect */
     publicView?: boolean;
+    /** Showcase ID for public-view chat; used with public chat endpoint */
+    showcaseId?: string;
 }
 
 export function ChatInterface({
@@ -45,6 +47,7 @@ export function ChatInterface({
     conversationId: initialConversationId = null,
     onConversationIdChange,
     publicView = false,
+    showcaseId,
 }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
@@ -216,7 +219,14 @@ export function ChatInterface({
         setIsTyping(true);
 
         try {
-            const response = await chatService.sendMessage(userInput, organizationId, conversationId);
+            let response;
+            if (publicView && showcaseId) {
+                // Public showcase chat: use dedicated public endpoint (no auth)
+                response = await chatService.sendPublicShowcaseMessage(showcaseId, userInput, conversationId);
+            } else {
+                // Authenticated/portal chat: use regular chat endpoint
+                response = await chatService.sendMessage(userInput, organizationId, conversationId);
+            }
 
             if (response.conversation_id && response.conversation_id !== conversationId) {
                 setConversationId(response.conversation_id);

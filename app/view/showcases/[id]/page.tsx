@@ -16,6 +16,7 @@ import {
 } from "react-resizable-panels";
 import { ChatInterface } from "../../../components/ChatInterface";
 import { recordingService } from "../../../services/recordingService";
+import { API_BASE_URL } from "../../../utils/config";
 
 interface Showcase {
   id: string;
@@ -111,12 +112,12 @@ export default function PublicShowcasePage() {
 
       setIsLoadingDemo(true);
       try {
-        // Try to fetch recording via public API endpoint first
-        // If that doesn't work, try the regular endpoint (might require auth)
+        // Try to fetch recording via dedicated public showcase demo endpoint first
+        // If that doesn't work, fall back to the regular endpoint (might require auth)
         let data;
         try {
-          // Try public endpoint first
-          const publicResponse = await fetch(`/api/v1/recordings/${showcase.demoId}?organization_id=${encodeURIComponent(showcase.organizationId)}`);
+          // Public backend endpoint: resolves organization from showcaseId server-side
+          const publicResponse = await fetch(`${API_BASE_URL}/public/showcases/${showcaseId}/demo`);
           if (publicResponse.ok) {
             data = await publicResponse.json();
           } else {
@@ -285,6 +286,7 @@ export default function PublicShowcasePage() {
                 secondaryColor={secondaryColor}
                 conversationId={showcase.chatId}
                 publicView={true}
+                showcaseId={showcaseId}
               />
             </div>
           </Panel>

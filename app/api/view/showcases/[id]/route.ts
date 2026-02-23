@@ -21,7 +21,8 @@ export async function GET(
         }
 
         // Fetch showcase from backend public API endpoint
-        const backendUrl = `${API_BASE_URL}/showcases/${showcaseId}/public`;
+        // Use the dedicated public router so portal and public URLs are cleanly separated
+        const backendUrl = `${API_BASE_URL}/public/showcases/${showcaseId}`;
         
         const response = await fetch(backendUrl, {
             method: 'GET',
