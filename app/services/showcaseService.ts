@@ -16,6 +16,9 @@ export interface Showcase {
     viewCount: number;
     clickCount: number;
     lastOpenedAt: string | null;
+    uniqueViewerCount?: number;
+    conversationCount?: number;
+    messageCount?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -57,6 +60,9 @@ function transformShowcaseResponse(data: any): Showcase {
         viewCount: data.viewCount || data.view_count || 0,
         clickCount: data.clickCount || data.click_count || 0,
         lastOpenedAt: data.lastOpenedAt || data.last_opened_at || null,
+        uniqueViewerCount: data.uniqueViewerCount || data.unique_viewer_count || 0,
+        conversationCount: data.conversationCount || data.conversation_count || 0,
+        messageCount: data.messageCount || data.message_count || 0,
         createdAt: data.created_at || data.createdAt,
         updatedAt: data.updated_at || data.updatedAt
     };

@@ -185,12 +185,15 @@ export function ChatInterface({
                     }
                 ]);
             } catch (error) {
-                console.warn("Failed to fetch welcome message, using fallback:", error);
-                // Fallback to hardcoded message if API fails or no message exists
+                console.warn("Failed to fetch welcome message:", error);
+                // Public showcase: no hardcoded brand message; use generic line only. Portal: keep friendly fallback.
+                const fallbackText = publicView && showcaseId
+                    ? "Hi! How can I help you today?"
+                    : "Hey! I'm Nex. I'm here to help you explore AdoptAI - The Next-Gen Agentification Platform for the Enterprise. \n Want to learn more or jump straight into demos?";
                 setMessages([
                     {
                         id: 1,
-                        text: "Hey! I'm Nex. I'm here to help you explore AdoptAI - The Next-Gen Agentification Platform for the Enterprise. \n Want to learn more or jump straight into demos?",
+                        text: fallbackText,
                         sender: "nex",
                         timestamp: new Date()
                     }

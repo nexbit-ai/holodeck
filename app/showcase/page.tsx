@@ -704,14 +704,18 @@ export default function ShowcasePage() {
                             {(() => {
                                 const totalViews = showcases.reduce((sum, sh) => sum + (sh.viewCount || 0), 0);
                                 const totalClicks = showcases.reduce((sum, sh) => sum + (sh.clickCount || 0), 0);
-                                const avgCompletion = totalViews > 0 ? Math.round((totalClicks / totalViews) * 100) : 0;
-                                const thisWeekShares = showcases.filter(sh => {
-                                    if (!sh.lastOpenedAt) return false;
-                                    const lastOpened = new Date(sh.lastOpenedAt);
-                                    const weekAgo = new Date();
-                                    weekAgo.setDate(weekAgo.getDate() - 7);
-                                    return lastOpened >= weekAgo;
-                                }).length;
+                                const totalConversations = showcases.reduce(
+                                    (sum, sh) => sum + (sh.conversationCount || 0),
+                                    0
+                                );
+                                const totalMessages = showcases.reduce(
+                                    (sum, sh) => sum + (sh.messageCount || 0),
+                                    0
+                                );
+                                const avgMessagesPerConversation =
+                                    totalConversations > 0
+                                        ? Math.round(totalMessages / totalConversations)
+                                        : 0;
 
                                 return (
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -752,12 +756,12 @@ export default function ShowcasePage() {
                                                     <Share2 className="w-6 h-6 text-primary" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">Active Week</p>
-                                                    <p className="text-3xl font-bold tracking-tight">{thisWeekShares}</p>
+                                                    <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest">Conversations</p>
+                                                    <p className="text-3xl font-bold tracking-tight">{totalConversations.toLocaleString()}</p>
                                                 </div>
                                             </div>
-                                            <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
-                                                <div className="h-full bg-primary shadow-[0_0_8px_rgba(176,90,54,0.5)]" style={{ width: `${Math.min((thisWeekShares / Math.max(showcases.length, 1)) * 100, 100)}%` }} />
+                                            <div className="mt-4 text-xs text-foreground/50">
+                                                Avg messages per conversation: <span className="font-semibold text-foreground">{avgMessagesPerConversation}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -771,6 +775,7 @@ export default function ShowcasePage() {
                                             <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Showcase Title</th>
                                             <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Views</th>
                                             <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Clicks</th>
+                                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Conversations</th>
                                             <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Last Opened</th>
                                             <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-foreground/40 text-right">Actions</th>
                                         </tr>
@@ -804,6 +809,9 @@ export default function ShowcasePage() {
                                                     </td>
                                                     <td className="px-6 py-4 text-sm text-foreground/70">
                                                         <span className="font-semibold">{sh.clickCount || 0}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-foreground/70">
+                                                        <span className="font-semibold">{sh.conversationCount || 0}</span>
                                                     </td>
                                                     <td className="px-6 py-4 text-sm text-foreground/70">
                                                         <div className="flex items-center gap-1.5">
