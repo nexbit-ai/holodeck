@@ -661,7 +661,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                         type: EventType.END,
                         title: lastSnapshot.title || 'Enjoyed the guided demo?',
                         description: lastSnapshot.description || 'See more features on our website',
-                        ctaLink: lastSnapshot.ctaLink || 'https://www.adopt.ai/',
+                        ctaLink: lastSnapshot.ctaLink || 'https://www.highrev.ai/',
                         timestamp: lastSnapshot.timestamp + 10000,
                     }
                     finalSnapshots = [...finalSnapshots, endSlide]
