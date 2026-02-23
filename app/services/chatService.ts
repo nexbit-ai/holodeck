@@ -45,7 +45,8 @@ export const chatService = {
     async sendPublicShowcaseMessage(
         showcaseId: string,
         message: string,
-        conversationId?: string | null
+        conversationId?: string | null,
+        viewerId?: string | null
     ): Promise<ChatResponse> {
         // Public chat endpoint (no auth); organization is resolved from showcaseId on the backend
         return await fetchJson<ChatResponse>(`${API_BASE_URL}/public/showcases/${showcaseId}/chat`, {
@@ -53,6 +54,7 @@ export const chatService = {
             body: JSON.stringify({
                 message,
                 conversation_id: conversationId,
+                viewer_id: viewerId ?? undefined,
             }),
         });
     },

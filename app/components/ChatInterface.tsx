@@ -36,6 +36,8 @@ interface ChatInterfaceProps {
     publicView?: boolean;
     /** Showcase ID for public-view chat; used with public chat endpoint */
     showcaseId?: string;
+    /** Anonymous viewer/session ID for public showcases (used for analytics + chat) */
+    viewerId?: string | null;
 }
 
 export function ChatInterface({
@@ -48,6 +50,7 @@ export function ChatInterface({
     onConversationIdChange,
     publicView = false,
     showcaseId,
+    viewerId,
 }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
@@ -223,7 +226,12 @@ export function ChatInterface({
             let response;
             if (publicView && showcaseId) {
                 // Public showcase chat: use dedicated public endpoint (no auth)
-                response = await chatService.sendPublicShowcaseMessage(showcaseId, userInput, conversationId);
+                response = await chatService.sendPublicShowcaseMessage(
+                    showcaseId,
+                    userInput,
+                    conversationId,
+                    viewerId ?? undefined
+                );
             } else {
                 // Authenticated/portal chat: use regular chat endpoint
                 response = await chatService.sendMessage(userInput, organizationId, conversationId);

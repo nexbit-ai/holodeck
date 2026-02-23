@@ -41,6 +41,7 @@ export default function PublicShowcasePage() {
   const [isLoadingShowcase, setIsLoadingShowcase] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
 
   // Demo player state
   const [demoContent, setDemoContent] = useState<ClickRecording | null>(null);
@@ -56,6 +57,25 @@ export default function PublicShowcasePage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Generate or retrieve a stable anonymous viewer/session ID for this showcase
+  useEffect(() => {
+    if (!showcaseId) return;
+    if (typeof window === "undefined") return;
+
+    const key = `nexbit_viewer_id_${showcaseId}`;
+    let existing = window.localStorage.getItem(key);
+    if (!existing) {
+      // Prefer crypto.randomUUID when available
+      const newId =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `viewer_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+      window.localStorage.setItem(key, newId);
+      existing = newId;
+    }
+    setViewerId(existing);
+  }, [showcaseId]);
 
   // Fetch showcase data
   useEffect(() => {
@@ -178,6 +198,31 @@ export default function PublicShowcasePage() {
     }
   }, [showcase]);
 
+  // Track a "view" event for this public showcase, including the anonymous viewerId
+  useEffect(() => {
+    async function trackView() {
+      if (!showcase || !showcase.live || !viewerId) return;
+      try {
+        await fetch(`${API_BASE_URL}/public/showcases/${showcaseId}/track`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            event_type: "view",
+            metadata: {
+              viewer_id: viewerId,
+            },
+          }),
+        });
+      } catch (err) {
+        console.error("Error tracking showcase view:", err);
+      }
+    }
+
+    trackView();
+  }, [showcaseId, showcase, viewerId]);
+
   const handleSlideChange = (index: number) => {
     setCurrentSlideIndex(index);
   };
@@ -286,6 +331,7 @@ export default function PublicShowcasePage() {
                 secondaryColor={secondaryColor}
                 conversationId={showcase.chatId}
                 publicView={true}
+                viewerId={viewerId}
                 showcaseId={showcaseId}
               />
             </div>
