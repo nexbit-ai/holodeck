@@ -32,6 +32,8 @@ interface ChatInterfaceProps {
     secondaryColor?: string;
     conversationId?: string | null;
     onConversationIdChange?: (conversationId: string) => void;
+    /** When true (e.g. public showcase page), skip auth-required API calls to avoid 401 redirect */
+    publicView?: boolean;
 }
 
 export function ChatInterface({
@@ -41,7 +43,8 @@ export function ChatInterface({
     primaryColor = "#6366F1",
     secondaryColor = "#10B981",
     conversationId: initialConversationId = null,
-    onConversationIdChange
+    onConversationIdChange,
+    publicView = false,
 }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
@@ -80,9 +83,35 @@ export function ChatInterface({
     }, [messages]);
 
     // On mount, try to hydrate the chat from the latest existing conversation
+    // Skip when publicView (showcase) or when we have initialConversationId - avoid auth-required calls for unauthenticated viewers
     useEffect(() => {
         const loadLatestConversation = async () => {
             try {
+                if (publicView) {
+                    // Public showcase: don't call any auth-required API; show welcome fallback only
+                    setHistoryChecked(true);
+                    return;
+                }
+                if (initialConversationId) {
+                    // Public showcase with a specific chat - load that conversation's messages if we can (may 401 when unauthenticated)
+                    try {
+                        const msgs: ChatMessage[] = await chatLogsService.getMessages(initialConversationId, organizationId);
+                        if (msgs && msgs.length > 0) {
+                            const mappedMessages: Message[] = msgs.map((m) => ({
+                                id: m.id,
+                                text: m.content,
+                                sender: m.role === "user" ? "user" : "nex",
+                                timestamp: new Date(m.created_at),
+                            }));
+                            setMessages(mappedMessages);
+                        }
+                    } catch {
+                        // Unauthenticated (e.g. public view) - leave messages empty; welcome fallback will show
+                    }
+                    setHistoryChecked(true);
+                    return;
+                }
+
                 const conversations: Conversation[] = await chatLogsService.getConversations(organizationId);
                 if (conversations && conversations.length > 0) {
                     const latest = conversations[0]; // backend returns most recent first
@@ -110,7 +139,7 @@ export function ChatInterface({
         };
 
         loadLatestConversation();
-    }, [organizationId]);
+    }, [organizationId, initialConversationId, publicView]);
 
     // Sync conversationId when prop changes
     useEffect(() => {
@@ -126,6 +155,19 @@ export function ChatInterface({
 
         const initChat = async () => {
             try {
+                if (publicView) {
+                    // Public showcase: use fallback without calling API (avoids 401)
+                    setMessages([
+                        {
+                            id: 1,
+                            text: "Hey! I'm Nex. I'm here to help you explore AdoptAI - The Next-Gen Agentification Platform for the Enterprise. \n Want to learn more or jump straight into demos?",
+                            sender: "nex",
+                            timestamp: new Date()
+                        }
+                    ]);
+                    setIsInitializing(false);
+                    return;
+                }
                 const welcomeMsg = await welcomeService.getDefaultWelcomeMessage(organizationId);
                 setMessages([
                     {
@@ -156,7 +198,7 @@ export function ChatInterface({
         } else {
             setIsInitializing(false);
         }
-    }, [organizationId, historyChecked, messages.length]);
+    }, [organizationId, historyChecked, messages.length, publicView]);
 
     const handleSendMessage = async () => {
         if (!inputValue.trim()) return;

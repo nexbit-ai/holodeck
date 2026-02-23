@@ -284,6 +284,7 @@ export default function PublicShowcasePage() {
                 primaryColor={primaryColor}
                 secondaryColor={secondaryColor}
                 conversationId={showcase.chatId}
+                publicView={true}
               />
             </div>
           </Panel>
