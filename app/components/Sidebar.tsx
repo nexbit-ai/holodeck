@@ -1,7 +1,6 @@
 "use client";
 
 import {
-    Home,
     LayoutGrid,
     MessageCircle,
     Users,
@@ -9,61 +8,15 @@ import {
     ChevronDown,
     Link as LinkIcon,
     Sparkles,
-    LogOut
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { useStytchMember, useStytchB2BClient } from "@stytch/nextjs/b2b";
-import { useAuth } from "../contexts/AuthContext";
+import { usePathname } from "next/navigation";
 
 export function Sidebar() {
-    const publicToken = process.env.NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN;
-    const isStytchConfigured = !!publicToken;
-
-    if (!isStytchConfigured) {
-        return <SidebarContent />;
-    }
-
-    return <SidebarInner />;
-}
-
-function SidebarInner() {
-    const router = useRouter();
-    const stytch = useStytchB2BClient();
-
-    const handleLogout = async () => {
-        try {
-            await stytch.session.revoke();
-            localStorage.removeItem("nexbit_user_name");
-        } catch (error) {
-            console.error("Logout error:", error);
-            localStorage.removeItem("nexbit_user_name"); // Ensure it's removed even on error
-        }
-        router.push("/login");
-    };
-
-    return <SidebarContent onLogout={handleLogout} />;
-}
-
-interface SidebarContentProps {
-    onLogout?: () => void;
-}
-
-function SidebarContent({ onLogout }: SidebarContentProps) {
     const pathname = usePathname();
-    const router = useRouter();
-    const { user } = useAuth();
     const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
-
-    const handleLogoutClick = () => {
-        if (onLogout) {
-            onLogout();
-        } else {
-            router.push("/login");
-        }
-    };
 
     const isActive = (path: string) => pathname === path;
 
@@ -153,22 +106,6 @@ function SidebarContent({ onLogout }: SidebarContentProps) {
                     Integrations
                 </Link>
             </nav>
-
-            {/* Logout Option */}
-            <div className="p-4">
-                <button
-                    onClick={handleLogoutClick}
-                    className="w-full flex items-center gap-3 px-3 py-3 text-red-600 bg-red-50/50 hover:bg-red-50 border border-red-100/50 rounded-2xl transition-all duration-200 group"
-                >
-                    <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                        <LogOut className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 text-left overflow-hidden">
-                        <p className="text-sm font-bold">Logout</p>
-                        <p className="text-[10px] text-red-600/60 truncate uppercase tracking-wider">{user?.email}</p>
-                    </div>
-                </button>
-            </div>
         </aside>
     );
 }

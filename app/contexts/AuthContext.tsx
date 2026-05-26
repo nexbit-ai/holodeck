@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { useStytchMember } from "@stytch/nextjs/b2b";
+import { createContext, useContext } from "react";
 
 interface User {
     userId: string;
@@ -18,111 +17,30 @@ interface AuthContextType {
     organizationId: string | null;
 }
 
+// Default user that is always "logged in"
+const defaultUser: User = {
+    userId: "default-user",
+    email: null,
+    name: null,
+    organizationId: null,
+    organizationName: null,
+};
+
 const AuthContext = createContext<AuthContextType>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
+    user: defaultUser,
+    isLoading: false,
+    isAuthenticated: true,
     organizationId: null,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    // Check if Stytch is configured
-    const publicToken = process.env.NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN;
-    const isStytchConfigured = !!publicToken;
-
-    // If Stytch is not configured, provide a default context
-    if (!isStytchConfigured) {
-        return (
-            <AuthContext.Provider
-                value={{
-                    user: null,
-                    isLoading: false,
-                    isAuthenticated: false,
-                    organizationId: null,
-                }}
-            >
-                {children}
-            </AuthContext.Provider>
-        );
-    }
-
-    // If Stytch is configured, use the hooks (this component is inside StytchB2BProvider)
-    return <AuthProviderInner>{children}</AuthProviderInner>;
-}
-
-// Inner component that uses Stytch B2B hooks
-// This component MUST be rendered inside StytchB2BProvider
-function AuthProviderInner({ children }: { children: React.ReactNode }) {
-    // useStytchMember hook is safe to call here because this component
-    // is only rendered when inside StytchB2BProvider (via StytchProvider)
-    const { member, isInitialized } = useStytchMember();
-
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
-
-    useEffect(() => {
-        if (!isInitialized) {
-            setIsLoading(true);
-            setHasCheckedAuth(false);
-            return;
-        }
-
-        // Mark that we've checked auth state
-        setHasCheckedAuth(true);
-
-        // If we have a member, set user data
-        // Member is the source of truth - if it exists, user is authenticated
-        if (member) {
-            // Extract organization ID from Stytch B2B member
-            // B2B members belong to organizations
-            const organizationId =
-                member.organization_id ||
-                process.env.NEXT_PUBLIC_STYTCH_ORG_ID ||
-                null;
-
-            const name = member.name || null;
-            const organizationName = null;
-
-            setUser({
-                userId: member.member_id,
-                email: member.email_address || null,
-                name,
-                organizationId,
-                organizationName,
-            });
-
-            // Store name in localStorage for extension sync
-            if (typeof window !== "undefined") {
-                if (name) {
-                    localStorage.setItem("nexbit_user_name", name);
-                } else {
-                    localStorage.removeItem("nexbit_user_name");
-                }
-            }
-            setIsLoading(false);
-        } else {
-            // Clear user only if member is null/undefined
-            setUser(null);
-            if (typeof window !== "undefined") {
-                localStorage.removeItem("nexbit_user_name");
-            }
-            setIsLoading(false);
-        }
-    }, [member, isInitialized]);
-
-    // Use member as source of truth for authentication
-    // Member existence means user is authenticated, regardless of session state
-    // Session might be undefined during initial load but member will persist
-    const isAuthenticated = !!member && hasCheckedAuth;
-
     return (
         <AuthContext.Provider
             value={{
-                user,
-                isLoading: isLoading || !hasCheckedAuth,
-                isAuthenticated,
-                organizationId: user?.organizationId || null,
+                user: defaultUser,
+                isLoading: false,
+                isAuthenticated: true,
+                organizationId: null,
             }}
         >
             {children}

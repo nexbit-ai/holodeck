@@ -33,19 +33,7 @@ export async function fetchWithAuth(url: string, options: FetchOptions = {}): Pr
         });
 
         if (response.status === 401) {
-            // Don't redirect on public showcase view - allow unauthenticated viewing
-            let isPublicShowcase = false;
-            if (typeof window !== 'undefined') {
-                const pathname = window.location?.pathname ?? '';
-                const isShowcasePath = pathname.startsWith('/view/showcases/') || pathname === '/view/showcases' || pathname.includes('/view/showcases');
-                const isShowcaseRequest = typeof url === 'string' && (url.includes('/api/view/showcases/') || (url.includes('showcases') && url.includes('public')));
-                isPublicShowcase = isShowcasePath || isShowcaseRequest;
-            }
-            if (typeof window !== 'undefined' && !isPublicShowcase) {
-                // Redirect to login page
-                window.location.href = '/login?reason=session_expired';
-            }
-            throw new ApiError('Session expired. Please log in again.', 401, null);
+            throw new ApiError('Unauthorized request.', 401, null);
         }
 
         return response;

@@ -40,16 +40,7 @@ export function WelcomeMessagesSection() {
         setError(null);
 
         try {
-            // Enforce single default message
-            if (formData.is_default) {
-                const currentDefault = messages.find(m => m.is_default);
-                // If there is a current default and it's not the one we are editing
-                if (currentDefault && currentDefault.id !== editingMessage?.id) {
-                    await welcomeService.updateWelcomeMessage(currentDefault.id, "demo-org", {
-                        is_default: false
-                    });
-                }
-            }
+            // The backend automatically unsets the existing default when a new default is created or updated.
 
             if (editingMessage) {
                 await welcomeService.updateWelcomeMessage(editingMessage.id, "demo-org", {
@@ -99,13 +90,7 @@ export function WelcomeMessagesSection() {
 
     const handleSetDefault = async (message: WelcomeMessage) => {
         try {
-            // Unset current default if exists
-            const currentDefault = messages.find(m => m.is_default);
-            if (currentDefault) {
-                await welcomeService.updateWelcomeMessage(currentDefault.id, "demo-org", {
-                    is_default: false
-                });
-            }
+            // The backend automatically unsets the existing default when we set a new one.
 
             await welcomeService.updateWelcomeMessage(message.id, "demo-org", {
                 is_default: true
