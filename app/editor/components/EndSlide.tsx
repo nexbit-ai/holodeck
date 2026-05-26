@@ -25,7 +25,7 @@ export function EndSlide({
 }: EndSlideProps) {
     const [title, setTitle] = useState(snapshot.title || 'Enjoyed the guided demo?')
     const [description, setDescription] = useState(snapshot.description || 'See more features on our website')
-    const [ctaLink, setCtaLink] = useState(snapshot.ctaLink || 'https://nexbit.ai')
+    const [ctaLink, setCtaLink] = useState(snapshot.ctaLink || 'https://usepulp.com')
     // Use a consistent static logo for all demos
     const logoSrc = "/assets/highrev_logo.jpg"
 

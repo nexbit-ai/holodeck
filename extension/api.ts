@@ -1,10 +1,7 @@
 // API service for recording uploads
 
-// const API_URL = "https://api-studio.nexbit.ai"
-// const APP_URL = "https://studio.nexbit.ai"
-
-const API_URL = "http://localhost:8000"
-const APP_URL = "http://localhost:3000"
+const API_URL = "https://api-studio.usepulp.com"
+const APP_URL = "https://studio.usepulp.com"
 
 const STYTCH_SESSION_JWT = process.env.PLASMO_PUBLIC_STYTCH_SESSION_JWT || ""
 
@@ -164,7 +161,7 @@ export async function syncAuthFromWebApp(): Promise<boolean> {
         chrome.tabs.query({
             url: [
                 `${APP_URL}/*`,
-                "https://*.nexbit.ai/*"
+                "https://*.usepulp.com/*"
             ]
         }, (holodeskTabs) => {
 
